@@ -11,7 +11,7 @@ type NavItem = {
 	id: AdminSection;
 	href: string;
 	label: string;
-	icon: 'layout-grid' | 'pen-line' | 'megaphone' | 'mail';
+	icon: 'layout-grid' | 'pen-line' | 'megaphone' | 'mail' | 'user';
 };
 
 const navItems: NavItem[] = [
@@ -19,6 +19,7 @@ const navItems: NavItem[] = [
 	{ id: 'diario', href: '/admin/diario/', label: 'Diario', icon: 'pen-line' },
 	{ id: 'publicidad', href: '/admin/publicidad/', label: 'Publicidad', icon: 'megaphone' },
 	{ id: 'suscriptores', href: '/admin/suscriptores/', label: 'Suscriptores', icon: 'mail' },
+	{ id: 'perfil', href: '/admin/perfil/', label: 'Perfil', icon: 'user' },
 ];
 
 const { active } = Astro.props;

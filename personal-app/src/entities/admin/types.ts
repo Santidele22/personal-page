@@ -1,4 +1,4 @@
-export type AdminSection = 'resumen' | 'diario' | 'publicidad' | 'suscriptores';
+export type AdminSection = 'resumen' | 'diario' | 'publicidad' | 'suscriptores' | 'perfil';
 
 export type AdminKpi = {
 	id: string;

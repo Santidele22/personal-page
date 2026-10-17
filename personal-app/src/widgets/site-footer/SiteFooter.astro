@@ -1,6 +1,37 @@
 ---
+import { GITHUB_URL, LINKEDIN_URL } from '../../app/config/site';
 import AdSlot from '../../entities/ad-slot/AdSlot.astro';
 import { adSlots } from '../../entities/ad-slot/data';
+import { fetchProfile } from '../../features/profile/api/profile';
+import Icon from '../../shared/ui/Icon.astro';
+import type { IconName } from '../../shared/ui/Icon.astro';
+
+/* The profile is read while the server renders the page; the fallbacks below
+   are the copy this footer shipped with before the profile entity existed. */
+const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+const profile = await fetchProfile(serverOrigin);
+
+/* The site name is stored with the accent period the design paints in aka. */
+const siteName = profile?.siteName || 'santi.';
+const siteNameText = siteName.endsWith('.') ? siteName.slice(0, -1) : siteName;
+const siteNamePeriod = siteName.endsWith('.');
+
+const blurb =
+	profile?.footerBlurb ||
+	'Web personal y diario sobre backend, blockchain e ingeniería de software. Escrito despacio desde 2026.';
+
+/* Copyright is stored verbatim (year included); only the offline fallback
+   rebuilds the current year, exactly as this footer used to. */
+const year = new Date().getFullYear();
+const copyright = profile?.footerCopyright || `© ${year} santi — Todos los textos son míos; el código también.`;
+
+type SocialLink = { icon: IconName; label: string; href: string };
+
+const socials: SocialLink[] = [
+	{ icon: 'rss', label: 'RSS del diario', href: '/rss.xml' },
+	{ icon: 'github', label: 'GitHub', href: profile?.githubUrl || GITHUB_URL },
+	{ icon: 'linkedin', label: 'LinkedIn', href: profile?.linkedinUrl || LINKEDIN_URL },
+];
 
 const columns = [
 	{
@@ -22,7 +53,6 @@ const columns = [
 	},
 ];
 const pie = adSlots.find((slot) => slot.id === 'pie')!;
-const year = new Date().getFullYear();
 ---
 
 <footer class="mt-auto border-t border-border bg-card/60">
@@ -33,9 +63,26 @@ const year = new Date().getFullYear();
 			<div>
 				<p class="flex items-center gap-3">
 					<span class="hanko size-8 rounded-[4px] font-mono text-[10px] font-semibold">&lt;/&gt;</span>
-					<span class="font-mincho text-xl font-semibold">santi<span class="text-aka">.</span></span>
+					<span class="font-mincho text-xl font-semibold">{siteNameText}{siteNamePeriod && <span class="text-aka">.</span>}</span>
 				</p>
-				<p class="mt-4 max-w-xs text-[13px] leading-relaxed text-muted-foreground">Web personal y diario sobre backend, blockchain e ingeniería de software. Escrito despacio desde 2026.</p>
+				<p class="mt-4 max-w-xs text-[13px] leading-relaxed text-muted-foreground">{blurb}</p>
+				<div class="mt-5 flex items-center gap-2">
+					{socials.map((social) => {
+						const isExternal = social.href.startsWith('http');
+						return (
+							<a
+								href={social.href}
+								aria-label={social.label}
+								target={isExternal ? '_blank' : undefined}
+								rel={isExternal ? 'noreferrer' : undefined}
+								data-astro-reload={social.href === '/rss.xml' ? true : undefined}
+								class="inline-flex size-9 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:border-aka hover:text-aka"
+							>
+								<Icon name={social.icon} class="size-4" />
+							</a>
+						);
+					})}
+				</div>
 			</div>
 			{columns.map((column) => (
 				<nav aria-label={column.title}>
@@ -47,7 +94,7 @@ const year = new Date().getFullYear();
 			))}
 		</div>
 		<div class="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6 text-[12px] text-muted-foreground">
-			<p>© {year} santi — Todos los textos son míos; el código también.</p>
+			<p>{copyright}</p>
 			<p class="tracking-wide">hecho despacio · deploy con calma</p>
 		</div>
 	</div>

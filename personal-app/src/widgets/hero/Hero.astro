@@ -1,9 +1,27 @@
 ---
+import { fetchProfile } from '../../features/profile/api/profile';
 import HeroArt from '../../shared/ui/HeroArt.astro';
 import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
 
-const commitments = [
+/* The profile is read while the server renders the page; the fallbacks below
+   are the copy this section shipped with before the profile entity existed. */
+const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+const profile = await fetchProfile(serverOrigin);
+
+const eyebrow = profile?.eyebrow ?? 'SANTIAGO DELEBECQ · BACKEND & BLOCKCHAIN';
+
+/* `heroTitle` is stored with its final period, which the design renders inside
+   the accent span: take it out of the text and keep it in the span. */
+const heroTitle = profile?.heroTitle ?? 'Un rincón quieto para construir software.';
+const titleText = heroTitle.endsWith('.') ? heroTitle.slice(0, -1) : heroTitle;
+const titlePeriod = heroTitle.endsWith('.');
+
+const heroIntro =
+	profile?.heroIntro ??
+	'Soy Santiago Delebecq, desarrollador backend de Córdoba, Argentina — hoy en Monetae, con background full stack y foco en arquitectura de software y sistemas que escalan. Acá escribo de backend, blockchain e ingeniería, despacio y primero en español. Sin humo: si algo está acá, lo probé antes con mis propias manos.';
+
+const commitments = profile?.commitments ?? [
 	{ value: 'Monetae', label: 'donde trabajo el backend hoy' },
 	{ value: '2/mes', label: 'una entrada cada dos semanas' },
 	{ value: 'Año 1', label: 'el diario recién empieza' },
@@ -17,17 +35,17 @@ const commitments = [
 			<Reveal>
 				<p class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
 					<span aria-hidden="true" class="inline-block h-px w-10 bg-aka"></span>
-					SANTIAGO DELEBECQ · BACKEND & BLOCKCHAIN
+					{eyebrow}
 				</p>
 			</Reveal>
 			<Reveal delay={0.08}>
 				<h1 id="hero-title" class="mt-6 max-w-xl text-balance font-mincho text-4xl font-semibold leading-[1.15] tracking-tight sm:text-5xl lg:text-[3.4rem]">
-					Un rincón quieto para construir software<span class="text-aka">.</span>
+					{titleText}{titlePeriod && <span class="text-aka">.</span>}
 				</h1>
 			</Reveal>
 			<Reveal delay={0.16}>
 				<p class="mt-6 max-w-lg text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-					Soy Santiago Delebecq, desarrollador backend de Córdoba, Argentina — hoy en Monetae, con background full stack y foco en arquitectura de software y sistemas que escalan. Acá escribo de backend, blockchain e ingeniería, despacio y primero en español. Sin humo: si algo está acá, lo probé antes con mis propias manos.
+					{heroIntro}
 				</p>
 			</Reveal>
 			<Reveal delay={0.24}>

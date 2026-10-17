@@ -61,6 +61,14 @@ export async function postJson(path: string, body: unknown): Promise<void> {
 	});
 }
 
+export async function putJson(path: string, body: unknown): Promise<void> {
+	await request(path, {
+		method: 'PUT',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(body),
+	});
+}
+
 export async function getJson<T>(path: string, options: RequestOptions = {}): Promise<T> {
 	const response = await request(path, { method: 'GET' }, options);
 
