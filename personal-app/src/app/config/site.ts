@@ -1,8 +1,11 @@
 export const SITE_NAME = 'santi.';
-export const SITE_TITLE = 'santi. — código con calma · web personal';
+export const SITE_TITLE = 'Santiago Delebecq — santi. · código con calma';
 export const SITE_DESCRIPTION =
-	'Diario personal de Santi: backend, blockchain e ingeniería de software, escrito despacio y primero en español. Espacios honestos para marcas que valoran la calma.';
-export const SITE_EMAIL = 'hola@santi.dev';
+	'Web personal y diario de Santiago Delebecq, backend developer de Córdoba, Argentina: backend, blockchain e ingeniería de software, escrito despacio y primero en español. Espacios honestos para marcas que valoran la calma.';
+export const SITE_AUTHOR = 'Santiago Delebecq';
+
+export const GITHUB_URL = 'https://github.com/Santidele22';
+export const LINKEDIN_URL = 'https://www.linkedin.com/in/santiago-delebecq-8630a2215/';
 
 export type NavLink = {
 	href: string;
@@ -12,13 +15,13 @@ export type NavLink = {
 export const NAV_LINKS: NavLink[] = [
 	{ href: '/#diario', label: 'Diario' },
 	{ href: '/#quien-soy', label: 'Quién soy' },
+	{ href: '/#proyectos', label: 'Proyectos' },
 	{ href: '/#servicios', label: 'Servicios' },
 	{ href: '/#marcas', label: 'Marcas' },
 ];
 
 export const SOCIAL_LINKS = [
 	{ icon: 'rss', label: 'RSS del diario', href: '/rss.xml' },
-	{ icon: 'github', label: 'GitHub', href: '/#contacto' },
-	{ icon: 'linkedin', label: 'LinkedIn', href: '/#contacto' },
-	{ icon: 'at-sign', label: 'Mastodon', href: '/#contacto' },
+	{ icon: 'github', label: 'GitHub', href: GITHUB_URL },
+	{ icon: 'linkedin', label: 'LinkedIn', href: LINKEDIN_URL },
 ] as const;

@@ -4,7 +4,7 @@ import type { ImageMetadata } from 'astro';
 import FallbackImage from '../../assets/blog-placeholder-1.jpg';
 import SiteFooter from '../../widgets/site-footer/SiteFooter.astro';
 import SiteHeader from '../../widgets/site-header/SiteHeader.astro';
-import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE } from '../config/site';
+import { SITE_AUTHOR, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE } from '../config/site';
 import '../styles/global.css';
 
 interface Props {
@@ -28,8 +28,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 		<link rel="alternate" type="application/rss+xml" title={SITE_NAME} href={new URL('rss.xml', Astro.site)} />
 		<meta name="generator" content={Astro.generator} />
 		<meta name="description" content={description} />
-		<meta name="author" content="Santi" />
-		<meta name="keywords" content="blog de desarrollo, backend, blockchain, ingeniería de software, programación, aprender en público" />
+		<meta name="author" content={SITE_AUTHOR} />
+		<meta name="keywords" content="Santiago Delebecq, blog de desarrollo, backend, blockchain, ingeniería de software, programación, aprender en público" />
 		<link rel="canonical" href={canonicalURL} />
 		<meta property="og:type" content="website" />
 		<meta property="og:url" content={Astro.url} />

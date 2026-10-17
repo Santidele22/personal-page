@@ -1,0 +1,88 @@
+---
+import { projects } from '../../entities/project/data';
+import Icon from '../../shared/ui/Icon.astro';
+import Reveal from '../../shared/ui/Reveal.astro';
+import SeigaihaBand from '../../shared/ui/SeigaihaBand.astro';
+
+const featured = projects.find((project) => project.featured)!;
+const rest = projects.filter((project) => !project.featured);
+---
+
+<section id="proyectos" class="scroll-mt-20 border-y border-border bg-secondary/40" aria-labelledby="proyectos-title">
+	<div class="mx-auto max-w-6xl px-5 py-16 sm:px-8 lg:py-24">
+		<Reveal>
+			<div class="max-w-xl">
+				<p class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
+					<Icon name="blocks" class="size-4 text-aka" />
+					PROYECTOS
+				</p>
+				<h2 id="proyectos-title" class="mt-3 font-mincho text-3xl font-semibold tracking-tight sm:text-4xl">Cosas que construyo con las manos</h2>
+				<p class="mt-4 text-[15px] leading-relaxed text-muted-foreground">Proyectos reales, con código abierto y sin promesas infladas: algunos en producción, otros todavía en el banco de trabajo.</p>
+			</div>
+		</Reveal>
+		<Reveal delay={0.1}>
+			<article class="group mt-10 grid overflow-hidden border border-border bg-card transition-colors hover:border-aka/60 md:grid-cols-2">
+				<div class="relative flex min-h-[240px] items-center justify-center overflow-hidden border-b border-border bg-secondary/60 md:border-b-0 md:border-r">
+					<SeigaihaBand class="absolute inset-x-0 top-0 h-24 text-foreground opacity-[0.16]" rows={3} />
+					<SeigaihaBand class="absolute inset-x-0 bottom-0 h-24 rotate-180 text-foreground opacity-[0.1]" rows={3} />
+					<Icon name={featured.icon} class="relative size-24 text-aka" strokeWidth={1} />
+					<span class="absolute left-4 top-4 rounded-full border border-aka/40 bg-background/80 px-3 py-1 text-[11px] font-medium tracking-wider text-aka backdrop-blur-sm">{featured.statusLabel.toUpperCase()}</span>
+				</div>
+				<div class="flex flex-col p-6 sm:p-9">
+					<h3 class="text-balance font-mincho text-2xl font-semibold leading-snug tracking-tight sm:text-[1.7rem]">{featured.name}</h3>
+					<p class="mt-1 text-sm font-medium text-aka">{featured.tagline}</p>
+					<p class="mt-4 flex-1 text-[15px] leading-relaxed text-muted-foreground">{featured.description}</p>
+					<ul class="mt-5 flex flex-wrap gap-1.5">
+						{featured.stack.map((tech) => <li class="rounded-sm bg-secondary px-2 py-0.5 text-[11px] font-medium tracking-wide text-foreground/80">{tech}</li>)}
+					</ul>
+					<p class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-4">
+						{featured.repoUrl && (
+							<a href={featured.repoUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
+								<Icon name="github" class="size-4" />
+								Código
+							</a>
+						)}
+						{featured.demoUrl && (
+							<a href={featured.demoUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
+								Demo
+								<Icon name="arrow-up-right" class="size-4" />
+							</a>
+						)}
+					</p>
+				</div>
+			</article>
+		</Reveal>
+		<div class="mt-6 grid gap-6 md:grid-cols-3">
+			{rest.map((project, index) => (
+				<Reveal delay={0.1 * index} class="h-full">
+					<article class="group flex h-full flex-col border border-border bg-card p-7 transition-colors hover:border-aka/60">
+						<div class="flex items-center justify-between">
+							<span aria-hidden="true" class="flex size-11 items-center justify-center border border-aka/40 text-aka">
+								<Icon name={project.icon} class="size-5" strokeWidth={1.5} />
+							</span>
+							<span class="rounded-sm bg-secondary px-2 py-0.5 text-[11px] font-medium tracking-wide text-foreground/80">{project.statusLabel}</span>
+						</div>
+						<h3 class="mt-5 font-mincho text-xl font-semibold tracking-tight">{project.name}</h3>
+						<p class="mt-1 text-sm font-medium text-aka">{project.tagline}</p>
+						<p class="mt-3 text-sm leading-relaxed text-muted-foreground">{project.description}</p>
+						<ul class="mt-5 flex flex-wrap gap-1.5">
+							{project.stack.map((tech) => <li class="rounded-sm bg-secondary px-2 py-0.5 text-[11px] font-medium tracking-wide text-foreground/80">{tech}</li>)}
+						</ul>
+						<p class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-4">
+							<a href={project.repoUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
+								<Icon name="github" class="size-4" />
+								Código
+							</a>
+							{project.demoUrl && (
+								<a href={project.demoUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
+									Demo
+									<Icon name="arrow-up-right" class="size-4" />
+								</a>
+							)}
+						</p>
+					</article>
+				</Reveal>
+			))}
+		</div>
+	</div>
+</section>
