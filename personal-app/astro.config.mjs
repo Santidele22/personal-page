@@ -14,13 +14,16 @@ export default defineConfig({
 		server: {
 			// Development only: the frontend always calls relative `/api/...`
 			// paths, and the dev server forwards them to the Nest API on port
-			// 3000. The backend has no global prefix, so the path is unchanged.
-			// `changeOrigin` stays off because Better Auth validates the browser
-			// `Origin` header (`BETTER_AUTH_TRUSTED_ORIGINS`).
+			// 3000. The backend has no global prefix, so domain routes drop the
+			// `/api` prefix while Better Auth stays at the real `/api/auth/*`
+			// mount. `changeOrigin` stays off because Better Auth validates the
+			// browser `Origin` header (`BETTER_AUTH_TRUSTED_ORIGINS`).
 			proxy: {
 				'/api': {
 					target: 'http://localhost:3000',
 					changeOrigin: false,
+					rewrite: (path) =>
+						path.startsWith('/api/auth') ? path : path.replace(/^\/api/, ''),
 				},
 			},
 		},
