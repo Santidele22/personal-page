@@ -4,9 +4,9 @@ import type { CollectionEntry } from 'astro:content';
 import FormattedDate from '../../shared/ui/FormattedDate.astro';
 import BaseLayout from './BaseLayout.astro';
 
-type Props = CollectionEntry<'blog'>['data'];
+type Props = CollectionEntry<'blog'>['data'] & { slug: string };
 
-const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
+const { title, description, pubDate, updatedDate, heroImage, slug } = Astro.props;
 ---
 
 <BaseLayout title={`${title} · santi.`} description={description} image={heroImage}>
@@ -17,6 +17,7 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 				height={510}
 				src={heroImage}
 				alt=""
+				transition:name={`blog-hero-${slug}`}
 				class="mb-10 max-h-[510px] w-full border border-border object-cover shadow-[0_20px_60px_-30px_rgba(0,0,0,0.25)]"
 			/>
 		)}
@@ -25,7 +26,7 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 				<FormattedDate date={pubDate} />
 				{updatedDate && <span class="mt-1 block text-xs italic">Actualizado el <FormattedDate date={updatedDate} /></span>}
 			</p>
-			<h1 class="mt-4 text-balance font-mincho text-3xl font-semibold tracking-tight sm:text-5xl">{title}</h1>
+			<h1 transition:name={`blog-title-${slug}`} class="mt-4 text-balance font-mincho text-3xl font-semibold tracking-tight sm:text-5xl">{title}</h1>
 			<p class="mx-auto mt-4 max-w-2xl text-muted-foreground">{description}</p>
 		</header>
 		<div class="article-content mx-auto max-w-3xl text-[15px] leading-relaxed text-foreground/90 sm:text-base">

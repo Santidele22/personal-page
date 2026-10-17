@@ -25,6 +25,7 @@ import Reveal from '../../shared/ui/Reveal.astro';
 								aria-label={social.label}
 								target={isExternal ? '_blank' : undefined}
 								rel={isExternal ? 'noreferrer' : undefined}
+								data-astro-reload={social.href === '/rss.xml' ? true : undefined}
 								class="inline-flex size-10 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:border-aka hover:text-aka"
 							>
 								<Icon name={social.icon} class="size-4" />
