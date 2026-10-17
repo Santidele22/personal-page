@@ -1,5 +1,8 @@
 import { createSignal, Show } from 'solid-js';
 import { getAuthClient } from './api/authClient';
+import { signInWithDev } from './api/devAuth';
+import { refreshSession } from './api/session';
+import { getAuthMode } from './api/sessionMode';
 import { adminRedirectTarget } from './paths';
 
 const INVALID_CREDENTIALS = 'El correo o la contraseña no son correctos.';
@@ -17,8 +20,10 @@ function signInErrorMessage(error: SignInError): string {
 }
 
 /**
- * Login island of the panel. It signs in with Better Auth email/password and,
- * on success, returns the visitor to the admin route they asked for.
+ * Login island of the panel. It signs in with the auth stack the API reports —
+ * Better Auth email/password, or the interim dev credentials while `AUTH_MODE`
+ * is `dev` — and, on success, returns the visitor to the admin route they asked
+ * for.
  */
 export default function LoginForm() {
 	const [email, setEmail] = createSignal('');
@@ -34,16 +39,30 @@ export default function LoginForm() {
 		setError('');
 
 		try {
-			const { error: authError } = await getAuthClient().signIn.email({
-				email: email().trim(),
-				password: password(),
-			});
+			const mode = await getAuthMode();
+			let authError: SignInError;
+
+			if (mode === 'dev') {
+				authError = (await signInWithDev(email().trim(), password())).error;
+			} else {
+				authError = (
+					await getAuthClient().signIn.email({
+						email: email().trim(),
+						password: password(),
+					})
+				).error;
+			}
 
 			if (authError) {
 				setError(signInErrorMessage(authError));
 				setPending(false);
 				return;
 			}
+
+			// The interim dev session lives in the cookie the API just set, so the
+			// shared store refreshes before the panel islands mount on the next page
+			// (`loadSession` caches its first request).
+			if (mode === 'dev') await refreshSession();
 
 			const requested = new URLSearchParams(window.location.search).get('redirect');
 			window.location.assign(adminRedirectTarget(requested));

@@ -1,6 +1,5 @@
 import { createSignal, Show, onMount } from 'solid-js';
-import { getAuthClient } from './api/authClient';
-import { clearSession, currentSession, displayName, loadSession, sessionStatus } from './api/session';
+import { clearSession, currentSession, displayName, loadSession, sessionStatus, signOut } from './api/session';
 import { LOGIN_PATH } from './paths';
 
 /**
@@ -21,7 +20,7 @@ export default function SidebarSession() {
 		setSigningOut(true);
 
 		try {
-			await getAuthClient().signOut();
+			await signOut();
 		} catch {
 			// The session may already be gone: the redirect below still lands
 			// the visitor on the login screen.

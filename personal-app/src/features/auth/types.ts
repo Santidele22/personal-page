@@ -4,8 +4,13 @@
  * profile fields from `user.additionalFields` in the backend config.
  */
 export type AuthUser = {
-	id: string;
-	name: string;
+	/**
+	 * Better Auth user id. The interim dev snapshot (`/auth/dev-session`) only
+	 * identifies its single administrator by email, so it stays optional.
+	 */
+	id?: string;
+	/** Display name; the dev snapshot may omit it. */
+	name?: string;
 	email: string;
 	role?: string;
 	firstName?: string | null;
@@ -13,7 +18,8 @@ export type AuthUser = {
 };
 
 export type AuthSession = {
-	session: {
+	/** Better Auth session record; the interim dev snapshot only carries the user. */
+	session?: {
 		id: string;
 		expiresAt: Date | string;
 	};
@@ -21,3 +27,15 @@ export type AuthSession = {
 };
 
 export type AuthSessionStatus = 'loading' | 'authenticated' | 'anonymous';
+
+/** Auth stack the API reports on its public mode endpoint. */
+export type AuthMode = 'dev' | 'better';
+
+/** Snapshot the interim dev API returns from `/auth/dev-session`. */
+export type DevSessionSnapshot = {
+	user: {
+		email: string;
+		name?: string;
+		role: string;
+	};
+};
