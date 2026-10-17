@@ -1,30 +1,15 @@
 ---
 import AdminLayout from '../../app/layouts/AdminLayout.astro';
 import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
-import AdminKpiGrid from '../../widgets/admin/AdminKpiGrid.astro';
-import AdminSignupsCard from '../../widgets/admin/AdminSignupsCard.astro';
-import AdminSubscribersTable from '../../widgets/admin/AdminSubscribersTable.astro';
-import type { IconName } from '../../shared/ui/Icon.astro';
-import { adminSubscribers, signupsByMonth, signupsSummary, suscriptoresKpis, ultimasAltas } from '../../entities/admin/data';
-
-const kpiIcons: Record<string, IconName> = {
-	totales: 'users',
-	altas: 'user-plus',
-	apertura: 'mail',
-	clics: 'mouse-pointer-click',
-};
+import SubscribersPanel from '../../features/subscribers/SubscribersPanel';
 ---
 
 <AdminLayout active="suscriptores" title="Panel · Suscriptores — devlog">
 	<AdminPageHeader
 		eyebrow="PANEL · SUSCRIPTORES"
 		title="Cartas al mes"
-		description="La newsletter sale los primeros viernes. Aquí está quién la recibe, cómo crece y si de verdad se lee."
+		description="La newsletter sale los primeros viernes. Aquí está quién la recibe y cómo crece la lista, con las altas reales del backend."
 	/>
 
-	<AdminKpiGrid kpis={suscriptoresKpis} icons={kpiIcons} fallbackIcon="mail" label="Indicadores de suscriptores" />
-
-	<AdminSignupsCard data={signupsByMonth} summary={signupsSummary} />
-
-	<AdminSubscribersTable subscribers={adminSubscribers} totalLabel={ultimasAltas.totalLabel} />
+	<SubscribersPanel client:load />
 </AdminLayout>
