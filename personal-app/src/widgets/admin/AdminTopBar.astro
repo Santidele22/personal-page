@@ -1,0 +1,30 @@
+---
+import Icon from '../../shared/ui/Icon.astro';
+import ThemeToggle from '../../features/theme-toggle/ThemeToggle';
+import { adminOwner } from '../../entities/admin/data';
+
+---
+
+<header class="flex items-center gap-4 border-b border-border bg-card/80 px-4 py-3 backdrop-blur-sm sm:px-8">
+	<p class="flex min-w-0 items-center gap-2.5 text-[13px] text-muted-foreground">
+		<span class="size-2 shrink-0 rounded-full bg-aka" aria-hidden="true"></span>
+		<span class="truncate">Datos de demostración — sin conexión a backend</span>
+	</p>
+	<div class="ml-auto flex items-center gap-3">
+		<a
+			href="/"
+			class="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-medium transition-colors hover:border-aka hover:text-aka"
+		>
+			<Icon name="external-link" class="size-4" strokeWidth={1.75} />
+			<span class="hidden sm:inline">Ver web</span>
+		</a>
+		<ThemeToggle client:idle />
+		<span
+			class="grid size-9 place-items-center rounded-full bg-foreground font-mincho text-sm font-semibold text-background"
+			aria-hidden="true"
+			title={adminOwner.email}
+		>
+			{adminOwner.firstName.charAt(0).toUpperCase()}
+		</span>
+	</div>
+</header>

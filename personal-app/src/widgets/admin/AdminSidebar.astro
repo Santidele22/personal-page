@@ -1,0 +1,73 @@
+---
+import Icon from '../../shared/ui/Icon.astro';
+import { adminOwner } from '../../entities/admin/data';
+import type { AdminSection } from '../../entities/admin/types';
+
+interface Props {
+	active: AdminSection;
+}
+
+type NavItem = {
+	id: AdminSection;
+	href: string;
+	label: string;
+	icon: 'layout-grid' | 'pen-line' | 'megaphone' | 'mail';
+};
+
+const navItems: NavItem[] = [
+	{ id: 'resumen', href: '/admin/', label: 'Resumen', icon: 'layout-grid' },
+	{ id: 'diario', href: '/admin/diario/', label: 'Diario', icon: 'pen-line' },
+	{ id: 'publicidad', href: '/admin/publicidad/', label: 'Publicidad', icon: 'megaphone' },
+	{ id: 'suscriptores', href: '/admin/suscriptores/', label: 'Suscriptores', icon: 'mail' },
+];
+
+const { active } = Astro.props;
+---
+
+<aside class="flex overflow-x-auto border-b border-border bg-card lg:h-dvh lg:w-64 lg:flex-col lg:overflow-visible lg:border-r lg:border-b-0">
+	<nav class="flex min-w-0 flex-1 items-center gap-1 px-4 py-3 lg:flex-col lg:items-stretch lg:px-6 lg:py-8" aria-label="Secciones del panel">
+		<a href="/admin/" class="mr-2 flex items-center gap-2.5 whitespace-nowrap lg:mr-0 lg:mb-8">
+			<span class="hanko size-8 rounded-[5px] font-mono text-[10px]" aria-hidden="true">&lt;/&gt;</span>
+			<span class="leading-none">
+				<span class="block font-mincho text-lg font-semibold tracking-tight">devlog</span>
+				<span class="block text-[9px] tracking-[0.35em] text-muted-foreground">PANEL</span>
+			</span>
+		</a>
+		{
+			navItems.map((item, index) => {
+				const isActive = item.id === active;
+				return (
+					<a
+						href={item.href}
+						aria-current={isActive ? 'page' : undefined}
+						class:list={[
+							'flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:justify-between',
+							index > 0 && 'lg:mt-1',
+							isActive
+								? 'border bg-aka-deep text-[#fdf8ee] border-aka-deep'
+								: 'text-muted-foreground hover:text-foreground hover:border hover:border-border hover:bg-secondary',
+						]}
+					>
+						<span class="flex items-center gap-2.5">
+							<Icon name={item.icon} class="size-4" strokeWidth={1.75} />
+							{item.label}
+						</span>
+						{isActive && <span class="hidden size-1.5 rounded-full bg-[#fdf8ee] lg:block" aria-hidden="true" />}
+					</a>
+				);
+			})
+		}
+	</nav>
+	<div class="mt-auto hidden px-6 pb-6 lg:block">
+		<a
+			href="/"
+			class="flex items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-medium transition-colors hover:border-aka hover:text-aka"
+		>
+			<Icon name="external-link" class="size-4" strokeWidth={1.75} />
+			Ver la web pública
+		</a>
+		<p class="mt-4 text-[11px] leading-relaxed text-muted-foreground">
+			Sesión de {adminOwner.firstName} — {adminOwner.email}
+		</p>
+	</div>
+</aside>

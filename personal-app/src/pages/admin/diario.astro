@@ -1,0 +1,46 @@
+---
+import AdminLayout from '../../app/layouts/AdminLayout.astro';
+import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
+import AdminPostTable from '../../widgets/admin/AdminPostTable.astro';
+import Icon from '../../shared/ui/Icon.astro';
+import { adminPosts, diarioStats } from '../../entities/admin/data';
+---
+
+<AdminLayout active="diario" title="Panel · Diario — devlog">
+	<AdminPageHeader
+		eyebrow="PANEL · DIARIO"
+		title="Entradas"
+		description="El archivo del diario: lo publicado, lo en marcha y cómo lo lee la gente. Escribir despacio también es decidir qué no se publica."
+	>
+		<button
+			type="button"
+			slot="action"
+			class="inline-flex items-center gap-2 rounded-md bg-foreground px-5 py-3 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-[#fdf8ee]"
+		>
+			<Icon name="plus" class="size-4" strokeWidth={2} />
+			Nueva entrada
+		</button>
+	</AdminPageHeader>
+
+	<section aria-label="Resumen de entradas" class="border border-border bg-card px-6 py-4">
+		<p class="flex flex-wrap items-baseline gap-x-8 gap-y-2">
+			<span class="flex items-baseline gap-3">
+				<span class="size-1.5 rounded-full bg-foreground/60" aria-hidden="true"></span>
+				<span class="font-mincho text-2xl font-semibold">{diarioStats.inSample}</span>
+				<span class="text-sm text-muted-foreground">{diarioStats.inSampleLabel}</span>
+			</span>
+			<span class="flex items-baseline gap-3">
+				<span class="size-1.5 rounded-full border border-muted-foreground" aria-hidden="true"></span>
+				<span class="font-mincho text-2xl font-semibold">{diarioStats.drafts}</span>
+				<span class="text-sm text-muted-foreground">{diarioStats.draftsLabel}</span>
+			</span>
+			<span class="flex items-baseline gap-3">
+				<span class="size-1.5 rounded-full bg-aka" aria-hidden="true"></span>
+				<span class="font-mincho text-2xl font-semibold">{diarioStats.total}</span>
+				<span class="text-sm text-muted-foreground">{diarioStats.totalLabel}</span>
+			</span>
+		</p>
+	</section>
+
+	<AdminPostTable posts={adminPosts} />
+</AdminLayout>

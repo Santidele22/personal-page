@@ -1,0 +1,42 @@
+interface TrafficChartProps {
+	/** Visitas semanales en miles, de más antigua a más reciente. */
+	values: number[];
+}
+
+export default function AdminTrafficChart(props: TrafficChartProps) {
+	const W = 720;
+	const H = 150;
+	const PAD_Y = 18;
+	const PAD_X = 10;
+
+	const values = props.values;
+	const max = Math.max(...values);
+	const min = Math.min(...values);
+	const span = max - min || 1;
+
+	const points = values.map((value, index) => ({
+		x: PAD_X + (index * (W - PAD_X * 2)) / (values.length - 1),
+		y: PAD_Y + (1 - (value - min) / span) * (H - PAD_Y * 2),
+	}));
+
+	const line = points.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ');
+	const area = `${line} L${points[points.length - 1].x.toFixed(1)} ${H} L${points[0].x.toFixed(1)} ${H} Z`;
+	const averageY = (PAD_Y + (1 - (values.reduce((a, b) => a + b, 0) / values.length - min) / span) * (H - PAD_Y * 2)).toFixed(1);
+	const last = points[points.length - 1];
+
+	return (
+		<svg viewBox={`0 0 ${W} ${H + 14}`} preserveAspectRatio="none" class="h-44 w-full" role="img" aria-label="Tráfico semanal de las últimas 12 semanas">
+			<defs>
+				<linearGradient id="traffic-fill" x1="0" y1="0" x2="0" y2="1">
+					<stop offset="0%" stop-color="var(--aka)" stop-opacity="0.28" />
+					<stop offset="100%" stop-color="var(--aka)" stop-opacity="0.05" />
+				</linearGradient>
+			</defs>
+			<path d={`M0 ${averageY} H${W}`} stroke="currentColor" stroke-dasharray="4 6" stroke-width="1" fill="none" class="text-border" />
+			<path d={area} fill="url(#traffic-fill)" />
+			<path d={line} fill="none" stroke="var(--aka)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+			<circle cx={last.x} cy={last.y} r="7" fill="var(--aka)" opacity="0.25" />
+			<circle cx={last.x} cy={last.y} r="3.5" fill="var(--aka)" />
+		</svg>
+	);
+}

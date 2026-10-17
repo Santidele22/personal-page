@@ -1,0 +1,49 @@
+---
+import AdminLayout from '../../app/layouts/AdminLayout.astro';
+import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
+import AdminSlotCard from '../../widgets/admin/AdminSlotCard.astro';
+import Icon from '../../shared/ui/Icon.astro';
+import { adminSlots, publicidadKpis } from '../../entities/admin/data';
+
+/** Sufijos con estilo atenuado junto al valor grande. */
+const kpiUnits: Record<string, string> = {
+	ingresos: '/mes',
+	ocupacion: 'de 4 slots',
+};
+---
+
+<AdminLayout active="publicidad" title="Panel · Publicidad — devlog">
+	<AdminPageHeader
+		eyebrow="PANEL · PUBLICIDAD"
+		title="Espacios para marcas"
+		description="Los cuatro slots de la web, ordenados de menos a más visible. Un solo anuncio por marca y ubicación: la calma del diario también es parte del trato."
+	>
+		<button
+			type="button"
+			slot="action"
+			class="inline-flex items-center gap-2 rounded-md border border-border bg-card px-5 py-3 text-sm font-medium transition-colors hover:border-aka hover:text-aka"
+		>
+			<Icon name="download" class="size-4" strokeWidth={1.75} />
+			Tarifa (PDF)
+		</button>
+	</AdminPageHeader>
+
+	<section aria-label="Métricas de publicidad" class="grid gap-4 sm:grid-cols-3">
+		{
+			publicidadKpis.map((kpi) => (
+				<article class="border border-border bg-card px-6 py-5">
+					<p class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">{kpi.label}</p>
+					<p class="mt-3 font-mincho text-3xl font-semibold tracking-tight">
+						{kpi.value}
+						{kpiUnits[kpi.id] && <span class="font-sans text-sm font-normal text-muted-foreground"> {kpiUnits[kpi.id]}</span>}
+					</p>
+					{kpi.id === 'renovacion' && <Icon name="calendar" class="ml-2 inline size-4 text-aka" strokeWidth={1.75} />}
+				</article>
+			))
+		}
+	</section>
+
+	<section aria-label="Slots de la web" class="grid gap-6 md:grid-cols-2">
+		{adminSlots.map((slot) => <AdminSlotCard adSlot={slot} />)}
+	</section>
+</AdminLayout>
