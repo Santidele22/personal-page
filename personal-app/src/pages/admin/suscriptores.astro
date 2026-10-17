@@ -1,0 +1,78 @@
+---
+import AdminLayout from '../../app/layouts/AdminLayout.astro';
+import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
+import AdminStatCard from '../../widgets/admin/AdminStatCard.astro';
+import AdminSignupsChart from '../../widgets/admin/AdminSignupsChart.astro';
+import { adminSubscribers, signupsByMonth, signupsSummary, suscriptoresKpis, ultimasAltas } from '../../entities/admin/data';
+
+const kpiIcons: Record<string, 'users' | 'user-plus' | 'mail' | 'mouse-pointer-click'> = {
+	totales: 'users',
+	altas: 'user-plus',
+	apertura: 'mail',
+	clics: 'mouse-pointer-click',
+};
+---
+
+<AdminLayout active="suscriptores" title="Panel · Suscriptores — devlog">
+	<AdminPageHeader
+		eyebrow="PANEL · SUSCRIPTORES"
+		title="Cartas al mes"
+		description="La newsletter sale los primeros viernes. Aquí está quién la recibe, cómo crece y si de verdad se lee."
+	/>
+
+	<section aria-label="Indicadores de suscriptores" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+		{suscriptoresKpis.map((kpi) => <AdminStatCard kpi={kpi} icon={kpiIcons[kpi.id] ?? 'mail'} />)}
+	</section>
+
+	<section aria-label="Altas por mes" class="border border-border bg-card p-6">
+		<header class="flex items-baseline justify-between gap-4">
+			<h2 class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">ALTAS POR MES — ÚLTIMOS 8 MESES</h2>
+			<p class="font-mono text-[11px] text-muted-foreground">{signupsSummary}</p>
+		</header>
+		<div class="mt-8">
+			<AdminSignupsChart data={signupsByMonth} />
+		</div>
+	</section>
+
+	<section aria-label={`Últimas altas — ${ultimasAltas.totalLabel}`} class="overflow-hidden border border-border bg-card">
+		<header class="flex items-baseline justify-between gap-4 border-b border-border px-6 py-4">
+			<h2 class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">ÚLTIMAS ALTAS</h2>
+			<p class="font-mono text-[11px] text-muted-foreground">{ultimasAltas.totalLabel}</p>
+		</header>
+		<div class="overflow-x-auto">
+			<table class="w-full min-w-[720px] text-left text-sm">
+				<caption class="sr-only">Suscriptores recientes con correo, nombre, origen, fecha y estado</caption>
+				<thead>
+					<tr class="border-b border-border">
+						<th scope="col" class="px-6 py-4 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">CORREO</th>
+						<th scope="col" class="px-4 py-4 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">NOMBRE</th>
+						<th scope="col" class="px-4 py-4 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">ORIGEN</th>
+						<th scope="col" class="px-4 py-4 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">FECHA</th>
+						<th scope="col" class="px-6 py-4 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">ESTADO</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-border">
+					{
+						adminSubscribers.map((subscriber) => (
+							<tr class="transition-colors hover:bg-secondary/50">
+								<td class="max-w-[220px] truncate px-6 py-4 font-mono text-[13px]">{subscriber.email}</td>
+								<td class="whitespace-nowrap px-4 py-4">{subscriber.name}</td>
+								<td class="whitespace-nowrap px-4 py-4 text-muted-foreground">{subscriber.origin}</td>
+								<td class="whitespace-nowrap px-4 py-4 font-mono text-[13px] text-muted-foreground">{subscriber.date}</td>
+								<td class="whitespace-nowrap px-6 py-4">
+									<span class="flex items-center gap-2">
+										<span
+											class:list={['size-1.5 rounded-full', subscriber.status === 'activo' ? 'bg-aka' : 'border border-muted-foreground']}
+											aria-hidden="true"
+										/>
+										{subscriber.status === 'activo' ? 'Activo' : 'Pendiente'}
+									</span>
+								</td>
+							</tr>
+						))
+					}
+				</tbody>
+			</table>
+		</div>
+	</section>
+</AdminLayout>

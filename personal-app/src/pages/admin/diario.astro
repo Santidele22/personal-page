@@ -1,0 +1,109 @@
+---
+import AdminLayout from '../../app/layouts/AdminLayout.astro';
+import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
+import Icon from '../../shared/ui/Icon.astro';
+import { adminPosts, diarioStats } from '../../entities/admin/data';
+import type { AdminPostStatus } from '../../entities/admin/types';
+
+const statusLabel: Record<AdminPostStatus, string> = {
+	publicado: 'Publicado',
+	borrador: 'Borrador',
+};
+---
+
+<AdminLayout active="diario" title="Panel · Diario — devlog">
+	<AdminPageHeader
+		eyebrow="PANEL · DIARIO"
+		title="Entradas"
+		description="El archivo del diario: lo publicado, lo en marcha y cómo lo lee la gente. Escribir despacio también es decidir qué no se publica."
+	>
+		<button
+			type="button"
+			slot="action"
+			class="inline-flex items-center gap-2 rounded-md bg-foreground px-5 py-3 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-[#fdf8ee]"
+		>
+			<Icon name="plus" class="size-4" strokeWidth={2} />
+			Nueva entrada
+		</button>
+	</AdminPageHeader>
+
+	<section aria-label="Resumen de entradas" class="border border-border bg-card px-6 py-4">
+		<p class="flex flex-wrap items-baseline gap-x-8 gap-y-2">
+			<span class="flex items-baseline gap-3">
+				<span class="size-1.5 rounded-full bg-foreground/60" aria-hidden="true"></span>
+				<span class="font-mincho text-2xl font-semibold">{diarioStats.inSample}</span>
+				<span class="text-sm text-muted-foreground">{diarioStats.inSampleLabel}</span>
+			</span>
+			<span class="flex items-baseline gap-3">
+				<span class="size-1.5 rounded-full border border-muted-foreground" aria-hidden="true"></span>
+				<span class="font-mincho text-2xl font-semibold">{diarioStats.drafts}</span>
+				<span class="text-sm text-muted-foreground">{diarioStats.draftsLabel}</span>
+			</span>
+			<span class="flex items-baseline gap-3">
+				<span class="size-1.5 rounded-full bg-aka" aria-hidden="true"></span>
+				<span class="font-mincho text-2xl font-semibold">{diarioStats.total}</span>
+				<span class="text-sm text-muted-foreground">{diarioStats.totalLabel}</span>
+			</span>
+		</p>
+	</section>
+
+	<section aria-label="Tabla de entradas" class="overflow-hidden border border-border bg-card">
+		<div class="overflow-x-auto">
+			<table class="w-full min-w-[760px] text-left text-sm">
+				<caption class="sr-only">Entradas del diario con estado, visitas, comentarios y fecha</caption>
+				<thead>
+					<tr class="border-b border-border">
+						<th scope="col" class="px-6 py-4 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">ENTRADA</th>
+						<th scope="col" class="px-4 py-4 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">ESTADO</th>
+						<th scope="col" class="px-4 py-4 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">VISITAS</th>
+						<th scope="col" class="px-4 py-4 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">COMENTARIOS</th>
+						<th scope="col" class="px-4 py-4 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">FECHA</th>
+						<th scope="col" class="px-6 py-4 text-right text-[11px] font-medium tracking-[0.2em] text-muted-foreground">ACCIONES</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-border">
+					{
+						adminPosts.map((post) => (
+							<tr class="group transition-colors hover:bg-secondary/50">
+								<th scope="row" class="max-w-sm px-6 py-4 font-sans font-normal">
+									<span class="block truncate font-medium">{post.title}</span>
+									<span class="mt-0.5 block font-mono text-[10px] tracking-[0.2em] text-muted-foreground">{post.category}</span>
+								</th>
+								<td class="whitespace-nowrap px-4 py-4">
+									<span class="flex items-center gap-2">
+										<span
+											class:list={[
+												'size-1.5 rounded-full',
+												post.status === 'publicado' ? 'bg-foreground/70' : 'border border-muted-foreground',
+											]}
+											aria-hidden="true"
+										/>
+										{statusLabel[post.status]}
+									</span>
+								</td>
+								<td class="whitespace-nowrap px-4 py-4 font-mono text-[13px]">{post.views ?? '—'}</td>
+								<td class="whitespace-nowrap px-4 py-4">
+									<span class="inline-flex items-center gap-1.5 text-muted-foreground">
+										<Icon name="message-square" class="size-3.5" strokeWidth={1.75} />
+										{post.comments}
+									</span>
+								</td>
+								<td class="whitespace-nowrap px-4 py-4 font-mono text-[13px] text-muted-foreground">{post.date}</td>
+								<td class="px-6 py-4 text-right">
+									<span class="inline-flex items-center gap-3 text-muted-foreground opacity-60 transition-opacity group-hover:opacity-100">
+										<a href="#" aria-label={`Ver ${post.title}`} class="transition-colors hover:text-aka">
+											<Icon name="eye" class="size-4" strokeWidth={1.5} />
+										</a>
+										<a href="#" aria-label={`Editar ${post.title}`} class="transition-colors hover:text-aka">
+											<Icon name="pen-line" class="size-4" strokeWidth={1.5} />
+										</a>
+									</span>
+								</td>
+							</tr>
+						))
+					}
+				</tbody>
+			</table>
+		</div>
+	</section>
+</AdminLayout>
