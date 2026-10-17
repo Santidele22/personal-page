@@ -4,6 +4,8 @@ import type {
 	AdminRenewal,
 	AdminSignupByMonth,
 	AdminSlot,
+	AdminSlotOccupancy,
+	AdminSlotStatusLine,
 	AdminSubscriber,
 	AdminSummaryStat,
 } from './types';
@@ -29,7 +31,7 @@ export const resumenKpis: AdminKpi[] = [
 	{ id: 'suscriptores', label: 'Suscriptores', value: '1.204', trend: '+36 este mes', note: '46% de apertura media' },
 ];
 
-export const slotOccupancy = {
+export const slotOccupancy: AdminSlotOccupancy = {
 	percent: 82,
 	value: '€205',
 	max: '€250',
@@ -38,7 +40,7 @@ export const slotOccupancy = {
 	linkLabel: 'Gestionar publicidad',
 };
 
-export const slotStatusLines = [
+export const slotStatusLines: AdminSlotStatusLine[] = [
 	{ id: 'pie', name: 'Slot Pie', dimensions: '300 × 100', price: '€15', active: true },
 	{ id: 'contenido', name: 'Slot Contenido', dimensions: '480 × 120', price: '€45', active: false },
 	{ id: 'lateral', name: 'Slot Lateral', dimensions: '300 × 250', price: '€70', active: true },

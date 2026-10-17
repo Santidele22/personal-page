@@ -1,0 +1,48 @@
+---
+import Icon from '../../shared/ui/Icon.astro';
+import type { AdminRenewal } from '../../entities/admin/types';
+
+interface Props {
+	renewals: AdminRenewal[];
+	/** Fecha de la renovación más próxima, ya formateada. */
+	nextRenewal: string;
+	/** Nota al pie sobre la política de renovación. */
+	note: string;
+}
+
+const { renewals, nextRenewal, note } = Astro.props;
+---
+
+<article class="flex flex-col border border-border bg-card p-6">
+	<header class="flex items-baseline justify-between gap-4">
+		<h2 class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">PRÓXIMAS RENOVACIONES</h2>
+		<p class="font-mono text-[11px] text-muted-foreground">siguiente: {nextRenewal}</p>
+	</header>
+	<ul class="mt-5 divide-y divide-border">
+		{
+			renewals.map((renewal) => (
+				<li class="flex items-center gap-4 py-4">
+					<span
+						class:list={[
+							'shrink-0 rounded-sm px-2 py-1 font-mono text-[11px]',
+							renewal.warning ? 'bg-aka text-[#fdf8ee]' : 'border border-border text-foreground/80',
+						]}
+					>
+						{renewal.dateLabel}
+					</span>
+					<div class="min-w-0 flex-1">
+						<p class="truncate font-mincho text-[15px] font-semibold">
+							{renewal.slotName} <span class="font-sans text-sm font-normal text-muted-foreground">— {renewal.brand}</span>
+						</p>
+						{renewal.warning && <p class="mt-0.5 text-xs text-aka">{renewal.warning}</p>}
+					</div>
+					<span class="font-medium">{renewal.price}</span>
+				</li>
+			))
+		}
+	</ul>
+	<p class="mt-auto flex items-start gap-2.5 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">
+		<Icon name="refresh" class="mt-0.5 size-3.5 shrink-0" strokeWidth={1.75} />
+		{note}
+	</p>
+</article>

@@ -1,0 +1,22 @@
+---
+import AdminTrafficChart from './AdminTrafficChart.tsx';
+
+interface Props {
+	/** Visitas semanales en miles, de más antigua a más reciente (12 semanas). */
+	series: number[];
+	/** Resumen del periodo para la cabecera, ya formateado. */
+	summary: string;
+}
+
+const { series, summary } = Astro.props;
+---
+
+<section aria-label="Tráfico de las últimas 12 semanas" class="border border-border bg-card p-6">
+	<header class="flex items-baseline justify-between gap-4">
+		<h2 class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">TRÁFICO — ÚLTIMAS 12 SEMANAS</h2>
+		<p class="font-mono text-[11px] text-muted-foreground">{summary}</p>
+	</header>
+	<div class="mt-6">
+		<AdminTrafficChart values={series} client:visible />
+	</div>
+</section>

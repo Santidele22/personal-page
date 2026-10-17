@@ -1,11 +1,12 @@
 ---
 import AdminLayout from '../../app/layouts/AdminLayout.astro';
 import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
-import AdminStatCard from '../../widgets/admin/AdminStatCard.astro';
+import AdminKpiGrid from '../../widgets/admin/AdminKpiGrid.astro';
 import AdminSignupsChart from '../../widgets/admin/AdminSignupsChart.tsx';
+import type { IconName } from '../../shared/ui/Icon.astro';
 import { adminSubscribers, signupsByMonth, signupsSummary, suscriptoresKpis, ultimasAltas } from '../../entities/admin/data';
 
-const kpiIcons: Record<string, 'users' | 'user-plus' | 'mail' | 'mouse-pointer-click'> = {
+const kpiIcons: Record<string, IconName> = {
 	totales: 'users',
 	altas: 'user-plus',
 	apertura: 'mail',
@@ -20,9 +21,7 @@ const kpiIcons: Record<string, 'users' | 'user-plus' | 'mail' | 'mouse-pointer-c
 		description="La newsletter sale los primeros viernes. Aquí está quién la recibe, cómo crece y si de verdad se lee."
 	/>
 
-	<section aria-label="Indicadores de suscriptores" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-		{suscriptoresKpis.map((kpi) => <AdminStatCard kpi={kpi} icon={kpiIcons[kpi.id] ?? 'mail'} />)}
-	</section>
+	<AdminKpiGrid kpis={suscriptoresKpis} icons={kpiIcons} fallbackIcon="mail" label="Indicadores de suscriptores" />
 
 	<section aria-label="Altas por mes" class="border border-border bg-card p-6">
 		<header class="flex items-baseline justify-between gap-4">

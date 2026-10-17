@@ -1,9 +1,10 @@
 ---
 import AdminLayout from '../../app/layouts/AdminLayout.astro';
-import AdminOccupancyDonut from '../../widgets/admin/AdminOccupancyDonut.tsx';
-import AdminTrafficChart from '../../widgets/admin/AdminTrafficChart.tsx';
 import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
-import AdminStatCard from '../../widgets/admin/AdminStatCard.astro';
+import AdminKpiGrid from '../../widgets/admin/AdminKpiGrid.astro';
+import AdminOccupancyCard from '../../widgets/admin/AdminOccupancyCard.astro';
+import AdminRenewalsCard from '../../widgets/admin/AdminRenewalsCard.astro';
+import AdminTrafficCard from '../../widgets/admin/AdminTrafficCard.astro';
 import Icon from '../../shared/ui/Icon.astro';
 import {
 	adminOwner,
@@ -41,83 +42,12 @@ const kpiIcons: Record<string, 'eye' | 'megaphone' | 'pen-line' | 'mail'> = {
 		</button>
 	</AdminPageHeader>
 
-	<section aria-label="Indicadores del mes" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-		{resumenKpis.map((kpi) => <AdminStatCard kpi={kpi} icon={kpiIcons[kpi.id] ?? 'eye'} />)}
-	</section>
+	<AdminKpiGrid kpis={resumenKpis} icons={kpiIcons} fallbackIcon="eye" label="Indicadores del mes" />
 
 	<section aria-label="Ocupación y renovaciones" class="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-		<article class="flex flex-col border border-border bg-card p-6">
-			<h2 class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">OCUPACIÓN DE SLOTS</h2>
-			<div class="mt-6 flex items-center gap-6">
-				<AdminOccupancyDonut percent={slotOccupancy.percent} client:visible />
-				<div>
-					<p class="font-mincho text-3xl font-semibold tracking-tight">
-						{slotOccupancy.value}
-						<span class="font-sans text-sm font-normal text-muted-foreground"> / {slotOccupancy.max}</span>
-					</p>
-					<p class="mt-1.5 text-sm text-muted-foreground">{slotOccupancy.note}</p>
-					<a href={slotOccupancy.href} class="group mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-aka transition-colors hover:text-aka-deep">
-						{slotOccupancy.linkLabel}
-						<Icon name="arrow-right" class="size-4 transition-transform group-hover:translate-x-0.5" />
-					</a>
-				</div>
-			</div>
-			<ul class="mt-6 divide-y divide-border border-t border-border">
-				{
-					slotStatusLines.map((line) => (
-						<li class="flex items-center gap-3 py-3 text-sm">
-							<span class:list={['size-2 rounded-full', line.active ? 'bg-aka' : 'border border-muted-foreground']} aria-hidden="true" />
-							<span class="min-w-0 flex-1 truncate">{line.name}</span>
-							<span class="hidden font-mono text-[11px] text-muted-foreground sm:inline">{line.dimensions}</span>
-							<span class="w-12 text-right font-medium">{line.price}</span>
-						</li>
-					))
-				}
-			</ul>
-		</article>
-
-		<article class="flex flex-col border border-border bg-card p-6">
-			<header class="flex items-baseline justify-between gap-4">
-				<h2 class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">PRÓXIMAS RENOVACIONES</h2>
-				<p class="font-mono text-[11px] text-muted-foreground">siguiente: {nextRenewal}</p>
-			</header>
-			<ul class="mt-5 divide-y divide-border">
-				{
-					renewals.map((renewal) => (
-						<li class="flex items-center gap-4 py-4">
-							<span
-								class:list={[
-									'shrink-0 rounded-sm px-2 py-1 font-mono text-[11px]',
-									renewal.warning ? 'bg-aka text-[#fdf8ee]' : 'border border-border text-foreground/80',
-								]}
-							>
-								{renewal.dateLabel}
-							</span>
-							<div class="min-w-0 flex-1">
-								<p class="truncate font-mincho text-[15px] font-semibold">
-									{renewal.slotName} <span class="font-sans text-sm font-normal text-muted-foreground">— {renewal.brand}</span>
-								</p>
-								{renewal.warning && <p class="mt-0.5 text-xs text-aka">{renewal.warning}</p>}
-							</div>
-							<span class="font-medium">{renewal.price}</span>
-						</li>
-					))
-				}
-			</ul>
-			<p class="mt-auto flex items-start gap-2.5 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">
-				<Icon name="refresh" class="mt-0.5 size-3.5 shrink-0" strokeWidth={1.75} />
-				{renewalsNote}
-			</p>
-		</article>
+		<AdminOccupancyCard occupancy={slotOccupancy} lines={slotStatusLines} />
+		<AdminRenewalsCard renewals={renewals} nextRenewal={nextRenewal} note={renewalsNote} />
 	</section>
 
-	<section aria-label="Tráfico de las últimas 12 semanas" class="border border-border bg-card p-6">
-		<header class="flex items-baseline justify-between gap-4">
-			<h2 class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">TRÁFICO — ÚLTIMAS 12 SEMANAS</h2>
-			<p class="font-mono text-[11px] text-muted-foreground">{trafficSummary}</p>
-		</header>
-		<div class="mt-6">
-			<AdminTrafficChart values={trafficSeries} client:visible />
-		</div>
-	</section>
+	<AdminTrafficCard series={trafficSeries} summary={trafficSummary} />
 </AdminLayout>

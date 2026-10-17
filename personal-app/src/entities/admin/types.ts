@@ -9,6 +9,27 @@ export type AdminKpi = {
 	note?: string;
 };
 
+export type AdminSlotOccupancy = {
+	/** Porcentaje de ocupación para el anillo del donut. */
+	percent: number;
+	/** Facturación actual de los slots. */
+	value: string;
+	/** Facturación potencial al 100 %. */
+	max: string;
+	note: string;
+	href: string;
+	linkLabel: string;
+};
+
+export type AdminSlotStatusLine = {
+	id: string;
+	name: string;
+	dimensions: string;
+	price: string;
+	/** Slot reservado este mes. */
+	active: boolean;
+};
+
 export type AdminSlotStatus = 'reservado' | 'disponible';
 
 export type AdminSlot = {

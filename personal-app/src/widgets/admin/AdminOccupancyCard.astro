@@ -1,0 +1,42 @@
+---
+import AdminOccupancyDonut from './AdminOccupancyDonut.tsx';
+import Icon from '../../shared/ui/Icon.astro';
+import type { AdminSlotOccupancy, AdminSlotStatusLine } from '../../entities/admin/types';
+
+interface Props {
+	occupancy: AdminSlotOccupancy;
+	lines: AdminSlotStatusLine[];
+}
+
+const { occupancy, lines } = Astro.props;
+---
+
+<article class="flex flex-col border border-border bg-card p-6">
+	<h2 class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">OCUPACIÓN DE SLOTS</h2>
+	<div class="mt-6 flex items-center gap-6">
+		<AdminOccupancyDonut percent={occupancy.percent} client:visible />
+		<div>
+			<p class="font-mincho text-3xl font-semibold tracking-tight">
+				{occupancy.value}
+				<span class="font-sans text-sm font-normal text-muted-foreground"> / {occupancy.max}</span>
+			</p>
+			<p class="mt-1.5 text-sm text-muted-foreground">{occupancy.note}</p>
+			<a href={occupancy.href} class="group mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-aka transition-colors hover:text-aka-deep">
+				{occupancy.linkLabel}
+				<Icon name="arrow-right" class="size-4 transition-transform group-hover:translate-x-0.5" />
+			</a>
+		</div>
+	</div>
+	<ul class="mt-6 divide-y divide-border border-t border-border">
+		{
+			lines.map((line) => (
+				<li class="flex items-center gap-3 py-3 text-sm">
+					<span class:list={['size-2 rounded-full', line.active ? 'bg-aka' : 'border border-muted-foreground']} aria-hidden="true" />
+					<span class="min-w-0 flex-1 truncate">{line.name}</span>
+					<span class="hidden font-mono text-[11px] text-muted-foreground sm:inline">{line.dimensions}</span>
+					<span class="w-12 text-right font-medium">{line.price}</span>
+				</li>
+			))
+		}
+	</ul>
+</article>
