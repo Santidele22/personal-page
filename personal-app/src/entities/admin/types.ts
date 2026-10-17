@@ -53,6 +53,15 @@ export type AdminPost = {
 
 export type AdminSubscriberStatus = 'activo' | 'pendiente';
 
+export type AdminSummaryStatDot = 'neutral' | 'hollow' | 'aka';
+
+export type AdminSummaryStat = {
+	value: string;
+	label: string;
+	/** Color del punto decorativo junto al valor. */
+	dot: AdminSummaryStatDot;
+};
+
 export type AdminSubscriber = {
 	id: string;
 	email: string;

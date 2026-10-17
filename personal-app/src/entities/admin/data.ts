@@ -5,6 +5,7 @@ import type {
 	AdminSignupByMonth,
 	AdminSlot,
 	AdminSubscriber,
+	AdminSummaryStat,
 } from './types';
 
 /**
@@ -69,14 +70,11 @@ export const trafficSummary = 'media 10,1k · mejor semana 12,4k';
 
 /* ---------- Diario ---------- */
 
-export const diarioStats = {
-	inSample: '6',
-	inSampleLabel: 'publicadas en la muestra',
-	drafts: '2',
-	draftsLabel: 'borradores abiertos',
-	total: '128',
-	totalLabel: 'entradas totales',
-};
+export const diarioStats: AdminSummaryStat[] = [
+	{ value: '6', label: 'publicadas en la muestra', dot: 'neutral' },
+	{ value: '2', label: 'borradores abiertos', dot: 'hollow' },
+	{ value: '128', label: 'entradas totales', dot: 'aka' },
+];
 
 export const adminPosts: AdminPost[] = [
 	{ id: '01', title: 'Menos capas, más software', category: 'ENSAYO', status: 'publicado', views: '6.412', comments: 14, date: '2026.10.12' },

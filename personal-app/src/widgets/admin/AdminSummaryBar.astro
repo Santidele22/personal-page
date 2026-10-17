@@ -1,0 +1,31 @@
+---
+import type { AdminSummaryStat } from '../../entities/admin/types';
+
+interface Props {
+	stats: AdminSummaryStat[];
+	/** Texto para el aria-label de la sección. */
+	label?: string;
+}
+
+const { stats, label = 'Resumen de entradas' } = Astro.props;
+
+const dotClass = {
+	neutral: 'bg-foreground/60',
+	hollow: 'border border-muted-foreground',
+	aka: 'bg-aka',
+} satisfies Record<AdminSummaryStat['dot'], string>;
+---
+
+<section aria-label={label} class="border border-border bg-card px-6 py-4">
+	<p class="flex flex-wrap items-baseline gap-x-8 gap-y-2">
+		{
+			stats.map((stat) => (
+				<span class="flex items-baseline gap-3">
+					<span class:list={['size-1.5 rounded-full', dotClass[stat.dot]]} aria-hidden="true" />
+					<span class="font-mincho text-2xl font-semibold">{stat.value}</span>
+					<span class="text-sm text-muted-foreground">{stat.label}</span>
+				</span>
+			))
+		}
+	</p>
+</section>
