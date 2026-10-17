@@ -102,6 +102,17 @@ if [[ ! -d "$APP/node_modules" ]]; then
 fi
 
 # --- port guards -------------------------------------------------------------
+# Astro 7 keeps a registry of its running dev servers in `.astro/dev.json`;
+# a crashed instance can leave a stale entry behind and the next `astro dev`
+# fails with "Another astro dev server is already running". Clear it only
+# when its PID is provably dead, otherwise point to the live server.
+if [[ -f "$APP/.astro/dev.json" ]]; then
+  STALE_PID="$(sed -n 's/.*"pid": \([0-9][0-9]*\).*/\1/p' "$APP/.astro/dev.json" | head -1)"
+  if [[ -n "$STALE_PID" ]] && ! kill -0 "$STALE_PID" 2>/dev/null; then
+    echo "==> removing stale Astro dev server registry (dead pid $STALE_PID)"
+    rm -f "$APP/.astro/dev.json" "$APP/.astro/dev.log"
+  fi
+fi
 if port_is_used 3000; then
   echo "error: port 3000 is already in use (another API instance?)" >&2
   exit 1
