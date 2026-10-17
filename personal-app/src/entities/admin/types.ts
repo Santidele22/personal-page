@@ -24,9 +24,10 @@ export type AdminSlotOccupancy = {
 export type AdminSlotStatusLine = {
 	id: string;
 	name: string;
-	dimensions: string;
+	/** Tamaño del slot; el backend no lo expone, la vista muestra «—». */
+	dimensions?: string;
 	price: string;
-	/** Slot reservado este mes. */
+	/** Slot con una marca activa. */
 	active: boolean;
 };
 
@@ -35,13 +36,16 @@ export type AdminSlotStatus = 'reservado' | 'disponible';
 export type AdminSlot = {
 	id: string;
 	name: string;
-	dimensions: string;
-	position: string;
+	/** Tamaño del slot; el backend no lo expone, la vista muestra «—». */
+	dimensions?: string;
+	/** Ubicación del slot; el backend no la expone, la vista muestra «—». */
+	position?: string;
 	status: AdminSlotStatus;
 	/** Solo cuando el slot está reservado. */
 	brand?: string;
-	/** Rango de fechas del contrato, ya formateado. */
+	/** Fecha de fin del contrato, ya formateada. */
 	period?: string;
+	/** Impresiones del slot; el backend no las expone, la vista muestra «—». */
 	impressions?: string;
 	price: string;
 	/** Renovación próxima: se marca con color de aviso. */
@@ -65,9 +69,10 @@ export type AdminPost = {
 	title: string;
 	category: string;
 	status: AdminPostStatus;
-	/** `null` cuando es un borrador que aún no registra visitas. */
+	/** `null` cuando el backend no registra visitas de la entrada. */
 	views: string | null;
-	comments: number;
+	/** `null` cuando el backend no registra comentarios de la entrada. */
+	comments: number | null;
 	/** Fecha ya formateada, p. ej. «2026.10.12». */
 	date: string;
 };
@@ -96,4 +101,80 @@ export type AdminSubscriber = {
 export type AdminSignupByMonth = {
 	month: string;
 	value: number;
+};
+
+/* ---------- Contrato de la API (DTO tal cual los devuelve el backend) ---------- */
+
+/**
+ * Shapes returned by the backend read endpoints. They mirror the TypeORM
+ * entities field by field (`backend/src/<module>/entities/*.entity.ts`) and the
+ * `findAll()` queries, which load no relations: `advertising-plans` arrives
+ * without `brands[]`, and `brands` without the nested `plan` object (only
+ * `planId` links them).
+ */
+
+export type ApiBlogLevel = 'basico' | 'intermedio' | 'avanzado';
+
+export type ApiBlog = {
+	id: number;
+	title: string;
+	description: string;
+	content: string;
+	level: ApiBlogLevel;
+	createdAt: string;
+	authorId: string;
+};
+
+export type ApiAdvertisingPlan = {
+	id: number;
+	price: number;
+	description: string;
+};
+
+export type ApiBrand = {
+	id: number;
+	name: string;
+	imageUrl: string;
+	activeUntil: string | null;
+	createdAt: string;
+	planId: number;
+};
+
+export type ApiProject = {
+	id: number;
+	url: string;
+	name: string;
+	description: string;
+	githubUrl?: string | null;
+	technologies: string[];
+	ownerId: string;
+};
+
+export type ApiService = {
+	id: number;
+	name: string;
+	description: string;
+	features: string[];
+	price: number;
+	userId: string;
+};
+
+/* ---------- Vistas compuestas que consumen las páginas ---------- */
+
+export type AdminResumenView = {
+	kpis: AdminKpi[];
+	occupancy: AdminSlotOccupancy;
+	slotLines: AdminSlotStatusLine[];
+	renewals: AdminRenewal[];
+	nextRenewal: string;
+};
+
+export type AdminPublicidadView = {
+	kpis: AdminKpi[];
+	slots: AdminSlot[];
+};
+
+export type AdminDiarioView = {
+	stats: AdminSummaryStat[];
+	posts: AdminPost[];
 };

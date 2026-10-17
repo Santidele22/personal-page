@@ -18,6 +18,7 @@ const { renewals, nextRenewal, note } = Astro.props;
 		<h2 class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">PRÓXIMAS RENOVACIONES</h2>
 		<p class="font-mono text-[11px] text-muted-foreground">siguiente: {nextRenewal}</p>
 	</header>
+	{renewals.length === 0 && <p class="mt-5 text-sm text-muted-foreground">Sin renovaciones registradas.</p>}
 	<ul class="mt-5 divide-y divide-border">
 		{
 			renewals.map((renewal) => (

@@ -3,9 +3,25 @@ import AdminLayout from '../../app/layouts/AdminLayout.astro';
 import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
 import AdminMetricGrid from '../../widgets/admin/AdminMetricGrid.astro';
 import AdminSlotCard from '../../widgets/admin/AdminSlotCard.astro';
+import AdminDataNotice from '../../widgets/admin/AdminDataNotice.astro';
 import Icon from '../../shared/ui/Icon.astro';
 import type { IconName } from '../../shared/ui/Icon.astro';
-import { adminSlots, publicidadKpis } from '../../entities/admin/data';
+import type { AdminPublicidadView } from '../../entities/admin/types';
+import { loadPublicidad } from '../../features/admin/api/dashboards';
+
+/* See the resumen page: the data is read while the dev server renders the page. */
+const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+
+let view: AdminPublicidadView | null = null;
+let error = '';
+
+if (serverOrigin) {
+	try {
+		view = await loadPublicidad(serverOrigin);
+	} catch (cause) {
+		error = cause instanceof Error ? cause.message : 'No se pudo cargar la publicidad.';
+	}
+}
 
 const kpiIcons: Record<string, IconName> = {
 	renovacion: 'calendar',
@@ -16,7 +32,7 @@ const kpiIcons: Record<string, IconName> = {
 	<AdminPageHeader
 		eyebrow="PANEL · PUBLICIDAD"
 		title="Espacios para marcas"
-		description="Los cuatro slots de la web, ordenados de menos a más visible. Un solo anuncio por marca y ubicación: la calma del diario también es parte del trato."
+		description="Los planes de publicidad de la web y las marcas que los ocupan. Un solo anuncio por marca y ubicación: la calma del diario también es parte del trato."
 	>
 		<button
 			type="button"
@@ -28,9 +44,22 @@ const kpiIcons: Record<string, IconName> = {
 		</button>
 	</AdminPageHeader>
 
-	<AdminMetricGrid kpis={publicidadKpis} icons={kpiIcons} label="Métricas de publicidad" />
-
-	<section aria-label="Slots de la web" class="grid gap-6 md:grid-cols-2">
-		{adminSlots.map((slot) => <AdminSlotCard adSlot={slot} />)}
-	</section>
+	{
+		error ? (
+			<AdminDataNotice variant="error" title="No se pudo cargar la publicidad" message={error} />
+		) : view && view.slots.length > 0 ? (
+			<>
+				<AdminMetricGrid kpis={view.kpis} icons={kpiIcons} label="Métricas de publicidad" />
+				<section aria-label="Slots de la web" class="grid gap-6 md:grid-cols-2">
+					{view.slots.map((slot) => <AdminSlotCard adSlot={slot} />)}
+				</section>
+			</>
+		) : (
+			<AdminDataNotice
+				variant="empty"
+				title="Sin planes de publicidad"
+				message="Cuando registres planes de publicidad y sus marcas, aparecerán aquí."
+			/>
+		)
+	}
 </AdminLayout>

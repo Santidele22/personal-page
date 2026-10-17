@@ -4,34 +4,47 @@ import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
 import AdminKpiGrid from '../../widgets/admin/AdminKpiGrid.astro';
 import AdminOccupancyCard from '../../widgets/admin/AdminOccupancyCard.astro';
 import AdminRenewalsCard from '../../widgets/admin/AdminRenewalsCard.astro';
-import AdminTrafficCard from '../../widgets/admin/AdminTrafficCard.astro';
+import AdminDataNotice from '../../widgets/admin/AdminDataNotice.astro';
+import AdminGreeting from '../../widgets/admin/AdminGreeting';
 import Icon from '../../shared/ui/Icon.astro';
-import {
-	adminOwner,
-	nextRenewal,
-	renewals,
-	renewalsNote,
-	resumenKpis,
-	slotOccupancy,
-	slotStatusLines,
-	trafficSeries,
-	trafficSummary,
-} from '../../entities/admin/data';
+import type { IconName } from '../../shared/ui/Icon.astro';
+import { RENEWALS_NOTE } from '../../entities/admin/adapter';
+import type { AdminResumenView } from '../../entities/admin/types';
+import { loadResumen } from '../../features/admin/api/dashboards';
 
-const kpiIcons: Record<string, 'eye' | 'megaphone' | 'pen-line' | 'mail'> = {
-	visitas: 'eye',
-	ingresos: 'megaphone',
+/*
+ * The panel is a static build: with no SSR adapter the data can only be read
+ * while the Astro dev server renders the page (`Astro.url.origin`), which is
+ * what its `/api` proxy needs. A production build renders the empty state
+ * instead of reaching out to the API.
+ */
+const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+
+let view: AdminResumenView | null = null;
+let error = '';
+
+if (serverOrigin) {
+	try {
+		view = await loadResumen(serverOrigin);
+	} catch (cause) {
+		error = cause instanceof Error ? cause.message : 'No se pudo cargar el resumen.';
+	}
+}
+
+const kpiIcons: Record<string, IconName> = {
 	entradas: 'pen-line',
-	suscriptores: 'mail',
+	proyectos: 'blocks',
+	servicios: 'wrench',
+	marcas: 'megaphone',
 };
 ---
 
 <AdminLayout active="resumen" title="Panel · Resumen — devlog">
 	<AdminPageHeader
 		eyebrow="PANEL · RESUMEN"
-		title={`Buenas, ${adminOwner.firstName}.`}
-		description="El estado del diario de un vistazo: tráfico, ingresos de los slots y lo que necesita tu atención esta semana."
+		description="El estado del diario de un vistazo: entradas, proyectos, servicios y la publicidad, leídos del backend."
 	>
+		<AdminGreeting slot="title" client:idle />
 		<button
 			type="button"
 			slot="action"
@@ -42,12 +55,23 @@ const kpiIcons: Record<string, 'eye' | 'megaphone' | 'pen-line' | 'mail'> = {
 		</button>
 	</AdminPageHeader>
 
-	<AdminKpiGrid kpis={resumenKpis} icons={kpiIcons} fallbackIcon="eye" label="Indicadores del mes" />
-
-	<section aria-label="Ocupación y renovaciones" class="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-		<AdminOccupancyCard occupancy={slotOccupancy} lines={slotStatusLines} />
-		<AdminRenewalsCard renewals={renewals} nextRenewal={nextRenewal} note={renewalsNote} />
-	</section>
-
-	<AdminTrafficCard series={trafficSeries} summary={trafficSummary} />
+	{
+		error ? (
+			<AdminDataNotice variant="error" title="No se pudo cargar el resumen" message={error} />
+		) : view ? (
+			<>
+				<AdminKpiGrid kpis={view.kpis} icons={kpiIcons} fallbackIcon="eye" label="Indicadores del panel" />
+				<section aria-label="Ocupación y renovaciones" class="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+					<AdminOccupancyCard occupancy={view.occupancy} lines={view.slotLines} />
+					<AdminRenewalsCard renewals={view.renewals} nextRenewal={view.nextRenewal} note={RENEWALS_NOTE} />
+				</section>
+			</>
+		) : (
+			<AdminDataNotice
+				variant="empty"
+				title="Sin datos todavía"
+				message="Los indicadores se leen del backend. Configura las colecciones (entradas, proyectos, servicios, planes y marcas) y aparecerán aquí."
+			/>
+		)
+	}
 </AdminLayout>

@@ -1,0 +1,24 @@
+---
+interface Props {
+	/** `error` para un fallo de carga, `empty` para una colección sin filas. */
+	variant: 'error' | 'empty';
+	title: string;
+	/** Detalle opcional: el mensaje del fallo o la ayuda del estado vacío. */
+	message?: string;
+}
+
+const { variant, title, message } = Astro.props;
+const eyebrow = variant === 'error' ? 'NO SE PUDO CARGAR' : 'SIN DATOS';
+---
+
+<section
+	role={variant === 'error' ? 'alert' : undefined}
+	class:list={[
+		'border bg-card p-6',
+		variant === 'error' ? 'border-destructive/40' : 'border-dashed border-border',
+	]}
+>
+	<p class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">{eyebrow}</p>
+	<h2 class="mt-3 font-mincho text-2xl font-semibold tracking-tight">{title}</h2>
+	{message && <p class="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">{message}</p>}
+</section>

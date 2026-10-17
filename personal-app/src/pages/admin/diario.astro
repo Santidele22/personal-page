@@ -3,15 +3,31 @@ import AdminLayout from '../../app/layouts/AdminLayout.astro';
 import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
 import AdminPostTable from '../../widgets/admin/AdminPostTable.astro';
 import AdminSummaryBar from '../../widgets/admin/AdminSummaryBar.astro';
+import AdminDataNotice from '../../widgets/admin/AdminDataNotice.astro';
 import Icon from '../../shared/ui/Icon.astro';
-import { adminPosts, diarioStats } from '../../entities/admin/data';
+import type { AdminDiarioView } from '../../entities/admin/types';
+import { loadDiario } from '../../features/admin/api/dashboards';
+
+/* See the resumen page: the data is read while the dev server renders the page. */
+const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+
+let view: AdminDiarioView | null = null;
+let error = '';
+
+if (serverOrigin) {
+	try {
+		view = await loadDiario(serverOrigin);
+	} catch (cause) {
+		error = cause instanceof Error ? cause.message : 'No se pudieron cargar las entradas.';
+	}
+}
 ---
 
 <AdminLayout active="diario" title="Panel · Diario — devlog">
 	<AdminPageHeader
 		eyebrow="PANEL · DIARIO"
 		title="Entradas"
-		description="El archivo del diario: lo publicado, lo en marcha y cómo lo lee la gente. Escribir despacio también es decidir qué no se publica."
+		description="El archivo del diario, leído del backend: lo publicado y cómo lo lee la gente. Escribir despacio también es decidir qué no se publica."
 	>
 		<button
 			type="button"
@@ -23,7 +39,20 @@ import { adminPosts, diarioStats } from '../../entities/admin/data';
 		</button>
 	</AdminPageHeader>
 
-	<AdminSummaryBar stats={diarioStats} />
-
-	<AdminPostTable posts={adminPosts} />
+	{
+		error ? (
+			<AdminDataNotice variant="error" title="No se pudo cargar el diario" message={error} />
+		) : view && view.posts.length > 0 ? (
+			<>
+				<AdminSummaryBar stats={view.stats} />
+				<AdminPostTable posts={view.posts} />
+			</>
+		) : (
+			<AdminDataNotice
+				variant="empty"
+				title="Todavía no hay entradas"
+				message="Cuando publiques la primera entrada del diario, aparecerá aquí con su nivel y su fecha."
+			/>
+		)
+	}
 </AdminLayout>
