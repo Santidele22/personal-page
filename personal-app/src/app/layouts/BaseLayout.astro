@@ -6,6 +6,7 @@ import FallbackImage from '../../assets/blog-placeholder-1.jpg';
 import SiteFooter from '../../widgets/site-footer/SiteFooter.astro';
 import SiteHeader from '../../widgets/site-header/SiteHeader.astro';
 import { SITE_AUTHOR, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE } from '../config/site';
+import ThemeScript from '../../shared/ui/ThemeScript.astro';
 import '../styles/global.css';
 
 interface Props {
@@ -44,30 +45,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 		<Font cssVariable="--font-zen" preload />
 		<Font cssVariable="--font-geist-mono" />
 		<ClientRouter />
-		<script is:inline>
-			(() => {
-				const applyTheme = (root) => {
-					try {
-						const saved = localStorage.getItem('santi-theme');
-						const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-						root.classList.toggle('dark', dark);
-						root.style.colorScheme = dark ? 'dark' : 'light';
-					} catch {
-						root.classList.remove('dark');
-						root.style.colorScheme = 'light';
-					}
-				};
-
-				if (!window.__santiThemeHandler) {
-					document.addEventListener('astro:before-swap', (event) => {
-						applyTheme(event.newDocument.documentElement);
-					});
-					window.__santiThemeHandler = true;
-				}
-
-				applyTheme(document.documentElement);
-			})();
-		</script>
+		<ThemeScript />
 	</head>
 	<body class="bg-background font-sans text-foreground antialiased">
 		<div class="flex min-h-dvh flex-col">
