@@ -2,7 +2,7 @@
 import AdminLayout from '../../app/layouts/AdminLayout.astro';
 import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
 import AdminStatCard from '../../widgets/admin/AdminStatCard.astro';
-import AdminSignupsChart from '../../widgets/admin/AdminSignupsChart.astro';
+import AdminSignupsChart from '../../widgets/admin/AdminSignupsChart.tsx';
 import { adminSubscribers, signupsByMonth, signupsSummary, suscriptoresKpis, ultimasAltas } from '../../entities/admin/data';
 
 const kpiIcons: Record<string, 'users' | 'user-plus' | 'mail' | 'mouse-pointer-click'> = {
@@ -30,7 +30,7 @@ const kpiIcons: Record<string, 'users' | 'user-plus' | 'mail' | 'mouse-pointer-c
 			<p class="font-mono text-[11px] text-muted-foreground">{signupsSummary}</p>
 		</header>
 		<div class="mt-8">
-			<AdminSignupsChart data={signupsByMonth} />
+			<AdminSignupsChart data={signupsByMonth} client:visible />
 		</div>
 	</section>
 
