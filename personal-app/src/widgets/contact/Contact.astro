@@ -1,0 +1,39 @@
+---
+import { SITE_EMAIL, SOCIAL_LINKS } from '../../app/config/site';
+import NewsletterForm from '../../features/newsletter-form/NewsletterForm';
+import Icon from '../../shared/ui/Icon.astro';
+import Reveal from '../../shared/ui/Reveal.astro';
+---
+
+<section id="contacto" class="relative scroll-mt-20 overflow-hidden" aria-labelledby="contacto-title">
+	<div aria-hidden="true" class="pointer-events-none absolute -left-32 bottom-0 size-[420px] rounded-full bg-aka opacity-[0.06]"></div>
+	<div class="mx-auto max-w-6xl px-5 py-16 sm:px-8 lg:py-24">
+		<div class="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
+			<Reveal>
+				<p class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
+					<Icon name="mail" class="size-4 text-aka" />
+					UNA CARTA AL MES
+				</p>
+				<h2 id="contacto-title" class="mt-3 text-balance font-mincho text-3xl font-semibold tracking-tight sm:text-4xl">¿Escribimos<span class="text-aka">?</span></h2>
+				<p class="mt-4 max-w-md text-[15px] leading-relaxed text-muted-foreground">Una carta al mes: la nueva entrada, herramientas que estoy probando y alguna idea suelta. Las marcas también pueden escribirme acá para reservar espacios o hablar de afiliados.</p>
+				<div class="mt-6 flex items-center gap-3">
+					{SOCIAL_LINKS.map((social) => (
+						<a href={social.href} aria-label={social.label} class="inline-flex size-10 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:border-aka hover:text-aka">
+							<Icon name={social.icon} class="size-4" />
+						</a>
+					))}
+				</div>
+			</Reveal>
+			<Reveal delay={0.12}>
+				<div class="border border-border bg-card p-7 sm:p-9">
+					<h3 class="font-mincho text-lg font-semibold">Suscríbete al diario</h3>
+					<p class="mt-2 text-sm leading-relaxed text-muted-foreground">Sin spam, cancelás cuando quieras. Los primeros viernes de cada mes.</p>
+					<NewsletterForm client:visible />
+					<p class="mt-5 border-t border-border pt-4 text-[12px] leading-relaxed text-muted-foreground">
+						¿Marca o herramienta dev? Escribime directamente: <a href={`mailto:${SITE_EMAIL}`} class="font-medium text-aka hover:underline">{SITE_EMAIL}</a>
+					</p>
+				</div>
+			</Reveal>
+		</div>
+	</div>
+</section>

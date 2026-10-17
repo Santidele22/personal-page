@@ -1,0 +1,89 @@
+---
+import { adSlots } from '../../entities/ad-slot/data';
+import Icon from '../../shared/ui/Icon.astro';
+import Reveal from '../../shared/ui/Reveal.astro';
+
+const guarantees = [
+	{ icon: 'sprout', text: 'Sin impresiones infladas: el diario recién empieza. Quien entra ahora congela el precio fundador para siempre.' },
+	{ icon: 'shield-check', text: 'Todo va marcado como publicidad, siempre. Es la regla de la casa, no una letra chica.' },
+	{ icon: 'handshake', text: 'Solo herramientas que uso o usaría de verdad. Si no encaja con el diario, no entra.' },
+] as const;
+---
+
+<section id="marcas" class="scroll-mt-20 border-y border-border bg-secondary/40" aria-labelledby="marcas-title">
+	<div class="mx-auto max-w-6xl px-5 py-16 sm:px-8 lg:py-24">
+		<Reveal>
+			<div class="mx-auto max-w-2xl text-center">
+				<p class="flex items-center justify-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
+					<Icon name="megaphone" class="size-4 text-aka" />
+					PARA MARCAS
+				</p>
+				<h2 id="marcas-title" class="mt-3 text-balance font-mincho text-3xl font-semibold tracking-tight sm:text-4xl">Cinco momentos, de lo discreto a lo íntimo</h2>
+				<p class="mt-4 text-[15px] leading-relaxed text-muted-foreground">Acá no se venden píxeles: se venden momentos de atención del lector. Cuanto más cerca de la lectura está tu marca, más vale el espacio. Precios de lanzamiento — congelados de por vida para las marcas fundadoras.</p>
+			</div>
+		</Reveal>
+		<div class="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+			{adSlots.map((slot, index) => {
+				const isPatrono = slot.id === 'patrono';
+				return (
+					<Reveal delay={0.06 * index} class="h-full">
+						<article class:list={['relative flex h-full flex-col border bg-card p-5 transition-colors hover:border-aka/70', isPatrono ? 'border-aka/50' : 'border-border']}>
+							{isPatrono && <span class="absolute -top-3 right-4 rounded-full bg-aka px-3 py-1 text-[10px] font-semibold tracking-[0.15em] text-[#fdf8ee]">1 POR MES</span>}
+							<div class="flex items-center justify-between">
+								<h3 class="font-mincho text-lg font-semibold tracking-tight">{slot.name}</h3>
+								<span class="text-[11px] tracking-[0.2em] text-muted-foreground">0{index + 1}</span>
+							</div>
+							<p class="mt-1 text-[11px] font-medium tracking-wider text-aka">{slot.visibility}</p>
+							<div class="mt-4 flex min-h-16 w-full items-center justify-center border border-dashed border-border bg-background/60 px-4 py-3 text-center">
+								<span class="font-mono text-[11px] leading-relaxed tracking-wider text-muted-foreground">{slot.moment}</span>
+							</div>
+							<p class="mt-4 flex-1 text-[13px] leading-relaxed text-muted-foreground">{slot.note}</p>
+							<dl class="mt-4 space-y-2 border-t border-border pt-3 text-[12px]">
+								<div class="flex items-start justify-between gap-3"><dt class="text-muted-foreground">Momento</dt><dd class="text-right font-medium">{slot.moment}</dd></div>
+								<div class="flex items-start justify-between gap-3"><dt class="text-muted-foreground">Formato</dt><dd class="text-right font-medium">{slot.format}</dd></div>
+							</dl>
+							<p class="mt-4 flex items-baseline justify-between border-t border-border pt-3">
+								<span class="text-[11px] tracking-wider text-muted-foreground">FUNDADOR</span>
+								<span class="font-mincho text-2xl font-semibold">{slot.price}<span class="text-sm font-normal text-muted-foreground">{slot.cadence}</span></span>
+							</p>
+						</article>
+					</Reveal>
+				);
+			})}
+			<Reveal delay={0.06 * adSlots.length} class="h-full">
+				<article class="flex h-full flex-col justify-between border border-dashed border-border bg-background/60 p-5">
+					<div>
+						<div class="flex items-center justify-between">
+							<h3 class="font-mincho text-lg font-semibold tracking-tight">¿Sin tarifa fija?</h3>
+							<span class="text-[11px] tracking-[0.2em] text-muted-foreground">06</span>
+						</div>
+						<p class="mt-4 text-[13px] leading-relaxed text-muted-foreground">También trabajo con afiliados: si tu herramienta entra en mi flujo real, aparece en «Herramientas que uso» y la comisión es por conversión. Cero riesgo para tu marca, cero humo para mis lectores.</p>
+					</div>
+					<a href="#contacto" class="mt-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-aka hover:underline">
+						Hablemos de comisión
+						<Icon name="mail" class="size-3.5" />
+					</a>
+				</article>
+			</Reveal>
+		</div>
+		<Reveal delay={0.1}>
+			<ul class="mx-auto mt-12 grid max-w-4xl gap-4 sm:grid-cols-3">
+				{guarantees.map((guarantee) => (
+					<li class="flex items-start gap-3">
+						<Icon name={guarantee.icon} class="mt-0.5 size-4.5 shrink-0 text-aka" />
+						<span class="text-[13px] leading-relaxed text-muted-foreground">{guarantee.text}</span>
+					</li>
+				))}
+			</ul>
+		</Reveal>
+		<Reveal delay={0.16}>
+			<div class="mt-10 flex flex-col items-center gap-3">
+				<a href="#contacto" class="inline-flex items-center gap-2 rounded-md bg-foreground px-7 py-3.5 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-[#fdf8ee]">
+					<Icon name="mail" class="size-4" />
+					Reservar un espacio
+				</a>
+				<p class="text-[12px] text-muted-foreground">Respuesta en 48 h · El precio fundador se congela mientras mantengas el espacio</p>
+			</div>
+		</Reveal>
+	</div>
+</section>

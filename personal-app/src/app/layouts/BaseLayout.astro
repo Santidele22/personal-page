@@ -1,0 +1,67 @@
+---
+import { Font } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import FallbackImage from '../../assets/blog-placeholder-1.jpg';
+import SiteFooter from '../../widgets/site-footer/SiteFooter.astro';
+import SiteHeader from '../../widgets/site-header/SiteHeader.astro';
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE } from '../config/site';
+import '../styles/global.css';
+
+interface Props {
+	title?: string;
+	description?: string;
+	image?: ImageMetadata;
+}
+
+const { title = SITE_TITLE, description = SITE_DESCRIPTION, image = FallbackImage } = Astro.props;
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<link rel="sitemap" href="/sitemap-index.xml" />
+		<link rel="alternate" type="application/rss+xml" title={SITE_NAME} href={new URL('rss.xml', Astro.site)} />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content={description} />
+		<meta name="author" content="Santi" />
+		<meta name="keywords" content="blog de desarrollo, backend, blockchain, ingeniería de software, programación, aprender en público" />
+		<link rel="canonical" href={canonicalURL} />
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content={Astro.url} />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:site_name" content={SITE_NAME} />
+		<meta property="og:image" content={new URL(image.src, Astro.url)} />
+		<meta name="twitter:card" content="summary_large_image" />
+		<title>{title}</title>
+		<Font cssVariable="--font-shippori" preload />
+		<Font cssVariable="--font-zen" preload />
+		<Font cssVariable="--font-geist-mono" />
+		<script is:inline>
+			(() => {
+				try {
+					const saved = localStorage.getItem('santi-theme');
+					const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+					document.documentElement.classList.toggle('dark', dark);
+					document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+				} catch {
+					document.documentElement.classList.remove('dark');
+				}
+			})();
+		</script>
+	</head>
+	<body class="bg-background font-sans text-foreground antialiased">
+		<div class="flex min-h-dvh flex-col">
+			<SiteHeader />
+			<main class="flex-1">
+				<slot />
+			</main>
+			<SiteFooter />
+		</div>
+	</body>
+</html>

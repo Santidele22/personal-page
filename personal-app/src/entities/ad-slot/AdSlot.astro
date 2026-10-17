@@ -1,0 +1,34 @@
+---
+import Icon from '../../shared/ui/Icon.astro';
+import type { AdSlotInfo } from './types';
+
+interface Props {
+	ad: AdSlotInfo;
+	class?: string;
+}
+
+const { ad, class: className } = Astro.props;
+---
+
+<aside aria-label={`Espacio disponible para marcas: ${ad.name}`} class={className}>
+	<div class="group flex h-full flex-col justify-between border border-dashed border-border bg-background/60 px-5 py-3.5 transition-colors hover:border-aka/60">
+		<div class="flex items-center justify-between gap-2 text-[10px] tracking-[0.18em] text-muted-foreground">
+			<span class="font-medium">PUBLICIDAD · DISPONIBLE</span>
+			<span class="hidden font-medium text-aka sm:inline">{ad.visibility}</span>
+		</div>
+		<div class="py-3 text-center">
+			<p class="font-mincho text-sm font-semibold">Tu marca aquí</p>
+			<p class="mt-0.5 font-mono text-[11px] text-muted-foreground">{ad.moment}</p>
+		</div>
+		<div class="flex items-center justify-between border-t border-border/70 pt-2.5">
+			<span class="font-mincho text-base font-semibold">
+				{ad.price}
+				<span class="text-[11px] font-normal text-muted-foreground"> {ad.cadence} · fundador</span>
+			</span>
+			<a href="/#marcas" class="inline-flex items-center gap-1 text-[12px] font-medium text-aka hover:underline">
+				Reservar
+				<Icon name="arrow-right" class="size-3.5" />
+			</a>
+		</div>
+	</div>
+</aside>

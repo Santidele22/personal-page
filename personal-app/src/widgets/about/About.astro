@@ -1,0 +1,61 @@
+---
+import BambooArt from '../../shared/ui/BambooArt.astro';
+import Icon from '../../shared/ui/Icon.astro';
+import Reveal from '../../shared/ui/Reveal.astro';
+
+const values = [
+	{ icon: 'feather', title: 'Calma', text: 'Programo y escribo despacio. Si una entrada no aporta claridad ni silencio, no la publico.' },
+	{ icon: 'shield-check', title: 'Honestidad', text: 'Lo que recomiendo lo usé en producción o en mis propios proyectos. Publicidad y afiliados van marcados, sin excepciones.' },
+	{ icon: 'minus', title: 'Sobriedad', text: 'Ni pop-ups ni banners estridentes. La estética de la web es también una promesa a quien la lee.' },
+] as const;
+---
+
+<section id="quien-soy" class="scroll-mt-20 border-y border-border bg-secondary/40" aria-labelledby="quien-soy-title">
+	<div class="mx-auto grid max-w-6xl gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[minmax(280px,420px)_1fr] lg:items-center lg:gap-16 lg:py-24">
+		<Reveal class="relative mx-auto w-full max-w-sm lg:max-w-none">
+			<figure class="relative border border-border bg-card shadow-[0_20px_60px_-30px_rgba(0,0,0,0.25)]">
+				<span aria-hidden="true" class="absolute -left-px -top-px size-9 border-b border-r border-aka"></span>
+				<BambooArt class="w-full text-foreground" />
+				<figcaption class="border-t border-border px-4 py-3 text-[11px] tracking-wider text-muted-foreground">bambú y libélula — tinta sobre papel</figcaption>
+			</figure>
+		</Reveal>
+		<div>
+			<Reveal>
+				<p class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
+					<Icon name="user" class="size-4 text-aka" />
+					QUIÉN SOY
+				</p>
+			</Reveal>
+			<Reveal delay={0.08}>
+				<h2 id="quien-soy-title" class="mt-3 font-mincho text-3xl font-semibold tracking-tight sm:text-4xl">Hola, soy Santi<span class="text-aka">.</span></h2>
+			</Reveal>
+			<Reveal delay={0.14}>
+				<div class="mt-6 max-w-xl space-y-4 text-[15px] leading-relaxed text-muted-foreground">
+					<p>Soy desarrollador de software: backend de día, blockchain cuando la casa se calla. Este diario nació en 2026 con una regla simple — si no puedo explicarlo, todavía no lo aprendí. Escribir en público es mi manera de obligarme a entender.</p>
+					<p>Publico cada dos semanas, primero en español; las entradas que lo merecen viajan después al inglés. Todo lo que recomiendo pasó por mis manos, y toda la publicidad va marcada. Lo demás es código y calma.</p>
+				</div>
+			</Reveal>
+			<Reveal delay={0.2}>
+				<ul class="mt-8 space-y-5">
+					{values.map((value) => (
+						<li class="flex items-start gap-4">
+							<span aria-hidden="true" class="mt-0.5 flex size-10 shrink-0 items-center justify-center border border-aka/50 bg-card text-aka">
+								<Icon name={value.icon} class="size-4.5" strokeWidth={1.75} />
+							</span>
+							<div>
+								<h3 class="font-mincho text-[15px] font-semibold">{value.title}</h3>
+								<p class="mt-1 text-sm leading-relaxed text-muted-foreground">{value.text}</p>
+							</div>
+						</li>
+					))}
+				</ul>
+			</Reveal>
+			<Reveal delay={0.26}>
+				<p class="mt-9 flex items-center gap-4 font-mincho text-xl italic text-foreground/80">
+					— Santi
+					<span class="hanko size-8 rounded-[4px] font-mono text-[10px] font-semibold not-italic">&lt;/&gt;</span>
+				</p>
+			</Reveal>
+		</div>
+	</div>
+</section>

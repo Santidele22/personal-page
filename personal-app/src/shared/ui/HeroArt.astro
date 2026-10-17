@@ -1,0 +1,39 @@
+---
+interface Props {
+	class?: string;
+}
+
+const { class: className } = Astro.props;
+---
+
+<svg
+	viewBox="0 0 320 200"
+	role="img"
+	aria-label="Ilustración de una grulla volando sobre montañas con un sol rojo"
+	class={className}
+	preserveAspectRatio="xMidYMid meet"
+>
+	<circle cx="236" cy="62" r="38" fill="var(--aka)" opacity="0.92" />
+	<circle cx="236" cy="62" r="38" fill="none" stroke="var(--aka-deep)" stroke-width="1" opacity="0.4" />
+	<path d="M-10 172 L58 96 L126 172 Z" fill="currentColor" opacity="0.14" />
+	<path d="M62 172 L148 74 L236 172 Z" fill="currentColor" opacity="0.22" />
+	<path d="M188 172 L258 108 L328 172 Z" fill="currentColor" opacity="0.14" />
+	<path d="M-20 172 L34 128 L92 172 Z" fill="currentColor" opacity="0.1" />
+	<rect x="0" y="150" width="320" height="1.4" fill="currentColor" opacity="0.18" />
+	<rect x="40" y="160" width="200" height="1" fill="currentColor" opacity="0.12" />
+	<g fill="currentColor">
+		<path d="M128 76 C112 50 90 30 56 18 C82 44 102 62 120 82 C123 85 126 82 128 76 Z" />
+		<path d="M140 74 C152 46 174 26 208 14 C190 42 168 62 150 78 C146 81 142 80 140 74 Z" />
+		<path d="M112 80 C120 72 148 70 158 78 C156 90 138 98 120 92 C112 89 108 85 112 80 Z" />
+		<path d="M150 84 C166 85 182 81 196 73 C188 88 170 96 152 93 C147 92 146 87 150 84 Z" />
+	</g>
+	<path d="M114 84 C98 80 80 68 66 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" />
+	<circle cx="65" cy="45" r="5.2" fill="currentColor" />
+	<circle cx="66.5" cy="39.5" r="2.6" fill="var(--aka)" />
+	<path d="M61 42 L44 50 L62 49 Z" fill="currentColor" />
+	<path d="M146 92 C156 100 168 106 184 109" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" />
+	<path d="M138 95 C146 105 156 112 172 116" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" />
+	<path d="M36 52 q7 -7 14 0 q7 -7 14 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="0.55" />
+	<path d="M64 34 q5.5 -5.5 11 0 q5.5 -5.5 11 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.4" />
+	<rect x="0" y="171" width="320" height="1.6" fill="currentColor" opacity="0.45" />
+</svg>

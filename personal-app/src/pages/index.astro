@@ -1,0 +1,25 @@
+---
+import BaseLayout from '../app/layouts/BaseLayout.astro';
+import AdSlot from '../entities/ad-slot/AdSlot.astro';
+import { adSlots } from '../entities/ad-slot/data';
+import About from '../widgets/about/About.astro';
+import Blog from '../widgets/blog/Blog.astro';
+import Brands from '../widgets/brands/Brands.astro';
+import Contact from '../widgets/contact/Contact.astro';
+import Hero from '../widgets/hero/Hero.astro';
+import Services from '../widgets/services/Services.astro';
+
+const patrono = adSlots.find((slot) => slot.id === 'patrono')!;
+---
+
+<BaseLayout>
+	<Hero />
+	<div class="mx-auto max-w-6xl px-5 sm:px-8">
+		<AdSlot ad={patrono} class="h-36" />
+	</div>
+	<Blog />
+	<About />
+	<Services />
+	<Brands />
+	<Contact />
+</BaseLayout>

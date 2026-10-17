@@ -1,0 +1,64 @@
+---
+import HeroArt from '../../shared/ui/HeroArt.astro';
+import Icon from '../../shared/ui/Icon.astro';
+import Reveal from '../../shared/ui/Reveal.astro';
+
+const commitments = [
+	{ value: '2/mes', label: 'una entrada cada dos semanas' },
+	{ value: 'Año 1', label: 'el diario recién empieza' },
+];
+---
+
+<section class="relative overflow-hidden" aria-labelledby="hero-title">
+	<div aria-hidden="true" class="pointer-events-none absolute -right-24 -top-24 size-[380px] rounded-full bg-aka opacity-[0.07]"></div>
+	<div class="mx-auto grid max-w-6xl gap-10 px-5 pb-14 pt-14 sm:px-8 md:pt-20 lg:grid-cols-[1fr_minmax(320px,420px)] lg:items-center lg:gap-14 lg:pb-16">
+		<div>
+			<Reveal>
+				<p class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
+					<span aria-hidden="true" class="inline-block h-px w-10 bg-aka"></span>
+					WEB PERSONAL · BACKEND & BLOCKCHAIN
+				</p>
+			</Reveal>
+			<Reveal delay={0.08}>
+				<h1 id="hero-title" class="mt-6 max-w-xl text-balance font-mincho text-4xl font-semibold leading-[1.15] tracking-tight sm:text-5xl lg:text-[3.4rem]">
+					Un rincón quieto para construir software<span class="text-aka">.</span>
+				</h1>
+			</Reveal>
+			<Reveal delay={0.16}>
+				<p class="mt-6 max-w-lg text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+					Backend, blockchain y todo lo que voy aprendiendo de ingeniería de software — escrito despacio y primero en español. Sin humo: si algo está acá, lo probé antes con mis propias manos.
+				</p>
+			</Reveal>
+			<Reveal delay={0.24}>
+				<div class="mt-8 flex flex-wrap items-center gap-3">
+					<a href="#diario" class="group inline-flex items-center gap-2 rounded-md bg-foreground px-6 py-3 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-[#fdf8ee]">
+						Leer el diario
+						<Icon name="arrow-right" class="size-4 transition-transform group-hover:translate-x-0.5" />
+					</a>
+					<a href="#quien-soy" class="inline-flex items-center rounded-md border border-border px-6 py-3 text-sm font-medium transition-colors hover:border-aka hover:text-aka">Quién soy</a>
+				</div>
+			</Reveal>
+			<Reveal delay={0.32}>
+				<dl class="mt-12 grid max-w-md grid-cols-3 divide-x divide-border border-y border-border py-5">
+					{commitments.map((item) => (
+						<div class="px-4 first:pl-0 last:pr-0">
+							<dt class="order-2 mt-1 text-[11px] leading-snug text-muted-foreground">{item.label}</dt>
+							<dd class="order-1 font-mincho text-2xl font-semibold text-foreground">{item.value}</dd>
+						</div>
+					))}
+				</dl>
+			</Reveal>
+		</div>
+		<Reveal delay={0.2} class="relative">
+			<figure class="relative border border-border bg-card shadow-[0_20px_60px_-30px_rgba(0,0,0,0.25)]">
+				<span aria-hidden="true" class="absolute -left-px -top-px size-10 border-b border-r border-aka"></span>
+				<span aria-hidden="true" class="absolute -bottom-px -right-px size-10 border-l border-t border-aka"></span>
+				<HeroArt class="w-full text-foreground" />
+				<figcaption class="flex items-center justify-between border-t border-border px-4 py-3 text-[11px] tracking-wider text-muted-foreground">
+					<span>grulla, sol y montañas — tinta sobre papel</span>
+					<span class="hanko size-5 rounded-[3px] font-mono text-[8px]">&lt;/&gt;</span>
+				</figcaption>
+			</figure>
+		</Reveal>
+	</div>
+</section>

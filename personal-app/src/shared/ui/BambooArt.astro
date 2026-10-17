@@ -1,0 +1,50 @@
+---
+interface Props {
+	class?: string;
+}
+
+const { class: className } = Astro.props;
+const segments = Array.from({ length: 5 }, (_, index) => index);
+---
+
+<svg
+	viewBox="0 0 280 340"
+	role="img"
+	aria-label="Ilustración sumi-e de bambú con un sol rojo y una libélula"
+	class={className}
+	preserveAspectRatio="xMidYMid meet"
+>
+	<circle cx="205" cy="78" r="40" fill="var(--aka)" opacity="0.9" />
+	<g fill="currentColor" opacity="0.85">
+		{segments.map((index) => <rect x="96" y={14 + index * 68} width="15" height="58" rx="6" />)}
+	</g>
+	{segments.map((index) => <rect x="93" y={68 + index * 68} width="21" height="4" rx="2" fill="currentColor" opacity="0.5" />)}
+	<g fill="currentColor" opacity="0.45">
+		{segments.map((index) => <rect x="140" y={-6 + index * 70} width="9" height="60" rx="4.5" />)}
+	</g>
+	<g fill="currentColor" opacity="0.3">
+		{segments.map((index) => <rect x="62" y={2 + index * 70} width="6" height="60" rx="3" />)}
+	</g>
+	<g fill="currentColor">
+		<path d="M104 44 C128 30 156 28 178 36 C152 46 128 52 108 52 C104 52 102 47 104 44 Z" opacity="0.8" />
+		<path d="M100 58 C82 48 60 44 40 48 C58 58 78 64 96 64 C100 64 102 61 100 58 Z" opacity="0.55" />
+		<path d="M148 108 C170 98 194 96 214 102 C192 112 170 118 152 118 C147 118 145 111 148 108 Z" opacity="0.7" />
+		<path d="M144 122 C126 114 104 112 86 116 C102 124 122 130 138 130 C143 130 146 126 144 122 Z" opacity="0.45" />
+		<path d="M70 176 C90 166 112 164 130 170 C110 180 90 186 74 186 C69 186 67 180 70 176 Z" opacity="0.6" />
+		<path d="M112 240 C132 230 154 228 172 234 C152 244 132 250 116 250 C111 250 109 244 112 240 Z" opacity="0.5" />
+		<path d="M100 254 C82 246 62 244 46 248 C62 256 80 262 94 262 C99 262 102 258 100 254 Z" opacity="0.35" />
+	</g>
+	<g transform="translate(196 176) rotate(-18)">
+		<ellipse cx="-16" cy="-7" rx="17" ry="3.4" fill="currentColor" opacity="0.4" transform="rotate(-8)" />
+		<ellipse cx="14" cy="-7" rx="17" ry="3.4" fill="currentColor" opacity="0.4" transform="rotate(8)" />
+		<ellipse cx="-14" cy="-2" rx="14" ry="3" fill="currentColor" opacity="0.3" transform="rotate(6)" />
+		<ellipse cx="12" cy="-2" rx="14" ry="3" fill="currentColor" opacity="0.3" transform="rotate(-6)" />
+		<rect x="-3" y="-6" width="6" height="34" rx="3" fill="currentColor" opacity="0.85" />
+		<circle cx="0" cy="-9" r="4.2" fill="currentColor" opacity="0.9" />
+		<circle cx="0" cy="-9" r="1.8" fill="var(--aka)" />
+	</g>
+	<g transform="translate(224 296)">
+		<rect x="0" y="0" width="26" height="26" rx="3" fill="var(--aka)" />
+		<text x="13" y="18" text-anchor="middle" font-size="12" fill="#fdf8ee" style="font-family: var(--font-geist-mono)">&lt;/&gt;</text>
+	</g>
+</svg>

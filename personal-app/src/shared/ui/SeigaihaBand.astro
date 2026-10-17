@@ -1,0 +1,32 @@
+---
+interface Props {
+	class?: string;
+	rows?: number;
+}
+
+const { class: className, rows = 2 } = Astro.props;
+const radius = 32;
+const dx = 64;
+const dy = radius * 0.62;
+const columns = 10;
+const circles = Array.from({ length: rows }, (_, row) =>
+	Array.from({ length: columns + 2 }, (_, index) => index - 1).flatMap((index) => {
+		const cx = index * dx + (row % 2) * (dx / 2);
+		const cy = row * dy;
+		return [radius, radius * 0.72, radius * 0.44].map((r) => ({ cx, cy, r }));
+	}),
+).flat();
+---
+
+<svg
+	aria-hidden="true"
+	class={className}
+	viewBox={`0 0 ${columns * dx} ${dy * (rows - 1) + radius}`}
+	preserveAspectRatio="xMidYMin slice"
+>
+	<g>
+		{circles.map((circle) => (
+			<circle cx={circle.cx} cy={circle.cy} r={circle.r} fill="var(--background)" stroke="currentColor" stroke-width="1.1" />
+		))}
+	</g>
+</svg>

@@ -1,0 +1,25 @@
+---
+import { NAV_LINKS } from '../../app/config/site';
+import MobileNavigation from '../../features/mobile-navigation/MobileNavigation';
+import ThemeToggle from '../../features/theme-toggle/ThemeToggle';
+---
+
+<header class="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md">
+	<div class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5 sm:px-8">
+		<a href="/" class="group flex items-center gap-3" aria-label="santi — inicio">
+			<span class="hanko size-8 rounded-[4px] font-mono text-[11px] font-semibold leading-none transition-transform group-hover:-rotate-6">&lt;/&gt;</span>
+			<span class="flex items-baseline gap-2.5">
+				<span class="font-mincho text-xl font-semibold tracking-tight">santi<span class="text-aka">.</span></span>
+				<span class="hidden text-[11px] tracking-[0.3em] text-muted-foreground sm:inline">BACKEND · BLOCKCHAIN</span>
+			</span>
+		</a>
+		<nav aria-label="Principal" class="hidden items-center gap-7 md:flex">
+			{NAV_LINKS.map((link) => <a href={link.href} class="text-sm text-muted-foreground transition-colors hover:text-aka">{link.label}</a>)}
+		</nav>
+		<div class="flex items-center gap-2">
+			<ThemeToggle client:load />
+			<a href="/#contacto" class="hidden rounded-md border border-foreground/20 px-4 py-2 text-sm font-medium transition-colors hover:border-aka hover:bg-aka hover:text-[#fdf8ee] md:inline-flex">Escribime</a>
+			<MobileNavigation links={NAV_LINKS} client:media="(max-width: 767px)" />
+		</div>
+	</div>
+</header>

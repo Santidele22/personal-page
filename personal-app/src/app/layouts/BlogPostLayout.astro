@@ -1,0 +1,65 @@
+---
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+import FormattedDate from '../../shared/ui/FormattedDate.astro';
+import BaseLayout from './BaseLayout.astro';
+
+type Props = CollectionEntry<'blog'>['data'];
+
+const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
+---
+
+<BaseLayout title={`${title} · santi.`} description={description} image={heroImage}>
+	<article class="mx-auto max-w-4xl px-5 py-12 sm:px-8 sm:py-16">
+		{heroImage && (
+			<Image
+				width={1020}
+				height={510}
+				src={heroImage}
+				alt=""
+				class="mb-10 max-h-[510px] w-full border border-border object-cover shadow-[0_20px_60px_-30px_rgba(0,0,0,0.25)]"
+			/>
+		)}
+		<header class="mx-auto mb-10 max-w-3xl border-b border-border pb-8 text-center">
+			<p class="text-sm text-muted-foreground">
+				<FormattedDate date={pubDate} />
+				{updatedDate && <span class="mt-1 block text-xs italic">Actualizado el <FormattedDate date={updatedDate} /></span>}
+			</p>
+			<h1 class="mt-4 text-balance font-mincho text-3xl font-semibold tracking-tight sm:text-5xl">{title}</h1>
+			<p class="mx-auto mt-4 max-w-2xl text-muted-foreground">{description}</p>
+		</header>
+		<div class="article-content mx-auto max-w-3xl text-[15px] leading-relaxed text-foreground/90 sm:text-base">
+			<slot />
+		</div>
+	</article>
+</BaseLayout>
+
+<style>
+	.article-content :global(h2),
+	.article-content :global(h3),
+	.article-content :global(h4) {
+		margin: 2em 0 0.65em;
+		font-family: var(--font-shippori), serif;
+		font-weight: 600;
+		line-height: 1.25;
+		color: var(--foreground);
+	}
+
+	.article-content :global(h2) { font-size: 1.75rem; }
+	.article-content :global(h3) { font-size: 1.4rem; }
+	.article-content :global(p),
+	.article-content :global(ul),
+	.article-content :global(ol),
+	.article-content :global(blockquote),
+	.article-content :global(pre) { margin: 0 0 1.35em; }
+	.article-content :global(ul),
+	.article-content :global(ol) { padding-left: 1.5em; }
+	.article-content :global(ul) { list-style: disc; }
+	.article-content :global(ol) { list-style: decimal; }
+	.article-content :global(a) { color: var(--aka); text-decoration: underline; text-underline-offset: 3px; }
+	.article-content :global(blockquote) { border-left: 3px solid var(--aka); padding-left: 1.25em; color: var(--muted-foreground); font-style: italic; }
+	.article-content :global(code) { border: 1px solid var(--border); border-radius: 0.25rem; background: var(--secondary); padding: 0.1em 0.35em; font-family: var(--font-geist-mono), monospace; font-size: 0.9em; }
+	.article-content :global(pre) { overflow-x: auto; border: 1px solid var(--border); background: var(--card); padding: 1.25em; }
+	.article-content :global(pre code) { border: 0; background: transparent; padding: 0; }
+	.article-content :global(img) { height: auto; max-width: 100%; border: 1px solid var(--border); }
+</style>
