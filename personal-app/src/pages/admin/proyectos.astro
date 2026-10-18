@@ -1,0 +1,15 @@
+---
+import AdminLayout from '../../app/layouts/AdminLayout.astro';
+import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
+import ProjectsEditorPanel from '../../features/project/ProjectsEditorPanel';
+---
+
+<AdminLayout active="proyectos" title="Panel · Proyectos — devlog">
+	<AdminPageHeader
+		eyebrow="PANEL · PROYECTOS"
+		title="Lo que construí"
+		description="Las tarjetas de proyectos que la web muestra: enlace, descripción, tecnologías, estado y destacado. Se guardan en la base y la landing las muestra al recargar."
+	/>
+
+	<ProjectsEditorPanel client:load />
+</AdminLayout>

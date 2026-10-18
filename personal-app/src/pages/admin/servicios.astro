@@ -1,0 +1,15 @@
+---
+import AdminLayout from '../../app/layouts/AdminLayout.astro';
+import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
+import ServicesEditorPanel from '../../features/service/ServicesEditorPanel';
+---
+
+<AdminLayout active="servicios" title="Panel · Servicios — devlog">
+	<AdminPageHeader
+		eyebrow="PANEL · SERVICIOS"
+		title="Lo que ofrezco"
+		description="Las tarjetas de servicios que la web muestra: nombre, descripción, prestaciones, precio y el detalle que las pinta. Se guardan en la base y la landing las muestra al recargar."
+	/>
+
+	<ServicesEditorPanel client:load />
+</AdminLayout>
