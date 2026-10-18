@@ -8,6 +8,7 @@ import Icon from '../../shared/ui/Icon.astro';
 import type { IconName } from '../../shared/ui/Icon.astro';
 import type { AdminPublicidadView } from '../../entities/admin/types';
 import { loadPublicidad } from '../../features/admin/api/dashboards';
+import AdvertisingPlansEditorPanel from '../../features/ad-slot/AdvertisingPlansEditorPanel';
 
 /* See the resumen page: the data is read while the dev server renders the page. */
 const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
@@ -62,4 +63,18 @@ const kpiIcons: Record<string, IconName> = {
 			/>
 		)
 	}
+
+	<section aria-labelledby="publicidad-editor" class="mt-10">
+		<div class="flex flex-wrap items-baseline justify-between gap-3">
+			<h2 id="publicidad-editor" class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">
+				PLANES Y CARA PÚBLICA
+			</h2>
+			<p class="text-[11px] text-muted-foreground">
+				Lo que la landing lee de cada slot: precio, descripción y las columnas públicas del plan.
+			</p>
+		</div>
+		<div class="mt-5">
+			<AdvertisingPlansEditorPanel client:load />
+		</div>
+	</section>
 </AdminLayout>
