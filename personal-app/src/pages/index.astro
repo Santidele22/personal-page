@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../app/layouts/BaseLayout.astro';
 import AdSlot from '../entities/ad-slot/AdSlot.astro';
-import { adSlots } from '../entities/ad-slot/data';
+import { adSlotsFallback, fetchAdSlots } from '../features/ad-slot/api/ad-slots';
 import About from '../widgets/about/About.astro';
 import Blog from '../widgets/blog/Blog.astro';
 import Brands from '../widgets/brands/Brands.astro';
@@ -10,14 +10,21 @@ import Hero from '../widgets/hero/Hero.astro';
 import Projects from '../widgets/projects/Projects.astro';
 import Services from '../widgets/services/Services.astro';
 
-const patrono = adSlots.find((slot) => slot.id === 'patrono')!;
+/* The patrono slot above the diario is read while the server renders the
+   page; the fallback below is the slot the page shipped with before the
+   public columns of advertising-plans existed. */
+const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+const adSlots = (await fetchAdSlots(serverOrigin)) ?? adSlotsFallback;
+const patrono = adSlots.find((slot) => slot.id === 'patrono');
 ---
 
 <BaseLayout>
 	<Hero />
-	<div class="mx-auto max-w-6xl px-5 sm:px-8">
-		<AdSlot ad={patrono} class="h-36" />
-	</div>
+	{patrono && (
+		<div class="mx-auto max-w-6xl px-5 sm:px-8">
+			<AdSlot ad={patrono} class="h-36" />
+		</div>
+	)}
 	<Blog />
 	<About />
 	<Projects />

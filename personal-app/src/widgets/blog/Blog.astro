@@ -1,18 +1,31 @@
 ---
 import AdSlot from '../../entities/ad-slot/AdSlot.astro';
-import { adSlots } from '../../entities/ad-slot/data';
-import { posts } from '../../entities/post/data';
+import { fetchAdSlots, adSlotsFallback } from '../../features/ad-slot/api/ad-slots';
+import { fetchPosts, postsFallback } from '../../features/blog/api/posts';
 import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
 import SeigaihaBand from '../../shared/ui/SeigaihaBand.astro';
 import PostCard from './PostCard.astro';
 import ToolsBlock from './ToolsBlock.astro';
 
-const featured = posts.find((post) => post.featured)!;
-const rest = posts.filter((post) => !post.featured);
+/* The portada cards and the flow ad slot are read while the server renders
+   the page; the fallbacks below are the content this section shipped with
+   before the blogs and advertising-plans entities existed. */
+const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+const [posts, adSlots] = await Promise.all([
+	fetchPosts(serverOrigin),
+	fetchAdSlots(serverOrigin),
+]);
+const cards = posts ?? postsFallback;
+const slots = adSlots ?? adSlotsFallback;
+
+/* The grid pins one headline card: pick the featured flag, or the first card
+   when the admin has not marked any entry as featured. */
+const featured = cards.find((post) => post.featured) ?? cards[0];
+const rest = cards.filter((post) => post !== featured);
 const row1 = rest.slice(0, 2);
 const row2 = rest.slice(2, 4);
-const flujo = adSlots.find((slot) => slot.id === 'flujo')!;
+const flujo = slots.find((slot) => slot.id === 'flujo');
 ---
 
 <section id="diario" class="scroll-mt-20" aria-labelledby="diario-title">
@@ -60,7 +73,7 @@ const flujo = adSlots.find((slot) => slot.id === 'flujo')!;
 			{row1.map((post) => <Reveal class="h-full"><PostCard post={post} /></Reveal>)}
 			<Reveal class="h-full"><ToolsBlock class="h-full" /></Reveal>
 		</div>
-		<Reveal><AdSlot ad={flujo} class="mx-auto mt-6 w-full max-w-xl" /></Reveal>
+		{flujo && <Reveal><AdSlot ad={flujo} class="mx-auto mt-6 w-full max-w-xl" /></Reveal>}
 		<div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
 			{row2.map((post) => <Reveal class="h-full"><PostCard post={post} /></Reveal>)}
 			<Reveal class="h-full">

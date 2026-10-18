@@ -1,11 +1,19 @@
 ---
-import { projects } from '../../entities/project/data';
+import { fetchProjects, projectsFallback } from '../../features/project/api/projects';
 import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
 import SeigaihaBand from '../../shared/ui/SeigaihaBand.astro';
 
-const featured = projects.find((project) => project.featured)!;
-const rest = projects.filter((project) => !project.featured);
+/* The project cards are read while the server renders the page; the fallback
+   below is the copy this section shipped with before the projects entity was
+   consumed by the landing. */
+const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+const projectCards = (await fetchProjects(serverOrigin)) ?? projectsFallback;
+
+/* The grid pins one headline card: the featured flag, or the first card when
+   the admin has not marked any project as featured. */
+const featured = projectCards.find((project) => project.featured) ?? projectCards[0];
+const rest = projectCards.filter((project) => project !== featured);
 ---
 
 <section id="proyectos" class="scroll-mt-20 border-y border-border bg-secondary/40" aria-labelledby="proyectos-title">

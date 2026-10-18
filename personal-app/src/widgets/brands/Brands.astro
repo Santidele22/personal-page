@@ -1,7 +1,13 @@
 ---
-import { adSlots } from '../../entities/ad-slot/data';
+import { fetchAdSlots, adSlotsFallback } from '../../features/ad-slot/api/ad-slots';
 import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
+
+/* The ad slots are read while the server renders the page; the fallback below
+   is the pricing grid this section shipped with before the public columns of
+   advertising-plans existed. */
+const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+const adSlotList = (await fetchAdSlots(serverOrigin)) ?? adSlotsFallback;
 
 const guarantees = [
 	{ icon: 'sprout', text: 'Sin impresiones infladas: el diario recién empieza. Quien entra ahora congela el precio fundador para siempre.' },
@@ -23,7 +29,7 @@ const guarantees = [
 			</div>
 		</Reveal>
 		<div class="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-			{adSlots.map((slot, index) => {
+			{adSlotList.map((slot, index) => {
 				const isPatrono = slot.id === 'patrono';
 				return (
 					<Reveal delay={0.06 * index} class="h-full">
@@ -50,7 +56,7 @@ const guarantees = [
 					</Reveal>
 				);
 			})}
-			<Reveal delay={0.06 * adSlots.length} class="h-full">
+			<Reveal delay={0.06 * adSlotList.length} class="h-full">
 				<article class="flex h-full flex-col justify-between border border-dashed border-border bg-background/60 p-5">
 					<div>
 						<div class="flex items-center justify-between">

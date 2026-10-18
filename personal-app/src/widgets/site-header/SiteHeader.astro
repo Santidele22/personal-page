@@ -1,7 +1,13 @@
 ---
-import { NAV_LINKS } from '../../app/config/site';
 import MobileNavigation from '../../features/mobile-navigation/MobileNavigation';
 import ThemeToggle from '../../features/theme-toggle/ThemeToggle';
+import { fetchMenuLinks, navLinksFallback } from '../../features/menu/api/menu-links';
+
+/* The menu links are read while the server renders the page; the fallback
+   below is the list this header shipped with before the menu-items entity
+   existed. */
+const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+const navLinks = (await fetchMenuLinks(serverOrigin)) ?? navLinksFallback;
 ---
 
 <header class="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md">
@@ -14,12 +20,12 @@ import ThemeToggle from '../../features/theme-toggle/ThemeToggle';
 			</span>
 		</a>
 		<nav aria-label="Principal" class="hidden items-center gap-7 md:flex">
-			{NAV_LINKS.map((link) => <a href={link.href} class="text-sm text-muted-foreground transition-colors hover:text-aka">{link.label}</a>)}
+			{navLinks.map((link) => <a href={link.href} class="text-sm text-muted-foreground transition-colors hover:text-aka">{link.label}</a>)}
 		</nav>
 		<div class="flex items-center gap-2">
 			<ThemeToggle client:load />
 			<a href="/#contacto" class="hidden rounded-md border border-foreground/20 px-4 py-2 text-sm font-medium transition-colors hover:border-aka hover:bg-aka hover:text-[#fdf8ee] md:inline-flex">Escribime</a>
-			<MobileNavigation links={NAV_LINKS} client:media="(max-width: 767px)" />
+			<MobileNavigation links={navLinks} client:media="(max-width: 767px)" />
 		</div>
 	</div>
 </header>

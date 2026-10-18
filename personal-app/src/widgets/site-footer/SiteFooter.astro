@@ -1,15 +1,20 @@
 ---
 import { GITHUB_URL, LINKEDIN_URL } from '../../app/config/site';
 import AdSlot from '../../entities/ad-slot/AdSlot.astro';
-import { adSlots } from '../../entities/ad-slot/data';
+import { adSlotsFallback, fetchAdSlots } from '../../features/ad-slot/api/ad-slots';
 import { fetchProfile } from '../../features/profile/api/profile';
 import Icon from '../../shared/ui/Icon.astro';
 import type { IconName } from '../../shared/ui/Icon.astro';
 
-/* The profile is read while the server renders the page; the fallbacks below
-   are the copy this footer shipped with before the profile entity existed. */
+/* The profile and the footer seal are read while the server renders the page;
+   the fallbacks below are the copy this footer shipped with before the profile
+   entity existed. */
 const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
-const profile = await fetchProfile(serverOrigin);
+const [profile, adSlots] = await Promise.all([
+	fetchProfile(serverOrigin),
+	fetchAdSlots(serverOrigin),
+]);
+const slots = adSlots ?? adSlotsFallback;
 
 /* The site name is stored with the accent period the design paints in aka. */
 const siteName = profile?.siteName || 'santi.';
@@ -52,13 +57,13 @@ const columns = [
 		],
 	},
 ];
-const pie = adSlots.find((slot) => slot.id === 'pie')!;
+const pie = slots.find((slot) => slot.id === 'pie');
 ---
 
 <footer class="mt-auto border-t border-border bg-card/60">
 	<div class="relative mx-auto max-w-6xl overflow-hidden px-5 pb-8 pt-12 sm:px-8">
 		<span aria-hidden="true" class="pointer-events-none absolute -bottom-14 right-4 select-none font-mono text-[9rem] font-bold leading-none text-foreground opacity-[0.04]">&lt;/&gt;</span>
-		<AdSlot ad={pie} class="mx-auto w-full max-w-md opacity-90" />
+		{pie && <AdSlot ad={pie} class="mx-auto w-full max-w-md opacity-90" />}
 		<div class="mt-12 grid gap-10 md:grid-cols-[1.4fr_1fr_1fr]">
 			<div>
 				<p class="flex items-center gap-3">
