@@ -34,18 +34,13 @@ type ApiProjectCard = {
  * The projects cards (`widgets/projects/Projects.astro`). `null` only means
  * the request itself failed (API down, proxy misconfigured, server without the
  * backend): the widget then renders the values the block shipped with exactly
- * like the profile loader. Empty storage answers `[]`: the admin chose to show
- * no projects, so the section renders without cards.
+ * like the profile loader. Empty storage answers `[]`: the backend is the
+ * only source of truth, so the section renders without cards until the admin
+ * publishes one.
  */
 export async function fetchProjects(serverOrigin?: string): Promise<Project[] | null> {
 	try {
 		const rows = await getJson<ApiProjectCard[]>('/projects', { serverOrigin });
-
-		// The grid pins one headline card, so an empty collection also falls
-		// back to the shipped copy instead of crashing the section.
-		if (rows.length === 0) {
-			return null;
-		}
 
 		return rows.map((project) => {
 			const status = PROJECT_STATUSES.includes(project.status as ProjectStatus)

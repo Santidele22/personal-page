@@ -28,7 +28,11 @@ const rest = projectCards.filter((project) => project !== featured);
 				<p class="mt-4 text-[15px] leading-relaxed text-muted-foreground">Proyectos reales, con código abierto y sin promesas infladas: algunos en producción, otros todavía en el banco de trabajo.</p>
 			</div>
 		</Reveal>
-		<Reveal delay={0.1}>
+		{/* The headline card only exists when the backend serves at least one
+		    project: an empty list renders the section without cards instead of
+		    falling back to the shipped copy. */}
+		{projectCards.length > 0 && (
+			<Reveal delay={0.1}>
 			<article class="group mt-10 grid overflow-hidden border border-border bg-card transition-colors hover:border-aka/60 md:grid-cols-2">
 				<div class="relative flex min-h-[240px] items-center justify-center overflow-hidden border-b border-border bg-secondary/60 md:border-b-0 md:border-r">
 					<SeigaihaBand class="absolute inset-x-0 top-0 h-24 text-foreground opacity-[0.16]" rows={3} />
@@ -59,8 +63,10 @@ const rest = projectCards.filter((project) => project !== featured);
 					</p>
 				</div>
 			</article>
-		</Reveal>
-		<div class="mt-6 grid gap-6 md:grid-cols-3">
+			</Reveal>
+		)}
+		{rest.length > 0 && (
+			<div class="mt-6 grid gap-6 md:grid-cols-3">
 			{rest.map((project, index) => (
 				<Reveal delay={0.1 * index} class="h-full">
 					<article class="group flex h-full flex-col border border-border bg-card p-7 transition-colors hover:border-aka/60">
@@ -91,6 +97,7 @@ const rest = projectCards.filter((project) => project !== featured);
 					</article>
 				</Reveal>
 			))}
-		</div>
+			</div>
+		)}
 	</div>
 </section>
