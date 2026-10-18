@@ -1,0 +1,15 @@
+---
+import AdminLayout from '../../app/layouts/AdminLayout.astro';
+import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
+import MenuItemsEditorPanel from '../../features/menu/MenuItemsEditorPanel';
+---
+
+<AdminLayout active="menu" title="Panel · Menú — devlog">
+	<AdminPageHeader
+		eyebrow="PANEL · MENÚ"
+		title="El orden de la navegación"
+		description="Los enlaces del menú del sitio, ordenados por su posición: el número más chico va primero. El encabezado y la navegación móvil los leen de acá, y un enlace sin posición se agrega al final."
+	/>
+
+	<MenuItemsEditorPanel client:load />
+</AdminLayout>
