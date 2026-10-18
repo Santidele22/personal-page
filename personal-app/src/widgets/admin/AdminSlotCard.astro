@@ -8,6 +8,8 @@ interface Props {
 
 const { adSlot: slot } = Astro.props;
 const reservado = slot.status === 'reservado';
+/** Tamaño y ubicación solo existen si el origen los aporta; si no, «—». */
+const meta = [slot.dimensions, slot.position].filter(Boolean).join(' · ') || '—';
 ---
 
 <article
@@ -20,7 +22,7 @@ const reservado = slot.status === 'reservado';
 		<div>
 			<h3 class="font-mincho text-2xl font-semibold tracking-tight">{slot.name}</h3>
 			<p class="mt-1.5 text-[11px] tracking-wider text-muted-foreground">
-				<span class="font-mono">{slot.dimensions}</span> · {slot.position}
+				<span class="font-mono">{meta}</span>
 			</p>
 		</div>
 		{
@@ -45,19 +47,19 @@ const reservado = slot.status === 'reservado';
 			reservado && slot.brand ? (
 				<div>
 					<p class="text-sm font-medium">{slot.brand}</p>
-					<p class="mt-1 font-mono text-[11px] text-muted-foreground">{slot.period}</p>
-					<p class="mt-1 font-mono text-[11px] text-muted-foreground">{slot.impressions}</p>
+					<p class="mt-1 font-mono text-[11px] text-muted-foreground">{slot.period ?? '—'}</p>
+					<p class="mt-1 font-mono text-[11px] text-muted-foreground">{slot.impressions ?? '—'}</p>
 				</div>
 			) : (
 				<div>
 					<p class="text-sm text-muted-foreground">Sin marca asignada</p>
-					<p class="mt-1 font-mono text-[11px] text-muted-foreground">{slot.impressions}</p>
+					<p class="mt-1 font-mono text-[11px] text-muted-foreground">{slot.impressions ?? '—'}</p>
 				</div>
 			)
 		}
 		<p class="shrink-0 text-right">
 			<span class="block font-mincho text-3xl font-semibold tracking-tight">{slot.price}</span>
-			<span class="mt-1 block text-[10px] tracking-[0.25em] text-muted-foreground">MENSUAL</span>
+			<span class="mt-1 block text-[10px] tracking-[0.25em] text-muted-foreground">PRECIO</span>
 		</p>
 	</div>
 

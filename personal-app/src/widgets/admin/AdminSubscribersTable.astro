@@ -1,0 +1,53 @@
+---
+import type { AdminSubscriber } from '../../entities/admin/types';
+
+interface Props {
+	subscribers: AdminSubscriber[];
+	/** Etiqueta del total mostrado en la cabecera, ya formateada. */
+	totalLabel: string;
+}
+
+const { subscribers, totalLabel } = Astro.props;
+---
+
+<section aria-label={`Últimas altas — ${totalLabel}`} class="overflow-hidden border border-border bg-card">
+	<header class="flex items-baseline justify-between gap-4 border-b border-border px-6 py-4">
+		<h2 class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">ÚLTIMAS ALTAS</h2>
+		<p class="font-mono text-[11px] text-muted-foreground">{totalLabel}</p>
+	</header>
+	<div class="overflow-x-auto">
+		<table class="w-full min-w-[720px] text-left text-sm">
+			<caption class="sr-only">Suscriptores recientes con correo, nombre, origen, fecha y estado</caption>
+			<thead>
+				<tr class="border-b border-border">
+					<th scope="col" class="px-6 py-4 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">CORREO</th>
+					<th scope="col" class="px-4 py-4 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">NOMBRE</th>
+					<th scope="col" class="px-4 py-4 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">ORIGEN</th>
+					<th scope="col" class="px-4 py-4 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">FECHA</th>
+					<th scope="col" class="px-6 py-4 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">ESTADO</th>
+				</tr>
+			</thead>
+			<tbody class="divide-y divide-border">
+				{
+					subscribers.map((subscriber) => (
+						<tr class="transition-colors hover:bg-secondary/50">
+							<td class="max-w-[220px] truncate px-6 py-4 font-mono text-[13px]">{subscriber.email}</td>
+							<td class="whitespace-nowrap px-4 py-4">{subscriber.name}</td>
+							<td class="whitespace-nowrap px-4 py-4 text-muted-foreground">{subscriber.origin}</td>
+							<td class="whitespace-nowrap px-4 py-4 font-mono text-[13px] text-muted-foreground">{subscriber.date}</td>
+							<td class="whitespace-nowrap px-6 py-4">
+								<span class="flex items-center gap-2">
+									<span
+										class:list={['size-1.5 rounded-full', subscriber.status === 'activo' ? 'bg-aka' : 'border border-muted-foreground']}
+										aria-hidden="true"
+									/>
+									{subscriber.status === 'activo' ? 'Activo' : 'Pendiente'}
+								</span>
+							</td>
+						</tr>
+					))
+				}
+			</tbody>
+		</table>
+	</div>
+</section>

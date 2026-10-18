@@ -3,9 +3,11 @@ import { Font } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
 import { ClientRouter } from 'astro:transitions';
 import FallbackImage from '../../assets/blog-placeholder-1.jpg';
+import { fetchProfile } from '../../features/profile/api/profile';
 import SiteFooter from '../../widgets/site-footer/SiteFooter.astro';
 import SiteHeader from '../../widgets/site-header/SiteHeader.astro';
 import { SITE_AUTHOR, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE } from '../config/site';
+import ThemeScript from '../../shared/ui/ThemeScript.astro';
 import '../styles/global.css';
 
 interface Props {
@@ -14,7 +16,17 @@ interface Props {
 	image?: ImageMetadata;
 }
 
-const { title = SITE_TITLE, description = SITE_DESCRIPTION, image = FallbackImage } = Astro.props;
+/* Site meta comes from the profile while the API answers; the `site.ts`
+   constants remain the offline fallback. A page-level `title`/`description`
+   still wins, exactly as when the constants were the only source. */
+const serverOrigin = Astro.url.origin;
+const profile = await fetchProfile(serverOrigin);
+const siteName = profile?.siteName || SITE_NAME;
+const siteTitle = profile?.siteTitle || SITE_TITLE;
+const siteDescription = profile?.siteDescription || SITE_DESCRIPTION;
+const siteAuthor = profile?.siteAuthor || SITE_AUTHOR;
+
+const { title = siteTitle, description = siteDescription, image = FallbackImage } = Astro.props;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 ---
 
@@ -26,17 +38,17 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="icon" href="/favicon.ico" />
 		<link rel="sitemap" href="/sitemap-index.xml" />
-		<link rel="alternate" type="application/rss+xml" title={SITE_NAME} href={new URL('rss.xml', Astro.site)} />
+		<link rel="alternate" type="application/rss+xml" title={siteName} href={new URL('rss.xml', Astro.site)} />
 		<meta name="generator" content={Astro.generator} />
 		<meta name="description" content={description} />
-		<meta name="author" content={SITE_AUTHOR} />
+		<meta name="author" content={siteAuthor} />
 		<meta name="keywords" content="Santiago Delebecq, blog de desarrollo, backend, blockchain, ingeniería de software, programación, aprender en público" />
 		<link rel="canonical" href={canonicalURL} />
 		<meta property="og:type" content="website" />
 		<meta property="og:url" content={Astro.url} />
 		<meta property="og:title" content={title} />
 		<meta property="og:description" content={description} />
-		<meta property="og:site_name" content={SITE_NAME} />
+		<meta property="og:site_name" content={siteName} />
 		<meta property="og:image" content={new URL(image.src, Astro.url)} />
 		<meta name="twitter:card" content="summary_large_image" />
 		<title>{title}</title>
@@ -44,30 +56,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 		<Font cssVariable="--font-zen" preload />
 		<Font cssVariable="--font-geist-mono" />
 		<ClientRouter />
-		<script is:inline>
-			(() => {
-				const applyTheme = (root) => {
-					try {
-						const saved = localStorage.getItem('santi-theme');
-						const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-						root.classList.toggle('dark', dark);
-						root.style.colorScheme = dark ? 'dark' : 'light';
-					} catch {
-						root.classList.remove('dark');
-						root.style.colorScheme = 'light';
-					}
-				};
-
-				if (!window.__santiThemeHandler) {
-					document.addEventListener('astro:before-swap', (event) => {
-						applyTheme(event.newDocument.documentElement);
-					});
-					window.__santiThemeHandler = true;
-				}
-
-				applyTheme(document.documentElement);
-			})();
-		</script>
+		<ThemeScript />
 	</head>
 	<body class="bg-background font-sans text-foreground antialiased">
 		<div class="flex min-h-dvh flex-col">

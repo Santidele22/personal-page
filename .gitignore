@@ -1,0 +1,6 @@
+# Nested independent git repositories (worktrees of this monorepo layout)
+/backend/
+
+# Agent tooling state/cache
+.atl/
+

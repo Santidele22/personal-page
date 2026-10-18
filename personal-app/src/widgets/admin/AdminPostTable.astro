@@ -56,7 +56,7 @@ const columns = [
 							<td class={`${cellBase} whitespace-nowrap px-4`}>
 								<span class="inline-flex items-center gap-1.5 text-muted-foreground">
 									<Icon name="message-square" class="size-3.5" strokeWidth={1.75} />
-									{post.comments}
+									{post.comments ?? '—'}
 								</span>
 							</td>
 							<td class={`${cellBase} whitespace-nowrap px-4 font-mono text-[13px] text-muted-foreground`}>{post.date}</td>

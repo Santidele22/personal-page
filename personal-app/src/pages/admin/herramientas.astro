@@ -1,0 +1,15 @@
+---
+import AdminLayout from '../../app/layouts/AdminLayout.astro';
+import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
+import ToolsEditorPanel from '../../features/tool/ToolsEditorPanel';
+---
+
+<AdminLayout active="herramientas" title="Panel · Herramientas — devlog">
+	<AdminPageHeader
+		eyebrow="PANEL · HERRAMIENTAS"
+		title="El taller, a la vista"
+		description="El listado de «herramientas que uso» de la landing: cada fila guarda su nombre y una línea con para qué sirve. Se lee y se edita contra el backend, y la web lo refleja al recargar."
+	/>
+
+	<ToolsEditorPanel client:load />
+</AdminLayout>

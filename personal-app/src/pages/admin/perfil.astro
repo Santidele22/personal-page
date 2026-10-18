@@ -1,0 +1,15 @@
+---
+import AdminLayout from '../../app/layouts/AdminLayout.astro';
+import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
+import ProfileEditorPanel from '../../features/profile/ProfileEditorPanel';
+---
+
+<AdminLayout active="perfil" title="Panel · Perfil — devlog">
+	<AdminPageHeader
+		eyebrow="PANEL · PERFIL"
+		title="La web, en tus palabras"
+		description="Todo lo que la landing lee del perfil: hero, bio, valores, compromisos, redes, contacto y pie. Se guarda en la base y la web lo muestra al recargar."
+	/>
+
+	<ProfileEditorPanel client:load />
+</AdminLayout>

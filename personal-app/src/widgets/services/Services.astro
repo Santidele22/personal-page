@@ -1,7 +1,13 @@
 ---
-import { services } from '../../entities/service/data';
+import { fetchServices, servicesFallback } from '../../features/service/api/services';
 import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
+
+/* The service cards are read while the server renders the page; the fallback
+   below is the copy this section shipped with before the services entity
+   was consumed by the landing. */
+const serverOrigin = Astro.url.origin;
+const serviceCards = (await fetchServices(serverOrigin)) ?? servicesFallback;
 ---
 
 <section id="servicios" class="scroll-mt-20" aria-labelledby="servicios-title">
@@ -17,7 +23,7 @@ import Reveal from '../../shared/ui/Reveal.astro';
 			</div>
 		</Reveal>
 		<div class="mt-12 grid gap-6 md:grid-cols-3">
-			{services.map((service, index) => (
+			{serviceCards.map((service, index) => (
 				<Reveal delay={0.1 * index} class="h-full">
 					<article class="group flex h-full flex-col border border-border bg-card p-7 transition-colors hover:border-aka/60">
 						<div class="flex items-center justify-between">

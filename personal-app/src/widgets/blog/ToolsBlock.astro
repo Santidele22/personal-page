@@ -1,6 +1,11 @@
 ---
-import { tools } from '../../entities/tool/data';
+import { fetchTools, toolsFallback } from '../../features/tool/api/tools';
 import Icon from '../../shared/ui/Icon.astro';
+
+/* The tools are read while the server renders the page; the fallback below is
+   the list this grid shipped with before the tools entity existed. */
+const serverOrigin = Astro.url.origin;
+const toolList = (await fetchTools(serverOrigin)) ?? toolsFallback;
 
 interface Props {
 	class?: string;
@@ -15,8 +20,11 @@ const { class: className } = Astro.props;
 			<Icon name="wrench" class="size-3.5 text-aka" />
 			HERRAMIENTAS QUE USO
 		</p>
-		<ul class="mt-4 flex-1 space-y-4">
-			{tools.map((tool) => (
+		{toolList.length === 0 ? (
+			<p class="mt-4 text-sm leading-relaxed text-muted-foreground">Pronto va a haber herramientas nuevas acá.</p>
+		) : (
+			<ul class="mt-4 flex-1 space-y-4">
+				{toolList.map((tool) => (
 				<li>
 					<a href="#marcas" class="group flex items-start justify-between gap-3">
 						<span>
@@ -27,7 +35,8 @@ const { class: className } = Astro.props;
 					</a>
 				</li>
 			))}
-		</ul>
+			</ul>
+		)}
 		<p class="mt-5 border-t border-border pt-3 text-[11px] leading-relaxed text-muted-foreground">Enlaces de afiliado: si comprás, me llega una comisión sin costo extra para vos. Solo listo lo que uso de verdad.</p>
 	</div>
 </aside>

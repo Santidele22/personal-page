@@ -1,0 +1,33 @@
+---
+/**
+ * Script inline de restauración de tema.
+ * Aplica el tema guardado (o el preferido del sistema) en cuanto se parsea el
+ * `<head>`, y reaplica el tema sobre cada documento entrante durante la
+ * navegación con `<ClientRouter />` para evitar el flash de tema.
+ */
+---
+
+<script is:inline>
+	(() => {
+		const applyTheme = (root) => {
+			try {
+				const saved = localStorage.getItem('santi-theme');
+				const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+				root.classList.toggle('dark', dark);
+				root.style.colorScheme = dark ? 'dark' : 'light';
+			} catch {
+				root.classList.remove('dark');
+				root.style.colorScheme = 'light';
+			}
+		};
+
+		if (!window.__santiThemeHandler) {
+			document.addEventListener('astro:before-swap', (event) => {
+				applyTheme(event.newDocument.documentElement);
+			});
+			window.__santiThemeHandler = true;
+		}
+
+		applyTheme(document.documentElement);
+	})();
+</script>

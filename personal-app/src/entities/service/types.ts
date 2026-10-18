@@ -1,6 +1,8 @@
+export type ServiceIcon = 'pen-line' | 'handshake' | 'graduation-cap';
+
 export type Service = {
 	num: string;
-	icon: 'pen-line' | 'handshake' | 'graduation-cap';
+	icon: ServiceIcon;
 	title: string;
 	description: string;
 	items: string[];

@@ -1,0 +1,30 @@
+---
+import Icon from '../../shared/ui/Icon.astro';
+import type { AdminKpi } from '../../entities/admin/types';
+import type { IconName } from '../../shared/ui/Icon.astro';
+
+interface Props {
+	kpis: AdminKpi[];
+	/** Icono decorativo por id de KPI, junto al valor. */
+	icons?: Record<string, IconName>;
+	/** Texto para el aria-label de la sección. */
+	label: string;
+}
+
+const { kpis, icons = {}, label } = Astro.props;
+---
+
+<section aria-label={label} class="grid gap-4 sm:grid-cols-3">
+	{
+		kpis.map((kpi) => (
+			<article class="border border-border bg-card px-6 py-5">
+				<p class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">{kpi.label}</p>
+				<p class="mt-3 font-mincho text-3xl font-semibold tracking-tight">
+					{kpi.value}
+					{kpi.unit && <span class="font-sans text-sm font-normal text-muted-foreground"> {kpi.unit}</span>}
+				</p>
+				{icons[kpi.id] && <Icon name={icons[kpi.id]} class="ml-2 inline size-4 text-aka" strokeWidth={1.75} />}
+			</article>
+		))
+	}
+</section>

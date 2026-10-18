@@ -1,0 +1,56 @@
+---
+/**
+ * Layout decision: this screen does not use `AdminLayout`. Its sidebar and top
+ * bar belong to a session that is already started, and its session gate
+ * redirects anonymous visitors to this very route, so reusing it would loop
+ * back here. A minimal inline document keeps the panel tokens (card, mincho
+ * headings, aka accent), the `noindex` meta and the theme script, without the
+ * shell. Copy is Spanish, like the rest of the panel.
+ */
+import { Font } from 'astro:assets';
+import LoginForm from '../../features/auth/LoginForm';
+import ThemeScript from '../../shared/ui/ThemeScript.astro';
+import '../../app/styles/global.css';
+---
+
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="robots" content="noindex" />
+		<title>Panel · Acceso — devlog</title>
+		<Font cssVariable="--font-shippori" preload />
+		<Font cssVariable="--font-zen" preload />
+		<Font cssVariable="--font-geist-mono" />
+		<ThemeScript />
+	</head>
+	<body class="bg-background font-sans text-foreground antialiased">
+		<main class="flex min-h-dvh items-center justify-center px-4 py-12">
+			<div class="w-full max-w-sm">
+				<a href="/" class="flex items-center justify-center gap-2.5">
+					<span class="hanko size-8 rounded-[5px] font-mono text-[10px]" aria-hidden="true">&lt;/&gt;</span>
+					<span class="text-left leading-none">
+						<span class="block font-mincho text-lg font-semibold tracking-tight">devlog</span>
+						<span class="block text-[9px] tracking-[0.35em] text-muted-foreground">PANEL</span>
+					</span>
+				</a>
+				<section class="mt-8 rounded-lg border border-border bg-card p-6 shadow-sm sm:p-8" aria-labelledby="login-title">
+					<p class="text-[11px] font-medium tracking-[0.2em] text-muted-foreground">PANEL · ACCESO</p>
+					<h1 id="login-title" class="mt-2 font-mincho text-2xl font-semibold tracking-tight">Inicia sesión</h1>
+					<p class="mt-2 text-sm text-muted-foreground">
+						Entra con tu cuenta de administración para gestionar el diario, la publicidad y los suscriptores.
+					</p>
+					<LoginForm client:load />
+				</section>
+				<p class="mt-6 text-center text-[11px] text-muted-foreground">
+					Acceso solo para administración ·
+					<a href="/" class="underline decoration-border underline-offset-4 transition-colors hover:text-aka">Volver a la web pública</a>
+				</p>
+			</div>
+		</main>
+	</body>
+</html>

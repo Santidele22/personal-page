@@ -1,6 +1,6 @@
 ---
 import Icon from '../../shared/ui/Icon.astro';
-import { adminOwner } from '../../entities/admin/data';
+import SidebarSession from '../../features/auth/SidebarSession';
 import type { AdminSection } from '../../entities/admin/types';
 
 interface Props {
@@ -11,14 +11,19 @@ type NavItem = {
 	id: AdminSection;
 	href: string;
 	label: string;
-	icon: 'layout-grid' | 'pen-line' | 'megaphone' | 'mail';
+	icon: 'layout-grid' | 'pen-line' | 'megaphone' | 'mail' | 'user' | 'blocks' | 'code-2' | 'wrench' | 'list';
 };
 
 const navItems: NavItem[] = [
 	{ id: 'resumen', href: '/admin/', label: 'Resumen', icon: 'layout-grid' },
 	{ id: 'diario', href: '/admin/diario/', label: 'Diario', icon: 'pen-line' },
+	{ id: 'proyectos', href: '/admin/proyectos/', label: 'Proyectos', icon: 'blocks' },
+	{ id: 'servicios', href: '/admin/servicios/', label: 'Servicios', icon: 'code-2' },
+	{ id: 'herramientas', href: '/admin/herramientas/', label: 'Herramientas', icon: 'wrench' },
 	{ id: 'publicidad', href: '/admin/publicidad/', label: 'Publicidad', icon: 'megaphone' },
 	{ id: 'suscriptores', href: '/admin/suscriptores/', label: 'Suscriptores', icon: 'mail' },
+	{ id: 'menu', href: '/admin/menu/', label: 'Menú', icon: 'list' },
+	{ id: 'perfil', href: '/admin/perfil/', label: 'Perfil', icon: 'user' },
 ];
 
 const { active } = Astro.props;
@@ -66,8 +71,6 @@ const { active } = Astro.props;
 			<Icon name="external-link" class="size-4" strokeWidth={1.75} />
 			Ver la web pública
 		</a>
-		<p class="mt-4 text-[11px] leading-relaxed text-muted-foreground">
-			Sesión de {adminOwner.firstName} — {adminOwner.email}
-		</p>
+		<SidebarSession client:visible />
 	</div>
 </aside>

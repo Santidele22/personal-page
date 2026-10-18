@@ -1,0 +1,20 @@
+---
+import AdminStatCard from './AdminStatCard.astro';
+import type { AdminKpi } from '../../entities/admin/types';
+import type { IconName } from '../../shared/ui/Icon.astro';
+
+interface Props {
+	kpis: AdminKpi[];
+	/** Icono por id de KPI; los ids sin entrada usan `fallbackIcon`. */
+	icons?: Record<string, IconName>;
+	fallbackIcon?: IconName;
+	/** Texto para el aria-label de la sección. */
+	label: string;
+}
+
+const { kpis, icons = {}, fallbackIcon = 'eye', label } = Astro.props;
+---
+
+<section aria-label={label} class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+	{kpis.map((kpi) => <AdminStatCard kpi={kpi} icon={icons[kpi.id] ?? fallbackIcon} />)}
+</section>
