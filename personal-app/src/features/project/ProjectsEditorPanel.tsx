@@ -562,7 +562,7 @@ export default function ProjectsEditorPanel() {
 						when={rows().length > 0}
 						fallback={
 							<p class="px-6 py-6 text-sm text-muted-foreground">
-								Todavía no hay proyectos cargados. La web muestra los que trae de fábrica hasta que agregues uno.
+								Todavía no hay proyectos cargados. En la web la sección queda sin tarjetas hasta que publiques uno.
 							</p>
 						}
 					>
