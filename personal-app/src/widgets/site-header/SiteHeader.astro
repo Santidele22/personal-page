@@ -6,7 +6,7 @@ import { fetchMenuLinks, navLinksFallback } from '../../features/menu/api/menu-l
 /* The menu links are read while the server renders the page; the fallback
    below is the list this header shipped with before the menu-items entity
    existed. */
-const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+const serverOrigin = Astro.url.origin;
 const navLinks = (await fetchMenuLinks(serverOrigin)) ?? navLinksFallback;
 ---
 

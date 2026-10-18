@@ -9,7 +9,7 @@ import type { IconName } from '../../shared/ui/Icon.astro';
 /* The profile and the footer seal are read while the server renders the page;
    the fallbacks below are the copy this footer shipped with before the profile
    entity existed. */
-const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+const serverOrigin = Astro.url.origin;
 const [profile, adSlots] = await Promise.all([
 	fetchProfile(serverOrigin),
 	fetchAdSlots(serverOrigin),

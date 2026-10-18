@@ -5,10 +5,19 @@ import sitemap from '@astrojs/sitemap';
 import solidJs from '@astrojs/solid-js';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, fontProviders } from 'astro/config';
+import node from '@astrojs/node';
 
 export default defineConfig({
 	site: 'https://santi.dev',
 	integrations: [mdx(), sitemap(), solidJs()],
+	// Server rendering everywhere: the base layout (menu links, pie seal) and
+	// the landing read the backend on every request instead of baking a build
+	// snapshot, so admin edits reflect site-wide without a rebuild. The API
+	// outage path is the declared fallback constants, which the loaders keep.
+	// Cost: the diario content-collection pages also render on demand; still
+	// cheap at this site's scale, and it avoids a static/SSR split.
+	adapter: node({ mode: 'standalone' }),
+	output: 'server',
 	vite: {
 		plugins: [tailwindcss()],
 		server: {

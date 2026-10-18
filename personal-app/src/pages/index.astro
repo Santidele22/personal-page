@@ -13,7 +13,7 @@ import Services from '../widgets/services/Services.astro';
 /* The patrono slot above the diario is read while the server renders the
    page; the fallback below is the slot the page shipped with before the
    public columns of advertising-plans existed. */
-const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+const serverOrigin = Astro.url.origin;
 const adSlots = (await fetchAdSlots(serverOrigin)) ?? adSlotsFallback;
 const patrono = adSlots.find((slot) => slot.id === 'patrono');
 ---

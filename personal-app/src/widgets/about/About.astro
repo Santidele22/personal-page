@@ -7,7 +7,7 @@ import Reveal from '../../shared/ui/Reveal.astro';
 
 /* The profile is read while the server renders the page; the fallbacks below
    are the copy this section shipped with before the profile entity existed. */
-const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+const serverOrigin = Astro.url.origin;
 const profile = await fetchProfile(serverOrigin);
 
 const name = (profile?.name ?? 'Santiago Delebecq').replace(/\.$/, '');

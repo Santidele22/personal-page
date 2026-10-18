@@ -19,7 +19,7 @@ interface Props {
 /* Site meta comes from the profile while the API answers; the `site.ts`
    constants remain the offline fallback. A page-level `title`/`description`
    still wins, exactly as when the constants were the only source. */
-const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+const serverOrigin = Astro.url.origin;
 const profile = await fetchProfile(serverOrigin);
 const siteName = profile?.siteName || SITE_NAME;
 const siteTitle = profile?.siteTitle || SITE_TITLE;

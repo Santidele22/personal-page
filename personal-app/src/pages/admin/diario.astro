@@ -8,8 +8,8 @@ import Icon from '../../shared/ui/Icon.astro';
 import type { AdminDiarioView } from '../../entities/admin/types';
 import { loadDiario } from '../../features/admin/api/dashboards';
 
-/* See the resumen page: the data is read while the dev server renders the page. */
-const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+/* See the resumen page: the data is read while the server renders the page. */
+const serverOrigin = Astro.url.origin;
 
 let view: AdminDiarioView | null = null;
 let error = '';

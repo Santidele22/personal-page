@@ -6,7 +6,7 @@ import Reveal from '../../shared/ui/Reveal.astro';
 /* The ad slots are read while the server renders the page; the fallback below
    is the pricing grid this section shipped with before the public columns of
    advertising-plans existed. */
-const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+const serverOrigin = Astro.url.origin;
 const adSlotList = (await fetchAdSlots(serverOrigin)) ?? adSlotsFallback;
 
 const guarantees = [

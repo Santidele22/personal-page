@@ -10,8 +10,8 @@ import type { AdminPublicidadView } from '../../entities/admin/types';
 import { loadPublicidad } from '../../features/admin/api/dashboards';
 import AdvertisingPlansEditorPanel from '../../features/ad-slot/AdvertisingPlansEditorPanel';
 
-/* See the resumen page: the data is read while the dev server renders the page. */
-const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+/* See the resumen page: the data is read while the server renders the page. */
+const serverOrigin = Astro.url.origin;
 
 let view: AdminPublicidadView | null = null;
 let error = '';

@@ -11,7 +11,7 @@ import ToolsBlock from './ToolsBlock.astro';
 /* The portada cards and the flow ad slot are read while the server renders
    the page; the fallbacks below are the content this section shipped with
    before the blogs and advertising-plans entities existed. */
-const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+const serverOrigin = Astro.url.origin;
 const [posts, adSlots] = await Promise.all([
 	fetchPosts(serverOrigin),
 	fetchAdSlots(serverOrigin),

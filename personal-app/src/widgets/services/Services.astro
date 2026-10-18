@@ -6,7 +6,7 @@ import Reveal from '../../shared/ui/Reveal.astro';
 /* The service cards are read while the server renders the page; the fallback
    below is the copy this section shipped with before the services entity
    was consumed by the landing. */
-const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+const serverOrigin = Astro.url.origin;
 const serviceCards = (await fetchServices(serverOrigin)) ?? servicesFallback;
 ---
 

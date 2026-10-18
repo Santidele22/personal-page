@@ -4,7 +4,7 @@ import Icon from '../../shared/ui/Icon.astro';
 
 /* The tools are read while the server renders the page; the fallback below is
    the list this grid shipped with before the tools entity existed. */
-const serverOrigin = import.meta.env.DEV ? Astro.url.origin : undefined;
+const serverOrigin = Astro.url.origin;
 const toolList = (await fetchTools(serverOrigin)) ?? toolsFallback;
 
 interface Props {
