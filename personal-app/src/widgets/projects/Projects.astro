@@ -112,8 +112,8 @@ const rest = projectCards.filter((project) => project !== featured);
 		)}
 		{/* The projects show what was built; the tools band closes the section
 		    with the real, backend-managed list of what built it. Each entry
-		    keeps the love-of-art vs sponsored split the brands block expects
-		    (`#marcas`), so the disclosure copy travels with the band. */}
+		    keeps the love-of-art vs sponsored split; tools without a managed
+		    link fall back to the dedicated /marcas page. */}
 		<Reveal class="mt-8">
 			<ToolsBlock label="CON LO QUE LOS CONSTRUYO" />
 		</Reveal>

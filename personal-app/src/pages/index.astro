@@ -5,7 +5,6 @@ import AdSlot from '../entities/ad-slot/AdSlot.astro';
 import { adSlotsFallback, fetchAdSlots } from '../features/ad-slot/api/ad-slots';
 import About from '../widgets/about/About.astro';
 import Blog from '../widgets/blog/Blog.astro';
-import Brands from '../widgets/brands/Brands.astro';
 import Contact from '../widgets/contact/Contact.astro';
 import Hero from '../widgets/hero/Hero.astro';
 import Projects from '../widgets/projects/Projects.astro';
@@ -32,6 +31,5 @@ const patrono = adSlots.find((slot) => slot.id === 'patrono');
 	<Projects />
 	<Reading />
 	{showServicesOnLanding && <Services />}
-	<Brands />
 	<Contact />
 </BaseLayout>

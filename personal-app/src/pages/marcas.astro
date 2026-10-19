@@ -1,0 +1,15 @@
+---
+import BaseLayout from '../app/layouts/BaseLayout.astro';
+import Brands from '../widgets/brands/Brands.astro';
+
+/* The advertising offer keeps its contents verbatim from the landing widget;
+   only the home around it changes: the landing stays personal and the full
+   pitch lives on this dedicated page. */
+const title = 'Espacios para marcas — santi.';
+const description =
+	'Los espacios publicitarios del diario: momentos de atención del lector, no píxeles. Publicidad siempre marcada, precios fundador congelados para las marcas fundadoras.';
+---
+
+<BaseLayout title={title} description={description}>
+	<Brands />
+</BaseLayout>
