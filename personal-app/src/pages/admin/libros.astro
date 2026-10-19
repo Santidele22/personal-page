@@ -1,0 +1,15 @@
+---
+import AdminLayout from '../../app/layouts/AdminLayout.astro';
+import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
+import BooksEditorPanel from '../../features/book/BooksEditorPanel';
+---
+
+<AdminLayout active="libros" title="Panel · Libros — devlog">
+	<AdminPageHeader
+		eyebrow="PANEL · LIBROS"
+		title="Lo que estoy leyendo"
+		description="Los libros de la sección de lectura: título, autor, estado, reseña y el PDF que la web ofrece con descarga limitada. Se guardan en la base y la landing los muestra al recargar cuando están publicados."
+	/>
+
+	<BooksEditorPanel client:load />
+</AdminLayout>
