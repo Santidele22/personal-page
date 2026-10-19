@@ -48,7 +48,9 @@ export function toDiarioPosts(blogs: ApiBlog[]): AdminPost[] {
 		// Neither views nor comments exist in the API: the table shows «—».
 		views: null,
 		comments: null,
-		date: formatDay(blog.createdAt),
+		// The stored publication date (issue 28); rows seeded before that
+		// column existed fall back to their insertion time.
+		date: formatDay(blog.pubDate ?? blog.createdAt),
 	}));
 }
 

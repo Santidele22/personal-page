@@ -13,7 +13,8 @@ import '../styles/global.css';
 interface Props {
 	title?: string;
 	description?: string;
-	image?: ImageMetadata;
+	/** `ImageMetadata` from `astro:assets` or a plain URL string (backend heroes). */
+	image?: ImageMetadata | string;
 }
 
 /* Site meta comes from the profile while the API answers; the `site.ts`
@@ -49,7 +50,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 		<meta property="og:title" content={title} />
 		<meta property="og:description" content={description} />
 		<meta property="og:site_name" content={siteName} />
-		<meta property="og:image" content={new URL(image.src, Astro.url)} />
+		<meta property="og:image" content={typeof image === 'string' ? new URL(image, Astro.url).toString() : new URL(image.src, Astro.url)} />
 		<meta name="twitter:card" content="summary_large_image" />
 		<title>{title}</title>
 		<Font cssVariable="--font-shippori" preload />

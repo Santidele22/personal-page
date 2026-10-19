@@ -115,6 +115,10 @@ export type ApiBlog = {
 	level: ApiBlogLevel;
 	createdAt: string;
 	authorId: string;
+	/** Present since the backend became the diario's single source (issue 28). */
+	slug?: string;
+	pubDate?: string | null;
+	updatedDate?: string | null;
 };
 
 export type ApiAdvertisingPlan = {
