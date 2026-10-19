@@ -1,8 +1,9 @@
-import type { Book, ReadingStatus } from '../../../entities/book/types';
+import type { Book, BookKind, ReadingStatus } from '../../../entities/book/types';
 import { booksFallback } from '../../../entities/book/data';
 import { getJson } from '../../../shared/api/http';
 
 const READING_STATUSES: ReadingStatus[] = ['reading', 'finished', 'queued'];
+const BOOK_KINDS: BookKind[] = ['tecnico', 'no_tecnico'];
 
 /** Rendered label of each stored reading status key. */
 const STATUS_LABELS: Record<ReadingStatus, string> = {
@@ -22,6 +23,7 @@ type ApiBook = {
 	author: string;
 	description: string;
 	status?: string | null;
+	kind?: string | null;
 	review?: string | null;
 	published?: boolean | null;
 	originalName?: string | null;
@@ -47,6 +49,9 @@ export async function fetchBooks(serverOrigin?: string): Promise<Book[] | null> 
 				const status = READING_STATUSES.includes(book.status as ReadingStatus)
 					? (book.status as ReadingStatus)
 					: 'queued';
+				const kind = BOOK_KINDS.includes(book.kind as BookKind)
+					? (book.kind as BookKind)
+					: 'no_tecnico';
 
 				return {
 					id: book.id,
@@ -55,6 +60,7 @@ export async function fetchBooks(serverOrigin?: string): Promise<Book[] | null> 
 					description: book.description,
 					status,
 					statusLabel: STATUS_LABELS[status],
+					kind,
 					review: book.review ?? undefined,
 					published: true,
 				};
