@@ -1,28 +1,46 @@
 ---
+import { getCollection } from 'astro:content';
 import AdSlot from '../../entities/ad-slot/AdSlot.astro';
 import { fetchAdSlots, adSlotsFallback } from '../../features/ad-slot/api/ad-slots';
-import { fetchPosts, postsFallback } from '../../features/blog/api/posts';
+import type { Post } from '../../entities/post/types';
+import EmptyState from '../../shared/ui/EmptyState.astro';
 import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
 import SeigaihaBand from '../../shared/ui/SeigaihaBand.astro';
 import PostCard from './PostCard.astro';
 import ToolsBlock from './ToolsBlock.astro';
 
-/* The portada cards and the flow ad slot are read while the server renders
-   the page; the fallbacks below are the content this section shipped with
-   before the blogs and advertising-plans entities existed. */
+/* The portada cards come from the Astro content collection the whole diario
+   is built on (`src/content/blog/`): every card links to a page the collection
+   itself generates, so the landing never advertises an entry with no post
+   behind it. The flow ad slot is read while the server renders the page;
+   that fallback is the content the slot shipped with. */
 const serverOrigin = Astro.url.origin;
-const [posts, adSlots] = await Promise.all([
-	fetchPosts(serverOrigin),
-	fetchAdSlots(serverOrigin),
-]);
-const cards = posts ?? postsFallback;
+const [entries, adSlots] = await Promise.all([getCollection('blog'), fetchAdSlots(serverOrigin)]);
 const slots = adSlots ?? adSlotsFallback;
 
-/* The grid pins one headline card: pick the featured flag, or the first card
-   when the admin has not marked any entry as featured. */
-const featured = cards.find((post) => post.featured) ?? cards[0];
-const rest = cards.filter((post) => post !== featured);
+const cards = entries
+	// The grid pins one headline card: the featured flag selects it, newest
+	// first after that choice.
+	.sort(
+		(a, b) =>
+			Number(b.data.featured === true) - Number(a.data.featured === true) ||
+			b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+	)
+	.map((entry): Post => ({
+		slug: entry.id,
+		title: entry.data.title,
+		excerpt: entry.data.description,
+		category: entry.data.category ?? 'Diario',
+		icon: entry.data.icon ?? 'wrench',
+		// Stored calendar date, rendered with the site's dotted style.
+		date: entry.data.pubDate.toISOString().slice(0, 10).replaceAll('-', '.'),
+		readMin: entry.data.readMin ?? 1,
+		featured: entry.data.featured === true,
+	}));
+
+const featured = cards[0];
+const rest = cards.slice(1);
 const row1 = rest.slice(0, 2);
 const row2 = rest.slice(2, 4);
 const flujo = slots.find((slot) => slot.id === 'flujo');
@@ -46,48 +64,64 @@ const flujo = slots.find((slot) => slot.id === 'flujo');
 			</div>
 		</Reveal>
 		<Reveal delay={0.1}>
-			<article class="group mt-10 grid overflow-hidden border border-border bg-card transition-colors hover:border-aka/60 md:grid-cols-2">
-				<div class="relative flex min-h-[240px] items-center justify-center overflow-hidden border-b border-border bg-secondary/60 md:border-b-0 md:border-r">
-					<SeigaihaBand class="absolute inset-x-0 top-0 h-24 text-foreground opacity-[0.16]" rows={3} />
-					<SeigaihaBand class="absolute inset-x-0 bottom-0 h-24 rotate-180 text-foreground opacity-[0.1]" rows={3} />
-					<Icon name={featured.icon} class="relative size-24 text-aka" strokeWidth={1} />
-					<span class="absolute left-4 top-4 rounded-full border border-aka/40 bg-background/80 px-3 py-1 text-[11px] font-medium tracking-wider text-aka backdrop-blur-sm">DESTACADO</span>
-				</div>
-				<div class="flex flex-col p-6 sm:p-9">
-					<p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] tracking-wider text-muted-foreground">
-						<span class="rounded-sm bg-secondary px-2 py-0.5 font-medium text-foreground/80">{featured.category}</span>
-						<time datetime={featured.date.replaceAll('.', '-')}>{featured.date}</time>
-						<span aria-hidden="true">·</span>
-						<span>{featured.readMin} min de lectura</span>
-					</p>
-					<h3 class="mt-4 text-balance font-mincho text-2xl font-semibold leading-snug tracking-tight sm:text-[1.7rem]">{featured.title}</h3>
-					<p class="mt-4 flex-1 text-[15px] leading-relaxed text-muted-foreground">{featured.excerpt}</p>
-					<span class="mt-6 inline-flex items-center gap-2 text-sm font-medium text-aka">
-						Leer entrada
-						<Icon name="arrow-right" class="size-4 transition-transform group-hover:translate-x-1" />
-					</span>
-				</div>
-			</article>
-		</Reveal>
-		<div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-			{row1.map((post) => <Reveal class="h-full"><PostCard post={post} /></Reveal>)}
-			<Reveal class="h-full"><ToolsBlock class="h-full" /></Reveal>
-		</div>
-		{flujo && <Reveal><AdSlot ad={flujo} class="mx-auto mt-6 w-full max-w-xl" /></Reveal>}
-		<div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-			{row2.map((post) => <Reveal class="h-full"><PostCard post={post} /></Reveal>)}
-			<Reveal class="h-full">
-				<a href="/blog/" class="group flex h-full flex-col justify-between border border-border bg-card p-6 transition-colors hover:border-aka/60">
-					<div>
-						<h3 class="text-balance font-mincho text-lg font-semibold leading-snug tracking-tight">Ver todas las entradas</h3>
-						<p class="mt-3 text-sm leading-relaxed text-muted-foreground">El archivo completo del diario, desde 2026: backend, blockchain y cuadernos de código.</p>
+			{featured ? (
+				<a
+					href={`/blog/${featured.slug}/`}
+					class="group mt-10 grid overflow-hidden border border-border bg-card transition-colors hover:border-aka/60 md:grid-cols-2"
+				>
+					<div class="relative flex min-h-[240px] items-center justify-center overflow-hidden border-b border-border bg-secondary/60 md:border-b-0 md:border-r">
+						<SeigaihaBand class="absolute inset-x-0 top-0 h-24 text-foreground opacity-[0.16]" rows={3} />
+						<SeigaihaBand class="absolute inset-x-0 bottom-0 h-24 rotate-180 text-foreground opacity-[0.1]" rows={3} />
+						<Icon name={featured.icon} class="relative size-24 text-aka" strokeWidth={1} />
+						<span class="absolute left-4 top-4 rounded-full border border-aka/40 bg-background/80 px-3 py-1 text-[11px] font-medium tracking-wider text-aka backdrop-blur-sm">DESTACADO</span>
 					</div>
-					<p class="mt-5 flex items-center justify-between border-t border-border pt-4 text-sm font-medium text-aka">
-						Ir al archivo
-						<Icon name="arrow-right" class="size-4 transition-transform group-hover:translate-x-1" />
-					</p>
+					<div class="flex flex-col p-6 sm:p-9">
+						<p class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] tracking-wider text-muted-foreground">
+							<span class="rounded-sm bg-secondary px-2 py-0.5 font-medium text-foreground/80">{featured.category}</span>
+							<time datetime={featured.date.replaceAll('.', '-')}>{featured.date}</time>
+							<span aria-hidden="true">·</span>
+							<span>{featured.readMin} min de lectura</span>
+						</p>
+						<h3 transition:name={`blog-title-${featured.slug}`} class="mt-4 text-balance font-mincho text-2xl font-semibold leading-snug tracking-tight sm:text-[1.7rem]">{featured.title}</h3>
+						<p class="mt-4 flex-1 text-[15px] leading-relaxed text-muted-foreground">{featured.excerpt}</p>
+						<span class="mt-6 inline-flex items-center gap-2 text-sm font-medium text-aka">
+							Leer entrada
+							<Icon name="arrow-right" class="size-4 transition-transform group-hover:translate-x-1" />
+						</span>
+					</div>
 				</a>
-			</Reveal>
-		</div>
+			) : (
+				<EmptyState
+					icon="book-open"
+					title="Todavía no hay entradas"
+					description="El archivo del diario todavía está vacío; el primer borrador se publica dentro de poco."
+					class="mt-10"
+				/>
+			)}
+		</Reveal>
+		{row1.length > 0 && (
+			<div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+				{row1.map((post) => <Reveal class="h-full"><PostCard post={post} /></Reveal>)}
+				<Reveal class="h-full"><ToolsBlock class="h-full" /></Reveal>
+			</div>
+		)}
+		{flujo && <Reveal><AdSlot ad={flujo} class="mx-auto mt-6 w-full max-w-xl" /></Reveal>}
+		{row2.length > 0 && (
+			<div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+				{row2.map((post) => <Reveal class="h-full"><PostCard post={post} /></Reveal>)}
+				<Reveal class="h-full">
+						<a href="/blog/" class="group flex h-full flex-col justify-between border border-border bg-card p-6 transition-colors hover:border-aka/60">
+						<div>
+							<h3 class="text-balance font-mincho text-lg font-semibold leading-snug tracking-tight">Ver todas las entradas</h3>
+							<p class="mt-3 text-sm leading-relaxed text-muted-foreground">El archivo completo del diario, desde 2026: backend, blockchain y cuadernos de código.</p>
+						</div>
+						<p class="mt-5 flex items-center justify-between border-t border-border pt-4 text-sm font-medium text-aka">
+							Ir al archivo
+							<Icon name="arrow-right" class="size-4 transition-transform group-hover:translate-x-1" />
+						</p>
+					</a>
+				</Reveal>
+			</div>
+		)}
 	</div>
 </section>

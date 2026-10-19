@@ -2,6 +2,7 @@
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 import FormattedDate from '../../shared/ui/FormattedDate.astro';
+import Icon from '../../shared/ui/Icon.astro';
 import BaseLayout from './BaseLayout.astro';
 
 type Props = CollectionEntry<'blog'>['data'] & { slug: string };
@@ -11,6 +12,13 @@ const { title, description, pubDate, updatedDate, heroImage, slug } = Astro.prop
 
 <BaseLayout title={`${title} · santi.`} description={description} image={heroImage}>
 	<article class="mx-auto max-w-4xl px-5 py-12 sm:px-8 sm:py-16">
+		<a
+			href="/blog/"
+			class="group inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-aka"
+		>
+			<Icon name="arrow-left" class="size-4 transition-transform group-hover:-translate-x-1" strokeWidth={2} />
+			Volver al archivo
+		</a>
 		{heroImage && (
 			<Image
 				width={1020}
