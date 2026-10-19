@@ -102,7 +102,6 @@ const flujo = slots.find((slot) => slot.id === 'flujo');
 		{row1.length > 0 && (
 			<div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
 				{row1.map((post) => <Reveal class="h-full"><PostCard post={post} /></Reveal>)}
-				<Reveal class="h-full"><ToolsBlock class="h-full" /></Reveal>
 			</div>
 		)}
 		{flujo && <Reveal><AdSlot ad={flujo} class="mx-auto mt-6 w-full max-w-xl" /></Reveal>}
@@ -123,5 +122,11 @@ const flujo = slots.find((slot) => slot.id === 'flujo');
 				</Reveal>
 			</div>
 		)}
+		{/* The tools leave the post grid for their own full-width band: the
+		    entries keep the same love-of-art vs sponsored split, with room to
+		    breathe instead of squeezing into a post-shaped slot. */}
+		<Reveal class="mt-8">
+			<ToolsBlock />
+		</Reveal>
 	</div>
 </section>
