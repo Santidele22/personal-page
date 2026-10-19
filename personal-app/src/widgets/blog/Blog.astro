@@ -1,7 +1,7 @@
 ---
-import { getCollection } from 'astro:content';
 import AdSlot from '../../entities/ad-slot/AdSlot.astro';
 import { fetchAdSlots, adSlotsFallback } from '../../features/ad-slot/api/ad-slots';
+import { fetchBlogRows, toPost } from '../../features/blog/api/blogs';
 import type { Post } from '../../entities/post/types';
 import EmptyState from '../../shared/ui/EmptyState.astro';
 import Icon from '../../shared/ui/Icon.astro';
@@ -9,34 +9,16 @@ import Reveal from '../../shared/ui/Reveal.astro';
 import SeigaihaBand from '../../shared/ui/SeigaihaBand.astro';
 import PostCard from './PostCard.astro';
 
-/* The portada cards come from the Astro content collection the whole diario
-   is built on (`src/content/blog/`): every card links to a page the collection
-   itself generates, so the landing never advertises an entry with no post
-   behind it. The flow ad slot is read while the server renders the page;
-   that fallback is the content the slot shipped with. */
+/* The portada cards come from the backend (`GET /blogs`), the single source
+   of truth the admin panel edits (issue 28): every card links to the public
+   slug route, so the landing never advertises an entry with no post behind
+   it. The flow ad slot is read while the server renders the page; that
+   fallback is the content the slot shipped with. */
 const serverOrigin = Astro.url.origin;
-const [entries, adSlots] = await Promise.all([getCollection('blog'), fetchAdSlots(serverOrigin)]);
+const [rows, adSlots] = await Promise.all([fetchBlogRows(serverOrigin), fetchAdSlots(serverOrigin)]);
 const slots = adSlots ?? adSlotsFallback;
 
-const cards = entries
-	// The grid pins one headline card: the featured flag selects it, newest
-	// first after that choice.
-	.sort(
-		(a, b) =>
-			Number(b.data.featured === true) - Number(a.data.featured === true) ||
-			b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
-	)
-	.map((entry): Post => ({
-		slug: entry.id,
-		title: entry.data.title,
-		excerpt: entry.data.description,
-		category: entry.data.category ?? 'Diario',
-		icon: entry.data.icon ?? 'wrench',
-		// Stored calendar date, rendered with the site's dotted style.
-		date: entry.data.pubDate.toISOString().slice(0, 10).replaceAll('-', '.'),
-		readMin: entry.data.readMin ?? 1,
-		featured: entry.data.featured === true,
-	}));
+const cards: Post[] = rows.map((row) => toPost(row));
 
 const featured = cards[0];
 const rest = cards.slice(1);

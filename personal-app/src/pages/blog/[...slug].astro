@@ -1,24 +1,33 @@
 ---
-import { type CollectionEntry, getCollection, render } from 'astro:content';
+import { marked } from 'marked';
 import BlogPostLayout from '../../app/layouts/BlogPostLayout.astro';
+import { fetchBlogArticle } from '../../features/blog/api/blogs';
 
-// The diario is built from the content collection at build time; the node
-// adapter's SSR hand otherwise drops `getStaticPaths` and the route renders
-// with no post under `Astro.props`.
-export const prerender = true;
-export async function getStaticPaths() {
-	const posts = await getCollection('blog');
-	return posts.map((post) => ({
-		params: { slug: post.id },
-		props: post,
-	}));
+/* The diario entries live in the backend (issue 28), so the article renders
+   on demand: new entries from the panel appear without a rebuild. Bodies are
+   markdown stored server side, rendered here with `marked`. */
+const { slug } = Astro.params;
+
+let post = null;
+if (slug) {
+	post = await fetchBlogArticle(slug, Astro.url.origin);
 }
-type Props = CollectionEntry<'blog'>;
 
-const post = Astro.props;
-const { Content } = await render(post);
+// Unknown slug or API outage: no content to render, answer 404.
+if (!post) {
+	return new Response(null, { status: 404 });
+}
+
+const html = await marked.parse(post.content, { async: false });
 ---
 
-<BlogPostLayout {...post.data} slug={post.id}>
-	<Content />
+<BlogPostLayout
+	title={post.title}
+	description={post.description}
+	pubDate={post.pubDate ?? post.createdAt}
+	updatedDate={post.updatedDate}
+	heroImage={null}
+	html={html}
+	slug={post.slug}
+>
 </BlogPostLayout>

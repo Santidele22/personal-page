@@ -1,28 +1,45 @@
 ---
-import { Image } from 'astro:assets';
-import type { CollectionEntry } from 'astro:content';
 import FormattedDate from '../../shared/ui/FormattedDate.astro';
 import Icon from '../../shared/ui/Icon.astro';
 import BaseLayout from './BaseLayout.astro';
 
-type Props = CollectionEntry<'blog'>['data'] & { slug: string };
+/**
+ * Props of the article page. The diario reads from the backend (issue 28):
+ * dates arrive as ISO strings from `GET /blogs/slug/:slug`, and the hero is
+ * a plain URL (`heroImage` as an assets `ImageMetadata` object is no more; a
+ * future hero column on `Blog` would serve its public URL here).
+ */
+type Props = {
+	title: string;
+	description: string;
+	pubDate: string | Date;
+	updatedDate?: string | Date | null;
+	heroImage?: string | null;
+	html: string;
+	slug: string;
+};
 
-const { title, description, pubDate, updatedDate, heroImage, slug } = Astro.props;
+const asDate = (value: string | Date | null | undefined): Date | undefined => {
+	if (!value) return undefined;
+	return value instanceof Date ? value : new Date(value);
+};
+
+const { title, description, pubDate, updatedDate, heroImage, html, slug } = Astro.props;
+const date = asDate(pubDate);
+const updated = asDate(updatedDate);
 ---
 
-<BaseLayout title={`${title} · santi.`} description={description} image={heroImage}>
+<BaseLayout title={`${title} · santi.`} description={description} image={heroImage ?? undefined}>
 	<article class="mx-auto max-w-4xl px-5 py-12 sm:px-8 sm:py-16">
 		<a
 			href="/blog/"
 			class="group inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-aka"
 		>
-			<Icon name="arrow-left" class="size-4 transition-transform group-hover:-translate-x-1" strokeWidth={2} />
+			<Icon name="arrow-left" class="size-4" strokeWidth={2} />
 			Volver al archivo
 		</a>
 		{heroImage && (
-			<Image
-				width={1020}
-				height={510}
+			<img
 				src={heroImage}
 				alt=""
 				transition:name={`blog-hero-${slug}`}
@@ -31,15 +48,16 @@ const { title, description, pubDate, updatedDate, heroImage, slug } = Astro.prop
 		)}
 		<header class="mx-auto mb-10 max-w-3xl border-b border-border pb-8 text-center">
 			<p class="text-sm text-muted-foreground">
-				<FormattedDate date={pubDate} />
-				{updatedDate && <span class="mt-1 block text-xs italic">Actualizado el <FormattedDate date={updatedDate} /></span>}
+				{date && <FormattedDate date={date} />}
+				{updated && <span class="mt-1 block text-xs italic">Actualizado el <FormattedDate date={updated} /></span>}
 			</p>
 			<h1 transition:name={`blog-title-${slug}`} class="mt-4 text-balance font-mincho text-3xl font-semibold tracking-tight sm:text-5xl">{title}</h1>
 			<p class="mx-auto mt-4 max-w-2xl text-muted-foreground">{description}</p>
 		</header>
-		<div class="article-content mx-auto max-w-3xl text-[15px] leading-relaxed text-foreground/90 sm:text-base">
-			<slot />
-		</div>
+		{/* The backend stores the markdown body; rendered with `marked` at request
+		    time (XSS tradeoff documented in odd/tasks/issue-28-diario-backend-unified.md
+		    S5). */}
+		<div class="article-content mx-auto max-w-3xl text-[15px] leading-relaxed text-foreground/90 sm:text-base" set:html={html} />
 	</article>
 </BaseLayout>
 
