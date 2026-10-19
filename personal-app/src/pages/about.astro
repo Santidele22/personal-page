@@ -1,19 +1,33 @@
 ---
 import BaseLayout from '../app/layouts/BaseLayout.astro';
+import { SITE_NAME } from '../app/config/site';
+import { fetchProfile } from '../features/profile/api/profile';
 import Icon from '../shared/ui/Icon.astro';
+
+/* The profile is read while the server renders the page; the fallbacks below
+   are the copy this page shipped with before the profile entity existed. */
+const serverOrigin = Astro.url.origin;
+const profile = await fetchProfile(serverOrigin);
+
+const siteName = profile?.siteName || SITE_NAME;
+const name = (profile?.name ?? 'Santiago Delebecq').replace(/\.$/, '');
+
+const bioParagraphs = profile?.bioParagraphs ?? [
+	'Soy desarrollador backend en Monetae, desde Córdoba, Argentina. Backend de día, blockchain cuando la casa se calla; vengo del full stack y me quedé pensando arquitectura de software y sistemas que escalan. Este diario nació en 2026 con una regla simple — si no puedo explicarlo, todavía no lo aprendí.',
+	'Escribir en público es mi manera de obligarme a entender. Publico cada dos semanas, primero en español; las entradas que lo merecen viajan después al inglés.',
+	'Cuando no escribo, construyo: un SaaS de turnos en producción, donaciones on-chain, un marketplace NFT en camino. Todo con código abierto en GitHub. Y todo lo que recomiendo pasó por mis manos — la publicidad va marcada. Lo demás es código y calma.',
+];
 ---
 
-<BaseLayout title="Quién soy · santi." description="Santiago Delebecq, desarrollador backend en Monetae desde Córdoba, Argentina, y autor de un diario sobre ingeniería de software y blockchain.">
+<BaseLayout title={`Quién soy · ${siteName}`}>
 	<section class="mx-auto max-w-3xl px-5 py-16 sm:px-8 lg:py-24">
 		<p class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
 			<Icon name="user" class="size-4 text-aka" />
 			QUIÉN SOY
 		</p>
-		<h1 class="mt-3 font-mincho text-4xl font-semibold tracking-tight sm:text-5xl">Hola, soy Santiago Delebecq<span class="text-aka">.</span></h1>
+		<h1 class="mt-3 font-mincho text-4xl font-semibold tracking-tight sm:text-5xl">Hola, soy {name}<span class="text-aka">.</span></h1>
 		<div class="mt-8 space-y-5 text-base leading-relaxed text-muted-foreground">
-			<p>Soy desarrollador backend en Monetae, desde Córdoba, Argentina. Backend de día, blockchain cuando la casa se calla; vengo del full stack y me quedé pensando arquitectura de software y sistemas que escalan. Este diario nació en 2026 con una regla simple — si no puedo explicarlo, todavía no lo aprendí.</p>
-			<p>Escribir en público es mi manera de obligarme a entender. Publico cada dos semanas, primero en español; las entradas que lo merecen viajan después al inglés.</p>
-			<p>Cuando no escribo, construyo: un SaaS de turnos en producción, donaciones on-chain, un marketplace NFT en camino. Todo con código abierto en GitHub. Y todo lo que recomiendo pasó por mis manos — la publicidad va marcada. Lo demás es código y calma.</p>
+			{bioParagraphs.map((paragraph) => <p>{paragraph}</p>)}
 		</div>
 		<a href="/#quien-soy" class="mt-10 inline-flex items-center gap-2 text-sm font-medium text-aka hover:underline">
 			<Icon name="arrow-right" class="size-4 rotate-180" />
