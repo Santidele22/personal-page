@@ -32,15 +32,19 @@ Assumptions (marked, not user-verbatim):
   pattern (owner from session, public GET). Route: inline. Commit:
   feat(books) — e2e 7/7 (`test/books.e2e-spec.ts`), unit 138/138, build OK.
 - T2 [S2] PDF upload: `POST /books/:id/file` multipart, streaming to disk
-  (multer disk storage), PDF-only filter, size cap. Route: inline. Commit: —
+  (multer disk storage), PDF-only filter, size cap. Route: inline.
+  Issue: Santidele22/personal-page#15. Commit: —
 - T3 [S2/S3] Download endpoint `GET /books/:id/download` with per-IP daily
-  rate limiting (`download_events` table). Route: inline. Commit: —
+  rate limiting (`download_events` table). Route: inline.
+  Issue: Santidele22/personal-page#17. Commit: —
 - T4 [S3] Landing widget `widgets/reading/` + section on the landing. Route:
-  inline. Commit: —
+  inline. Issue: Santidele22/personal-page#18. Commit: —
 - T5 [S1] Admin page `/admin/libros` + `BooksEditorPanel` island + sidebar
-  entry. Route: inline. Commit: —
+  entry. Route: inline. Issue: Santidele22/personal-page#19. Commit: —
 - T6 [S2] Chunked upload endpoints, only if T2 evidence shows the streaming
-  path cannot absorb large books. Route: inline. Commit: —
+  path cannot absorb large books. Route: inline.
+  Issue: Santidele22/personal-page#20 (conditional; closes `wontfix` with
+  evidence if T2 holds). Commit: —
 
 ## Log
 
@@ -52,3 +56,8 @@ Assumptions (marked, not user-verbatim):
   hay una reseña o comentario sobre ese libro tambien agregarlo."
 - L2 (2026-10-19): Pending blog feature committed (3 commits), pushed, PR 14
   created and merged into `main`; dev fast-forwarded to the merge.
+- L3 (2026-10-19): User asked to create GitHub issues for every pending task.
+  Created #15 (T2), #17 (T3), #18 (T4), #19 (T5), #20 (T6, conditional). #16
+  was a shell mishap duplicate of #17 and got closed. Not dumped into the
+  issues: T-internal acceptance details stay in this doc; issues quote the
+  verbatim S-strings and link back here.
