@@ -18,7 +18,9 @@ if (!post) {
 	return new Response(null, { status: 404 });
 }
 
-const html = await marked.parse(post.content, { async: false });
+// marked.parse with `async: false` resolves synchronously: awaiting a string
+// only adds the TS hint Astro surfaces.
+const html = marked.parse(post.content, { async: false });
 ---
 
 <BlogPostLayout
