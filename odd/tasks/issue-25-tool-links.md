@@ -14,12 +14,14 @@ S4 (criteria, verbatim): "`pnpm test` / `pnpm test:e2e` (backend) y `pnpm build`
 
 ## Tasks
 
-- T1 — S1: RED first in `backend/test/tools.e2e-spec.ts` (create accepts url, GET returns it, PATCH updates it, PATCH with empty string clears it, invalid url → 400 and collection untouched), then entity + dto. Route: inline.
-- T2 — S2 + S3: frontend types (`entities/tool/types.ts`, `api/tools-admin.ts`, `api/tools.ts`), ToolsEditorPanel LINK field, ToolsBlock anchors. Route: inline.
-- T3 — S4: full backend `pnpm test` + `test:e2e`, frontend build + astro check + tsc. Route: inline.
+- T1 — S1: RED first in `backend/test/tools.e2e-spec.ts` (create accepts url, GET returns it, PATCH updates it, PATCH with empty string clears it, invalid url → 400 and collection untouched), then entity + dto. Route: inline. ✓ commit backend eeb48c2 (RED observed: 4 fail / GREEN: tools spec all pass).
+- T2 — S2 + S3: frontend types (`entities/tool/types.ts`, `api/tools-admin.ts`, `api/tools.ts`), ToolsEditorPanel LINK field, ToolsBlock anchors. Route: inline. ✓ commit root 1ab8311.
+- T3 — S4: full backend `pnpm test` + `test:e2e`, frontend build + astro check + tsc. Route: inline. ✓ (see Log L4).
 
 ## Log
 
 - L1: user request (verbatim): "Arranquemos la issue 25" — GitHub issue #25 "admin herramientas: input de link para que cada herramienta redirija a su página", whose body provides the objetivos/estado/alcance/criterios quoted in S1–S4.
 - L2: Assumptions (from prior session conventions, issue 22): work stays local/dev, no push, no merge; conventional commits, no Co-Authored-By. `url` stored as given (no normalization); empty string means "sin link".
 - L3: Route declaration: all tasks inline; no Writer trigger fired (single sequential flow, units ≤100 changed lines each, disjoint areas edited one after another by the same actor).
+- L4: Verification evidence 2026-10-19: backend `pnpm test` 125/126 pass (1 pre-existing failure `dev-auth.service.spec.ts > createSession`, not caused by this change); `pnpm test:e2e` 91/93 pass (2 pre-existing `dev-auth.e2e-spec` failures, also failing on base per issue-22 session). Frontend `astro check` 0 errors, `tsc --noEmit` exit 0, `pnpm build` complete. New url e2e tests: 4/4 pass.
+- L5: Status: T1-T3 done, S1-S4 covered. Pending user checks: manual pass over `/admin/herramientas/` + landing against the running dev backend; push/merge left to the user. Feature remains open until the user confirms in-issue.
