@@ -16,6 +16,8 @@ export type ToolRow = {
 	name: string;
 	what: string;
 	sponsorship: ToolSponsorship;
+	/** Stored click target; `null` while the backend has the column but the row has no value. */
+	url?: string | null;
 };
 
 /** Body of `POST /tools`; `PATCH /tools/:id` accepts any subset of it. */
@@ -24,6 +26,8 @@ export type ToolInput = {
 	what: string;
 	/** Omitted sends the backend default (`genuina`). */
 	sponsorship?: ToolSponsorship;
+	/** `''` clears the link; a non-empty value must be an http(s) URL. */
+	url?: string;
 };
 
 export function fetchToolRows(): Promise<ToolRow[]> {

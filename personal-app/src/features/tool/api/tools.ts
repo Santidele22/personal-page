@@ -12,6 +12,7 @@ type ApiTool = {
 	name: string;
 	what: string;
 	sponsorship?: ToolSponsorship;
+	url?: string | null;
 };
 
 /**
@@ -30,6 +31,7 @@ export async function fetchTools(serverOrigin?: string): Promise<Tool[] | null> 
 			name: tool.name,
 			what: tool.what,
 			sponsorship: tool.sponsorship ?? 'genuina',
+			url: tool.url ?? undefined,
 		}));
 	} catch {
 		return null;

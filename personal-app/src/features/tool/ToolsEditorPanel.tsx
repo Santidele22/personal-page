@@ -46,6 +46,20 @@ const dangerButtonClass =
 	'inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60';
 
 /**
+ * The Link field keeps the soft validation policy of the panel: the only
+ * client check is a full http(s) URL (or empty, because the backend treats
+ * `''` as "sin link"), and the API still owns the authoritative answer.
+ */
+function urlProblem(value: string): string | null {
+	const url = value.trim();
+	if (!url) return null;
+
+	return /^https?:\/\/\S+$/i.test(url)
+		? null
+		: 'El link tiene que ser una URL completa (https://…), o vacío si todavía no hay página.';
+}
+
+/**
  * Keeps the Spanish copy and appends the backend detail: a validation failure
  * answers `400 { message }` and hiding it would leave the admin without the
  * reason.
@@ -128,9 +142,11 @@ export default function ToolsEditorPanel() {
 	const [confirmingDeleteId, setConfirmingDeleteId] = createSignal<number | null>(null);
 	const [newName, setNewName] = createSignal('');
 	const [newWhat, setNewWhat] = createSignal('');
+	const [newUrl, setNewUrl] = createSignal('');
 	const [newSponsorship, setNewSponsorship] = createSignal<ToolSponsorship>('genuina');
 	const [draftName, setDraftName] = createSignal('');
 	const [draftWhat, setDraftWhat] = createSignal('');
+	const [draftUrl, setDraftUrl] = createSignal('');
 	const [draftSponsorship, setDraftSponsorship] = createSignal<ToolSponsorship>('genuina');
 
 	async function load(options: { silent?: boolean } = {}) {
@@ -176,14 +192,22 @@ export default function ToolsEditorPanel() {
 		const name = newName().trim();
 		if (!name) return;
 
+		const url = newUrl().trim();
+		const problem = urlProblem(url);
+		if (problem) {
+			setFeedback({ kind: 'error', message: problem });
+			return;
+		}
+
 		const created = await mutate(
-			() => createTool({ name, what: newWhat().trim(), sponsorship: newSponsorship() }),
+			() => createTool({ name, what: newWhat().trim(), sponsorship: newSponsorship(), url }),
 			{ kind: 'created' },
 		);
 
 		if (created) {
 			setNewName('');
 			setNewWhat('');
+			setNewUrl('');
 			setNewSponsorship('genuina');
 		}
 	}
@@ -193,6 +217,7 @@ export default function ToolsEditorPanel() {
 		setConfirmingDeleteId(null);
 		setDraftName(row.name);
 		setDraftWhat(row.what);
+		setDraftUrl(row.url ?? '');
 		setDraftSponsorship(row.sponsorship ?? 'genuina');
 		setFeedback({ kind: 'idle' });
 	}
@@ -208,8 +233,15 @@ export default function ToolsEditorPanel() {
 		const name = draftName().trim();
 		if (!name) return;
 
+		const url = draftUrl().trim();
+		const problem = urlProblem(url);
+		if (problem) {
+			setFeedback({ kind: 'error', message: problem });
+			return;
+		}
+
 		const saved = await mutate(
-			() => updateTool(id, { name, what: draftWhat().trim(), sponsorship: draftSponsorship() }),
+			() => updateTool(id, { name, what: draftWhat().trim(), sponsorship: draftSponsorship(), url }),
 			{ kind: 'saved' },
 		);
 
@@ -279,7 +311,7 @@ export default function ToolsEditorPanel() {
 					<h2 id="herramientas-nueva" class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">
 						NUEVA HERRAMIENTA
 					</h2>
-					<form onSubmit={handleCreate} class="mt-5 grid gap-5 sm:grid-cols-2 sm:items-end lg:grid-cols-[1fr_2fr_auto_auto]">
+					<form onSubmit={handleCreate} class="mt-5 grid gap-5 sm:grid-cols-2 sm:items-end lg:grid-cols-[1fr_2fr_2fr_auto_auto]">
 						<Field
 							id="tool-new-name"
 							label="NOMBRE"
@@ -294,6 +326,13 @@ export default function ToolsEditorPanel() {
 							placeholder="El sitio entero, del markdown al HTML"
 							onInput={(value) => setNewWhat(value)}
 						/>
+						<Field
+							id="tool-new-url"
+							label="LINK"
+							value={newUrl()}
+							placeholder="https://astro.build"
+							onInput={(value) => setNewUrl(value)}
+						/>
 						<SelectField
 							id="tool-new-sponsorship"
 							label="PATROCINIO"
@@ -307,7 +346,8 @@ export default function ToolsEditorPanel() {
 						</button>
 					</form>
 					<p class="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-						El nombre no puede quedar vacío. La nota «para qué sirve» se muestra en una línea bajo el nombre.
+						El nombre no puede quedar vacío. La nota «para qué sirve» se muestra en una línea bajo el nombre. El link abre la
+						página de la herramienta desde la landing: dejalo vacío si todavía no tiene una.
 					</p>
 				</section>
 
@@ -388,7 +428,7 @@ export default function ToolsEditorPanel() {
 										>
 											<form
 												onSubmit={(event) => void handleEdit(event, row.id)}
-												class="grid gap-5 sm:grid-cols-2 lg:grid-cols-[1fr_2fr_auto]"
+												class="grid gap-5 sm:grid-cols-2 lg:grid-cols-[1fr_2fr_2fr_auto]"
 											>
 												<Field
 													id={`tool-edit-name-${row.id}`}
@@ -402,6 +442,12 @@ export default function ToolsEditorPanel() {
 													value={draftWhat()}
 													onInput={(value) => setDraftWhat(value)}
 												/>
+												<Field
+													id={`tool-edit-url-${row.id}`}
+													label="LINK"
+													value={draftUrl()}
+													onInput={(value) => setDraftUrl(value)}
+												/>
 												<SelectField
 													id={`tool-edit-sponsorship-${row.id}`}
 													label="PATROCINIO"
@@ -409,7 +455,7 @@ export default function ToolsEditorPanel() {
 													options={SPONSORSHIP_OPTIONS}
 													onInput={(value) => setDraftSponsorship(value)}
 												/>
-												<div class="flex flex-wrap items-center gap-2 sm:col-span-2">
+												<div class="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-4">
 													<button
 														type="submit"
 														disabled={pending() || !draftName().trim()}
