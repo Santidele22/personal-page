@@ -1,5 +1,9 @@
 ---
 import { Image } from 'astro:assets';
+
+// The archive is generated from the content collection; prerender it instead
+// of calling the collection on every request.
+export const prerender = true;
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../app/layouts/BaseLayout.astro';
 import FormattedDate from '../../shared/ui/FormattedDate.astro';
@@ -10,7 +14,14 @@ const posts = (await getCollection('blog')).sort((a, b) => b.data.pubDate.valueO
 
 <BaseLayout title="Archivo del diario · santi." description="Todas las entradas del diario de Santi sobre backend, blockchain e ingeniería de software.">
 	<section class="mx-auto max-w-6xl px-5 py-14 sm:px-8 lg:py-20" aria-labelledby="archive-title">
-		<p class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
+		<a
+			href="/"
+			class="group inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-aka"
+		>
+			<Icon name="arrow-left" class="size-4 transition-transform group-hover:-translate-x-1" strokeWidth={2} />
+			Volver al inicio
+		</a>
+		<p class="mt-6 flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
 			<Icon name="book-open" class="size-4 text-aka" />
 			EL DIARIO
 		</p>
