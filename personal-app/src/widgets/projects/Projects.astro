@@ -1,5 +1,6 @@
 ---
 import { fetchProjects, projectsFallback } from '../../features/project/api/projects';
+import EmptyState from '../../shared/ui/EmptyState.astro';
 import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
 import SeigaihaBand from '../../shared/ui/SeigaihaBand.astro';
@@ -63,6 +64,15 @@ const rest = projectCards.filter((project) => project !== featured);
 					</p>
 				</div>
 			</article>
+			</Reveal>
+		)}
+		{projectCards.length === 0 && (
+			<Reveal delay={0.1} class="mt-10">
+				<EmptyState
+					icon="blocks"
+					title="Todavía no hay proyectos"
+					description="Están en el banco de trabajo: cuando uno salga, acá vas a ver el código, la demo y el stack de cada uno."
+				/>
 			</Reveal>
 		)}
 		{rest.length > 0 && (

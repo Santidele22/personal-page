@@ -1,5 +1,6 @@
 ---
 import { fetchAdSlots, adSlotsFallback } from '../../features/ad-slot/api/ad-slots';
+import EmptyState from '../../shared/ui/EmptyState.astro';
 import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
 
@@ -29,6 +30,14 @@ const guarantees = [
 			</div>
 		</Reveal>
 		<div class="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+			{adSlotList.length === 0 && (
+				<EmptyState
+					icon="megaphone"
+					class="sm:col-span-2 lg:col-span-3"
+					title="Todavía no hay espacios publicados"
+					description="Por ahora no hay momentos ni tarifas cargadas en el calendario. Si tu herramienta encaja con el diario, escribí igual: los espacios se arman a medida."
+				/>
+			)}
 			{adSlotList.map((slot, index) => {
 				const isPatrono = slot.id === 'patrono';
 				return (
