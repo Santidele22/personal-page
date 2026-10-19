@@ -1,5 +1,5 @@
 import { createSignal, For, onMount, Show } from 'solid-js';
-import type { ReadingStatus } from '../../entities/book/types';
+import type { BookKind, ReadingStatus } from '../../entities/book/types';
 import {
 	createBook,
 	deleteBook,
@@ -35,6 +35,8 @@ type FormState = {
 	description: string;
 	/** Reading status key; the DTO requires it, so it always has a value. */
 	status: string;
+	/** Landing shelf key; the DTO accepts it optionally, the form always sends it. */
+	kind: string;
 	review: string;
 	published: boolean;
 };
@@ -44,6 +46,7 @@ const EMPTY_FORM: FormState = {
 	author: '',
 	description: '',
 	status: 'reading',
+	kind: 'no_tecnico',
 	review: '',
 	published: false,
 };
@@ -53,6 +56,18 @@ const STATUS_OPTIONS: { value: ReadingStatus; label: string }[] = [
 	{ value: 'finished', label: 'Terminado' },
 	{ value: 'queued', label: 'En cola' },
 ];
+
+const KIND_OPTIONS: { value: BookKind; label: string }[] = [
+	{ value: 'tecnico', label: 'Técnico' },
+	{ value: 'no_tecnico', label: 'No técnico' },
+];
+
+const KIND_KEYS: string[] = KIND_OPTIONS.map((option) => option.value);
+
+/** Rendered label of a stored kind key; raw keys show as they come. */
+function kindLabel(kind: string | null | undefined): string {
+	return KIND_OPTIONS.find((option) => option.value === kind)?.label ?? 'No técnico';
+}
 
 const STATUS_KEYS: string[] = STATUS_OPTIONS.map((option) => option.value);
 
@@ -68,6 +83,7 @@ function toForm(row: AdminBookRow): FormState {
 		author: row.author,
 		description: row.description,
 		status: row.status ?? 'reading',
+		kind: row.kind ?? 'no_tecnico',
 		review: row.review ?? '',
 		published: row.published === true,
 	};
@@ -80,6 +96,7 @@ function toBody(form: FormState): BookWriteBody {
 		author: form.author.trim(),
 		description: form.description.trim(),
 		status: STATUS_KEYS.includes(form.status) ? (form.status as ReadingStatus) : 'reading',
+		kind: KIND_KEYS.includes(form.kind) ? (form.kind as BookKind) : 'no_tecnico',
 		review: form.review.trim() || null,
 		published: form.published,
 	};
@@ -247,6 +264,14 @@ function BookFields(props: {
 				value={props.form.status}
 				options={STATUS_OPTIONS}
 				onInput={(value) => props.onInput('status', value)}
+			/>
+			<SelectField
+				id={`${props.prefix}-kind`}
+				label="CATEGORÍA"
+				value={props.form.kind}
+				options={KIND_OPTIONS}
+				hint="Aparece en el apartado de libros técnicos o no técnicos de la web."
+				onInput={(value) => props.onInput('kind', value)}
 			/>
 			<Field
 				id={`${props.prefix}-review`}
@@ -624,6 +649,7 @@ export default function BooksEditorPanel() {
 														</div>
 														<div class="flex shrink-0 flex-wrap items-center gap-2">
 															<span class={badgeClass}>{statusLabel(row.status)}</span>
+															<span class={badgeClass}>{kindLabel(row.kind)}</span>
 															<span class={badgeClass}>
 																{row.published === true ? 'Publicado' : 'Borrador'}
 															</span>

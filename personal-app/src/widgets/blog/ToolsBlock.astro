@@ -16,26 +16,36 @@ const showSponsorship = apiTools !== null;
 
 interface Props {
 	class?: string;
+	/** Small-caps band label; each section overrides it with its own angle. */
+	label?: string;
 }
 
-const { class: className } = Astro.props;
+const {
+	class: className,
+	label = 'HERRAMIENTAS QUE USO',
+} = Astro.props;
 ---
 
 <aside aria-label="Herramientas que uso, con enlaces de afiliado" class={className}>
-	<div class="flex h-full flex-col border border-border bg-card p-6">
+	<div class="border border-border bg-card px-6 py-5 sm:px-7 sm:py-6">
 		<p class="flex items-center gap-2 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">
 			<Icon name="wrench" class="size-3.5 text-aka" />
-			HERRAMIENTAS QUE USO
+			{label}
 		</p>
 
 		{!showSponsorship ? (
 			toolList.length === 0 ? (
-				<p class="mt-4 text-sm leading-relaxed text-muted-foreground">Pronto va a haber herramientas nuevas acá.</p>
+				<p class="mt-3 text-sm leading-relaxed text-muted-foreground">Pronto va a haber herramientas nuevas acá.</p>
 			) : (
-				<ul class="mt-4 flex-1 space-y-4">
+				<ul class="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
 					{toolList.map((tool) => (
 						<li>
-							<a href="#marcas" class="group flex items-start justify-between gap-3">
+							<a
+								href={tool.url ?? '#marcas'}
+								target={tool.url ? '_blank' : undefined}
+								rel={tool.url ? 'noopener noreferrer' : undefined}
+								class="group flex items-start justify-between gap-3"
+							>
 								<span>
 									<span class="block text-sm font-semibold transition-colors group-hover:text-aka">{tool.name}</span>
 									<span class="mt-0.5 block text-[12px] leading-snug text-muted-foreground">{tool.what}</span>
@@ -47,21 +57,26 @@ const { class: className } = Astro.props;
 				</ul>
 			)
 		) : (
-			<div class="mt-2 flex-1">
+			<div class="mt-3">
 				<section aria-label="Recomendadas por amor al arte">
 					<p class="text-[11px] font-medium tracking-[0.2em] text-muted-foreground">RECOMENDADAS POR AMOR AL ARTE</p>
-					<p class="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+					<p class="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
 						Uso estas herramientas de verdad: nadie me paga para recomendarlas.
 					</p>
 					{loveOfArt.length === 0 ? (
-						<p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+						<p class="mt-3 text-sm leading-relaxed text-muted-foreground">
 							De a poco vas a ver acá las herramientas que uso cada día.
 						</p>
 					) : (
-						<ul class="mt-4 space-y-4">
+						<ul class="mt-3 grid gap-x-8 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
 							{loveOfArt.map((tool) => (
 								<li>
-									<a href="#marcas" class="group flex items-start justify-between gap-3">
+									<a
+										href={tool.url ?? '#marcas'}
+										target={tool.url ? '_blank' : undefined}
+										rel={tool.url ? 'noopener noreferrer' : undefined}
+										class="group flex items-start justify-between gap-3"
+									>
 										<span>
 											<span class="block text-sm font-semibold transition-colors group-hover:text-aka">{tool.name}</span>
 											<span class="mt-0.5 block text-[12px] leading-snug text-muted-foreground">{tool.what}</span>
@@ -75,21 +90,26 @@ const { class: className } = Astro.props;
 				</section>
 
 				<section aria-label="Patrocinadas">
-					<p class="mt-5 border-t border-border pt-5 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">
+					<p class="mt-4 border-t border-border pt-3 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">
 						PATROCINADAS
 					</p>
-					<p class="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+					<p class="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
 						Cartel visible: con estas me pagan por incluirlas acá.
 					</p>
 					{sponsored.length === 0 ? (
-						<p class="mt-4 text-[12px] leading-relaxed text-muted-foreground">
+						<p class="mt-3 text-[12px] leading-relaxed text-muted-foreground">
 							Nada en esta lista por ahora: acá aparecería cada acuerdo pago, marcado como tal.
 						</p>
 					) : (
-						<ul class="mt-4 space-y-4">
+						<ul class="mt-3 grid gap-x-8 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
 							{sponsored.map((tool) => (
 								<li>
-									<a href="#marcas" class="group flex items-start justify-between gap-3">
+									<a
+										href={tool.url ?? '#marcas'}
+										target={tool.url ? '_blank' : undefined}
+										rel={tool.url ? 'noopener noreferrer' : undefined}
+										class="group flex items-start justify-between gap-3"
+									>
 										<span>
 											<span class="block text-sm font-semibold transition-colors group-hover:text-aka">{tool.name}</span>
 											<span class="mt-0.5 block text-[12px] leading-snug text-muted-foreground">{tool.what}</span>
@@ -102,14 +122,14 @@ const { class: className } = Astro.props;
 					)}
 				</section>
 
-				<p class="mt-5 border-t border-border pt-3 text-[11px] leading-relaxed text-muted-foreground">
+				<p class="mt-4 border-t border-border pt-2 text-[11px] leading-relaxed text-muted-foreground">
 					Cada herramienta está marcada según tenga (o no) un acuerdo pago detrás.
 				</p>
 			</div>
 		)}
 
 		{!showSponsorship && (
-			<p class="mt-5 border-t border-border pt-3 text-[11px] leading-relaxed text-muted-foreground">Enlaces de afiliado: si comprás, me llega una comisión sin costo extra para vos. Solo listo lo que uso de verdad.</p>
+			<p class="mt-4 border-t border-border pt-2 text-[11px] leading-relaxed text-muted-foreground">Enlaces de afiliado: si comprás, me llega una comisión sin costo extra para vos. Solo listo lo que uso de verdad.</p>
 		)}
 	</div>
 </aside>

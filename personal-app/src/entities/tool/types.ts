@@ -6,6 +6,12 @@ export type Tool = {
 	 * offline fallback keeps its plain shape (it carries no classification).
 	 */
 	sponsorship?: ToolSponsorship;
+	/**
+	 * Page to open when a row is clicked, as `GET /tools` serves it. Optional
+	 * because the fallback rows predate the field and a stored tool may have
+	 * no page yet (the landing keeps its anchor in that case).
+	 */
+	url?: string;
 };
 
 /**

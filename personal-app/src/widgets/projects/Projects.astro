@@ -4,6 +4,7 @@ import EmptyState from '../../shared/ui/EmptyState.astro';
 import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
 import SeigaihaBand from '../../shared/ui/SeigaihaBand.astro';
+import ToolsBlock from '../blog/ToolsBlock.astro';
 
 /* The project cards are read while the server renders the page; the fallback
    below is the copy this section shipped with before the projects entity was
@@ -109,5 +110,12 @@ const rest = projectCards.filter((project) => project !== featured);
 			))}
 			</div>
 		)}
+		{/* The projects show what was built; the tools band closes the section
+		    with the real, backend-managed list of what built it. Each entry
+		    keeps the love-of-art vs sponsored split the brands block expects
+		    (`#marcas`), so the disclosure copy travels with the band. */}
+		<Reveal class="mt-8">
+			<ToolsBlock label="CON LO QUE LOS CONSTRUYO" />
+		</Reveal>
 	</div>
 </section>

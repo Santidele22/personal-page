@@ -1,4 +1,4 @@
-import type { ReadingStatus } from '../../../entities/book/types';
+import type { BookKind, ReadingStatus } from '../../../entities/book/types';
 import { deleteJson, getJson, patchJson, postJson } from '../../../shared/api/http';
 
 /**
@@ -22,6 +22,8 @@ export type AdminBookRow = {
 	author: string;
 	description: string;
 	status: ReadingStatus;
+	/** Landing shelf (issue 23); the backend defaults stored rows. */
+	kind?: BookKind | null;
 	review?: string | null;
 	published?: boolean | null;
 	originalName?: string | null;
@@ -43,6 +45,8 @@ export type BookWriteBody = {
 	author: string;
 	description: string;
 	status: ReadingStatus;
+	/** Landing shelf; always one of the enum keys, with `no_tecnico` as fallback. */
+	kind: BookKind;
 	review: string | null;
 	published: boolean;
 };
