@@ -1,14 +1,17 @@
-import type { Tool } from '../../../entities/tool/types';
+import type { Tool, ToolSponsorship } from '../../../entities/tool/types';
 import { tools } from '../../../entities/tool/data';
 import { getJson } from '../../../shared/api/http';
 
 /**
- * A tool row as `GET /tools` serves it.
+ * A tool row as `GET /tools` serves it. `sponsorship` always arrives once the
+ * backend grew the field (the entity column defaults it); an older backend
+ * without it is mapped to the default classification.
  */
 type ApiTool = {
 	id: number;
 	name: string;
 	what: string;
+	sponsorship?: ToolSponsorship;
 };
 
 /**
@@ -23,7 +26,11 @@ export async function fetchTools(serverOrigin?: string): Promise<Tool[] | null> 
 	try {
 		const rows = await getJson<ApiTool[]>('/tools', { serverOrigin });
 
-		return rows.map((tool) => ({ name: tool.name, what: tool.what }));
+		return rows.map((tool) => ({
+			name: tool.name,
+			what: tool.what,
+			sponsorship: tool.sponsorship ?? 'genuina',
+		}));
 	} catch {
 		return null;
 	}

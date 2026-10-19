@@ -1,3 +1,4 @@
+import type { ToolSponsorship } from '../../../entities/tool/types';
 import { deleteJson, getJson, patchJson, postJson } from '../../../shared/api/http';
 
 /**
@@ -14,12 +15,15 @@ export type ToolRow = {
 	id: number;
 	name: string;
 	what: string;
+	sponsorship: ToolSponsorship;
 };
 
 /** Body of `POST /tools`; `PATCH /tools/:id` accepts any subset of it. */
 export type ToolInput = {
 	name: string;
 	what: string;
+	/** Omitted sends the backend default (`genuina`). */
+	sponsorship?: ToolSponsorship;
 };
 
 export function fetchToolRows(): Promise<ToolRow[]> {
