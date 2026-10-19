@@ -1,0 +1,29 @@
+---
+import Icon from './Icon.astro';
+import type { IconName } from './Icon.astro';
+
+interface Props {
+	/** Decorative icon inside the badge; usually the section's own icon. */
+	icon: IconName;
+	/** Short headline, e.g. «Todavía no hay proyectos». */
+	title: string;
+	/** One calm line telling the visitor what will live here once there is content. */
+	description: string;
+	/** Extra layout classes from the caller (e.g. column spans inside a grid). */
+	class?: string;
+}
+
+/* Shared empty state for sections fed by the backend: when the storage list
+   is empty the section renders this panel instead of an empty grid. The thin
+   dashed border matches the site's placeholder language, the same one the
+   pricing grid and the affiliate card already use. */
+const { icon, title, description, class: className } = Astro.props;
+---
+
+<div class:list={['flex flex-col items-center justify-center border border-dashed border-border bg-card px-6 py-16 text-center', className]}>
+	<span aria-hidden="true" class="flex size-14 items-center justify-center border border-aka/40 text-aka">
+		<Icon name={icon} class="size-6" strokeWidth={1.5} />
+	</span>
+	<p class="mt-6 font-mincho text-xl font-semibold tracking-tight">{title}</p>
+	<p class="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">{description}</p>
+</div>
