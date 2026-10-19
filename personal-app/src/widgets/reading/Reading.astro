@@ -14,6 +14,18 @@ const reading = (await fetchBooks(serverOrigin)) ?? booksFallback;
 /* The PDF download goes through the rate-limited endpoint; the absolute URL
    keeps the link working the same once the browser opens it in a new tab. */
 const downloadUrl = (id: number) => `${serverOrigin}/api/books/${id}/download`;
+
+/* Issue 23: the landing splits the shelf into two headings the admin classifies
+   per book (`book.kind`). Books without an explicit kind land on the
+   non-technical shelf, the same default the backend column applies. */
+const shelves: { title: string; description: string; books: typeof reading }[] = [
+	{ title: 'Técnicos', description: 'Desarrollo, arquitectura, testing y demás lectura de oficio.', books: reading.filter((book) => book.kind === 'tecnico') },
+	{
+		title: 'No técnicos',
+		description: 'Novelas, ensayo general y lo que leo fuera del código.',
+		books: reading.filter((book) => book.kind !== 'tecnico'),
+	},
+];
 ---
 
 <section id="lectura" class="scroll-mt-20 border-y border-border bg-secondary/40" aria-labelledby="lectura-title">
@@ -40,35 +52,48 @@ const downloadUrl = (id: number) => `${serverOrigin}/api/books/${id}/download`;
 			</Reveal>
 		)}
 		{reading.length > 0 && (
-			<div class="mt-10 grid gap-6 md:grid-cols-2">
-			{reading.map((book, index) => (
-				<Reveal delay={0.1 * index} class="h-full">
-					<article class="group relative flex h-full flex-col overflow-hidden border border-border bg-card p-7 transition-colors hover:border-aka/60">
-						<SeigaihaBand class="pointer-events-none absolute inset-x-0 top-0 h-16 text-foreground opacity-[0.08]" rows={2} />
-						<div class="relative flex items-start justify-between gap-4">
-							<span aria-hidden="true" class="flex size-11 shrink-0 items-center justify-center border border-aka/40 text-aka">
-								<Icon name="book-open" class="size-5" strokeWidth={1.5} />
-							</span>
-							<span class="rounded-sm bg-secondary px-2 py-0.5 text-[11px] font-medium tracking-wide text-foreground/80">{book.statusLabel}</span>
+			shelves.map((shelf) => (
+				<div class="mt-10">
+					<h3 class="font-mincho text-2xl font-semibold tracking-tight">{shelf.title}</h3>
+					<p class="mt-1 text-[13px] text-muted-foreground">{shelf.description}</p>
+					{shelf.books.length === 0 && (
+						<p class="mt-6 border border-border bg-card p-6 text-sm text-muted-foreground">
+							Todavía no hay libros en este apartado.
+						</p>
+					)}
+					{shelf.books.length > 0 && (
+						<div class="mt-6 grid gap-6 md:grid-cols-2">
+							{shelf.books.map((book, index) => (
+								<Reveal delay={0.1 * index} class="h-full">
+									<article class="group relative flex h-full flex-col overflow-hidden border border-border bg-card p-7 transition-colors hover:border-aka/60">
+										<SeigaihaBand class="pointer-events-none absolute inset-x-0 top-0 h-16 text-foreground opacity-[0.08]" rows={2} />
+										<div class="relative flex items-start justify-between gap-4">
+											<span aria-hidden="true" class="flex size-11 shrink-0 items-center justify-center border border-aka/40 text-aka">
+												<Icon name="book-open" class="size-5" strokeWidth={1.5} />
+											</span>
+											<span class="rounded-sm bg-secondary px-2 py-0.5 text-[11px] font-medium tracking-wide text-foreground/80">{book.statusLabel}</span>
+										</div>
+										<h4 class="relative mt-5 font-mincho text-xl font-semibold tracking-tight">{book.title}</h4>
+										<p class="relative mt-1 text-sm font-medium text-aka">{book.author}</p>
+										<p class="relative mt-3 text-sm leading-relaxed text-muted-foreground">{book.description}</p>
+										{book.review && (
+											<blockquote class="relative mt-4 border-l-2 border-aka/40 pl-4 text-sm italic leading-relaxed text-muted-foreground">{book.review}</blockquote>
+										)}
+										{book.published && (
+											<p class="relative mt-6 border-t border-border pt-4">
+												<a href={downloadUrl(book.id)} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
+													<Icon name="download" class="size-4" />
+													Descargar PDF
+												</a>
+											</p>
+										)}
+									</article>
+								</Reveal>
+							))}
 						</div>
-						<h3 class="relative mt-5 font-mincho text-xl font-semibold tracking-tight">{book.title}</h3>
-						<p class="relative mt-1 text-sm font-medium text-aka">{book.author}</p>
-						<p class="relative mt-3 text-sm leading-relaxed text-muted-foreground">{book.description}</p>
-						{book.review && (
-							<blockquote class="relative mt-4 border-l-2 border-aka/40 pl-4 text-sm italic leading-relaxed text-muted-foreground">{book.review}</blockquote>
-						)}
-						{book.published && (
-							<p class="relative mt-6 border-t border-border pt-4">
-								<a href={downloadUrl(book.id)} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
-									<Icon name="download" class="size-4" />
-									Descargar PDF
-								</a>
-							</p>
-						)}
-					</article>
-				</Reveal>
-			))}
-			</div>
+					)}
+				</div>
+			))
 		)}
 	</div>
 </section>
