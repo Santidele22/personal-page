@@ -1,4 +1,5 @@
 import { createSignal, For, onMount, Show } from 'solid-js';
+import { BASIC_TECHNOLOGIES } from '../../entities/project/technologies';
 import type { ProjectIcon, ProjectStatus } from '../../entities/project/types';
 import {
 	createProject,
@@ -14,8 +15,10 @@ import type { AdminProjectRow, ProjectWriteBody } from './api/projects-admin';
  * a stored row in place (`PATCH`) and removes it after a second click
  * (`DELETE`). Every mutation refetches, so the list never drifts from storage.
  * The session gate lives in the admin shell (`AdminTopBar` mounts
- * `SessionGuard`), like the other panels. Like the profile editor, the
- * list-shaped `technologies` column stays as textarea text, one item per line.
+ * `SessionGuard`), like the other panels. The list-shaped `technologies`
+ * column is a toggle list: the catalog chips switch one id each, and values
+ * stored outside the catalog keep their own dashed toggle so a save never
+ * drops them.
  */
 
 type Status = 'loading' | 'ready' | 'error';
@@ -32,8 +35,8 @@ type FormState = {
 	url: string;
 	name: string;
 	description: string;
-	/** One technology per line; the API stores the list. */
-	technologies: string;
+	/** Stored technology ids selected in the toggle list; the API stores the list. */
+	technologies: string[];
 	githubUrl: string;
 	/** Icon key, empty when the card ships without one. */
 	icon: string;
@@ -47,7 +50,7 @@ const EMPTY_FORM: FormState = {
 	url: '',
 	name: '',
 	description: '',
-	technologies: '',
+	technologies: [],
 	githubUrl: '',
 	icon: '',
 	tagline: '',
@@ -82,7 +85,7 @@ function toForm(row: AdminProjectRow): FormState {
 		url: row.url,
 		name: row.name,
 		description: row.description,
-		technologies: row.technologies.join('\n'),
+		technologies: [...row.technologies],
 		githubUrl: row.githubUrl ?? '',
 		icon: row.icon ?? '',
 		tagline: row.tagline ?? '',
@@ -91,12 +94,18 @@ function toForm(row: AdminProjectRow): FormState {
 	};
 }
 
-/** Textarea text → list, dropping the blank lines used as separators. */
-function toLines(text: string): string[] {
-	return text
-		.split('\n')
-		.map((line) => line.trim())
-		.filter(Boolean);
+/**
+ * Selected ids → API list. Trims each id, drops the blanks a stored row may
+ * carry and collapses duplicates without reordering the selection.
+ */
+function cleanTechnologies(ids: string[]): string[] {
+	return [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
+}
+
+/** Selected ids the catalog does not know: stored free text shown as extra toggles. */
+function extraTechnologies(selected: string[]): string[] {
+	const catalogIds = BASIC_TECHNOLOGIES.map((technology) => technology.id);
+	return selected.filter((id) => id.trim() !== '' && !catalogIds.includes(id));
 }
 
 /**
@@ -109,7 +118,7 @@ function toBody(form: FormState): ProjectWriteBody {
 		url: form.url.trim(),
 		name: form.name.trim(),
 		description: form.description.trim(),
-		technologies: toLines(form.technologies),
+		technologies: cleanTechnologies(form.technologies),
 		githubUrl: form.githubUrl.trim() || null,
 		icon: ICON_KEYS.includes(form.icon) ? (form.icon as ProjectIcon) : null,
 		tagline: form.tagline.trim() || null,
@@ -149,6 +158,9 @@ const dangerButtonClass =
 	'inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60';
 const badgeClass =
 	'inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground';
+/** Chip of the technology toggle list; `aria-pressed` carries the active state. */
+const chipButtonClass =
+	'inline-flex items-center rounded-md border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-aka/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-[pressed=true]:border-foreground aria-[pressed=true]:bg-foreground aria-[pressed=true]:text-background aria-[pressed=true]:hover:border-foreground';
 
 type FieldProps = {
 	id: string;
@@ -191,6 +203,69 @@ function Field(props: FieldProps) {
 				/>
 			</Show>
 			{props.hint && <p class={hintClass}>{props.hint}</p>}
+		</div>
+	);
+}
+
+type TechnologyTogglesProps = {
+	id: string;
+	value: string[];
+	onInput: (value: string[]) => void;
+};
+
+/**
+ * Toggle list of the technology catalog: every chip switches one id in or out
+ * of the selection, and the ids stored outside the catalog keep their own
+ * dashed toggle (raw id as label) so an old free-text row saves back intact.
+ * `aria-pressed` carries the active state and its styling keys on it.
+ */
+function TechnologyToggles(props: TechnologyTogglesProps) {
+	const extras = () => extraTechnologies(props.value);
+
+	function toggle(id: string) {
+		props.onInput(
+			props.value.includes(id) ? props.value.filter((value) => value !== id) : [...props.value, id],
+		);
+	}
+
+	return (
+		<div>
+			<span id={props.id} class={labelClass}>
+				TECNOLOGÍAS
+			</span>
+			<div role="group" aria-labelledby={props.id} class="mt-2 flex flex-wrap gap-2">
+				<For each={BASIC_TECHNOLOGIES}>
+					{(technology) => (
+						<button
+							type="button"
+							aria-pressed={props.value.includes(technology.id)}
+							onClick={() => toggle(technology.id)}
+							class={chipButtonClass}
+						>
+							{technology.label}
+						</button>
+					)}
+				</For>
+				<For each={extras()}>
+					{(id) => (
+						<button
+							type="button"
+							aria-pressed="true"
+							onClick={() => toggle(id)}
+							class={`${chipButtonClass} border-dashed`}
+						>
+							{id}
+						</button>
+					)}
+				</For>
+			</div>
+			<p class={hintClass}>Elige las tecnologías usadas en el proyecto.</p>
+			<Show when={extras().length > 0}>
+				<p class={hintClass}>
+					Las etiquetas punteadas vienen guardadas de antes y no están en el catálogo; se quitan al
+					desmarcarlas.
+				</p>
+			</Show>
 		</div>
 	);
 }
@@ -265,13 +340,9 @@ function ProjectFields(props: {
 				rows={3}
 				onInput={(value) => props.onInput('description', value)}
 			/>
-			<Field
+			<TechnologyToggles
 				id={`${props.prefix}-technologies`}
-				label="TECNOLOGÍAS"
 				value={props.form.technologies}
-				multiline
-				rows={4}
-				hint="Una por línea; las líneas vacías se descartan."
 				onInput={(value) => props.onInput('technologies', value)}
 			/>
 			<div class="grid gap-5 sm:grid-cols-2">
