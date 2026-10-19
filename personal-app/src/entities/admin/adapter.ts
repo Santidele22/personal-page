@@ -43,24 +43,31 @@ export function toDiarioPosts(blogs: ApiBlog[]): AdminPost[] {
 		id: String(blog.id),
 		title: blog.title,
 		category: formatLevel(blog.level),
-		// The backend has no draft state: every stored blog is a published entry.
-		status: 'publicado',
+		// Issue 29: an entry without a publication date is the editor's draft;
+		// everything else is already visible on the landing.
+		status: blog.pubDate ? 'publicado' : 'borrador',
 		// Neither views nor comments exist in the API: the table shows «—».
 		views: null,
 		comments: null,
-		// The stored publication date (issue 28); rows seeded before that
-		// column existed fall back to their insertion time.
+		// Published rows show their publication date; drafts fall back to the
+		// day they were saved so the panel can still order them.
 		date: formatDay(blog.pubDate ?? blog.createdAt),
 	}));
 }
 
+/**
+ * Stats for the diario summary. Pass it every entry the panel knows about
+ * (published plus drafts): the draft count is derived from `pubDate: null`,
+ * which is the only draft state the backend stores (issue 29).
+ */
 export function toDiarioStats(blogs: ApiBlog[]): AdminSummaryStat[] {
 	const authors = new Set(blogs.map((blog) => blog.authorId)).size;
+	const drafts = blogs.filter((blog) => !blog.pubDate).length;
+	const published = blogs.length - drafts;
 
 	return [
-		{ value: formatCount(blogs.length), label: 'entradas publicadas', dot: 'neutral' },
-		// No draft state exists in the API, so there is never an open draft.
-		{ value: '0', label: 'borradores abiertos', dot: 'hollow' },
+		{ value: formatCount(published), label: 'entradas publicadas', dot: 'neutral' },
+		{ value: formatCount(drafts), label: 'borradores abiertos', dot: 'hollow' },
 		{ value: formatCount(authors), label: 'autores', dot: 'aka' },
 	];
 }
