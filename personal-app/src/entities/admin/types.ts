@@ -84,6 +84,11 @@ export type AdminPost = {
 	comments: number | null;
 	/** Fecha ya formateada, p. ej. «2026.10.12». */
 	date: string;
+	/**
+	 * Slug público de la entrada: enlaza «Ver» con `/blog/${slug}/`. Ausente
+	 * cuando el backend todavía no lo generó, y entonces «Ver» se degrada.
+	 */
+	slug?: string;
 };
 
 export type AdminSummaryStatDot = 'neutral' | 'hollow' | 'aka';

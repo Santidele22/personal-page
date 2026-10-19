@@ -16,6 +16,17 @@ const statusLabel = {
 const headBase = 'py-4 text-[11px] font-medium tracking-[0.2em] text-muted-foreground';
 const cellBase = 'py-4';
 
+/*
+ * Acciones de fila: la misma base para las dos, con la vida que aporta el hover
+ * y el foco visible. El movimiento (lift + color + pill) solo se activa bajo
+ * `motion-safe`, así el `prefers-reduced-motion` lo degrada sin empujar la fila.
+ */
+const actionBase =
+	'inline-flex size-8 items-center justify-center rounded-md text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-safe:transition-[translate,color,background-color] motion-safe:duration-150';
+const actionLive = `${actionBase} hover:bg-secondary hover:text-aka motion-safe:hover:-translate-y-0.5`;
+/** Misma base, pero apagada y no interactiva cuando la acción no tiene destino. */
+const actionMuted = `${actionBase} pointer-events-none opacity-40`;
+
 const columns = [
 	{ label: 'ENTRADA', class: `${headBase} px-6` },
 	{ label: 'ESTADO', class: `${headBase} px-4` },
@@ -61,13 +72,26 @@ const columns = [
 							</td>
 							<td class={`${cellBase} whitespace-nowrap px-4 font-mono text-[13px] text-muted-foreground`}>{post.date}</td>
 							<td class={`${cellBase} px-6 text-right`}>
-								<span class="inline-flex items-center gap-3 text-muted-foreground opacity-60 transition-opacity group-hover:opacity-100">
-									<a href="#" aria-label={`Ver ${post.title}`} class="transition-colors hover:text-aka">
-										<Icon name="eye" class="size-4" strokeWidth={1.5} />
-									</a>
-									<a href="#" aria-label={`Editar ${post.title}`} class="transition-colors hover:text-aka">
+								<span class="inline-flex items-center gap-1">
+									{
+										post.slug ? (
+											<a href={`/blog/${post.slug}/`} aria-label={`Ver ${post.title}`} class={actionLive}>
+												<Icon name="eye" class="size-4" strokeWidth={1.5} />
+											</a>
+										) : (
+											<button
+												type="button"
+												disabled
+												aria-label={`Ver ${post.title} — todavía sin enlace público`}
+												class={actionMuted}
+											>
+												<Icon name="eye" class="size-4" strokeWidth={1.5} />
+											</button>
+										)
+									}
+									<button type="button" data-editor-id={post.id} aria-label={`Editar ${post.title}`} class={actionLive}>
 										<Icon name="pen-line" class="size-4" strokeWidth={1.5} />
-									</a>
+									</button>
 								</span>
 							</td>
 						</tr>
@@ -77,3 +101,22 @@ const columns = [
 		</table>
 	</div>
 </section>
+
+<script>
+	/*
+	 * «Editar» puente: la tabla se renderiza en servidor y el modal vive en la
+	 * isla Solid `DiarioEditorPanel`. En vez de importar la isla desde acá, el
+	 * botón delega en un evento de documento que la isla escucha y abre el modal
+	 * igual que con su propio botón «+ Nueva entrada».
+	 */
+	const OPEN_EDITOR_EVENT = 'diario:open-editor';
+
+	document.addEventListener('click', (event) => {
+		if (!(event.target instanceof Element)) return;
+
+		const trigger = event.target.closest('[data-editor-id]');
+		const id = trigger?.getAttribute('data-editor-id');
+
+		if (id) document.dispatchEvent(new CustomEvent(OPEN_EDITOR_EVENT, { detail: { id } }));
+	});
+</script>
