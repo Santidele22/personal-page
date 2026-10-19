@@ -22,8 +22,6 @@ const cards: Post[] = rows.map((row) => toPost(row));
 
 const featured = cards[0];
 const rest = cards.slice(1);
-const row1 = rest.slice(0, 2);
-const row2 = rest.slice(2, 4);
 const flujo = slots.find((slot) => slot.id === 'flujo');
 ---
 
@@ -80,28 +78,15 @@ const flujo = slots.find((slot) => slot.id === 'flujo');
 				/>
 			)}
 		</Reveal>
-		{row1.length > 0 && (
-			<div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-				{row1.map((post) => <Reveal class="h-full"><PostCard post={post} /></Reveal>)}
+		{/* One unified two-column grid keeps every card the same size and never
+		    leaves a hole, no matter how many entries the backend serves; the
+		    flow ad band closes the section after the posts instead of splitting
+		    the cards around it. */}
+		{rest.length > 0 && (
+			<div class="mt-6 grid gap-6 sm:grid-cols-2">
+				{rest.map((post) => <Reveal class="h-full"><PostCard post={post} /></Reveal>)}
 			</div>
 		)}
 		{flujo && <Reveal><AdSlot ad={flujo} class="mx-auto mt-6 w-full max-w-xl" /></Reveal>}
-		{row2.length > 0 && (
-			<div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-				{row2.map((post) => <Reveal class="h-full"><PostCard post={post} /></Reveal>)}
-				<Reveal class="h-full">
-						<a href="/blog/" class="group flex h-full flex-col justify-between border border-border bg-card p-6 transition-colors hover:border-aka/60">
-						<div>
-							<h3 class="text-balance font-mincho text-lg font-semibold leading-snug tracking-tight">Ver todas las entradas</h3>
-							<p class="mt-3 text-sm leading-relaxed text-muted-foreground">El archivo completo del diario, desde 2026: backend, blockchain y cuadernos de código.</p>
-						</div>
-						<p class="mt-5 flex items-center justify-between border-t border-border pt-4 text-sm font-medium text-aka">
-							Ir al archivo
-							<Icon name="arrow-right" class="size-4 transition-transform group-hover:translate-x-1" />
-						</p>
-					</a>
-				</Reveal>
-			</div>
-		)}
 	</div>
 </section>
