@@ -15,9 +15,11 @@ const reading = (await fetchBooks(serverOrigin)) ?? booksFallback;
    keeps the link working the same once the browser opens it in a new tab. */
 const downloadUrl = (id: number) => `${serverOrigin}/api/books/${id}/download`;
 
-/* Issue 23: the landing splits the shelf into two headings the admin classifies
-   per book (`book.kind`). Books without an explicit kind land on the
-   non-technical shelf, the same default the backend column applies. */
+/* Issue 23: the landing splits the shelf into two filterable groups the admin
+   classifies per book (`book.kind`). Books without an explicit kind land on
+   the non-technical shelf, the same default the backend column applies. The
+   toggle (client script below) shows one shelf at a time; the server-side
+   default is the first shelf with books, so the filter never opens empty. */
 const shelves: { title: string; description: string; books: typeof reading }[] = [
 	{ title: 'Técnicos', description: 'Desarrollo, arquitectura, testing y demás lectura de oficio.', books: reading.filter((book) => book.kind === 'tecnico') },
 	{
@@ -26,6 +28,10 @@ const shelves: { title: string; description: string; books: typeof reading }[] =
 		books: reading.filter((book) => book.kind !== 'tecnico'),
 	},
 ];
+const defaultShelf = Math.max(
+	0,
+	shelves.findIndex((shelf) => shelf.books.length > 0),
+);
 ---
 
 <section id="lectura" class="scroll-mt-20 border-y border-border bg-secondary/40" aria-labelledby="lectura-title">
@@ -52,8 +58,23 @@ const shelves: { title: string; description: string; books: typeof reading }[] =
 			</Reveal>
 		)}
 		{reading.length > 0 && (
-			shelves.map((shelf) => (
-				<div class="mt-10">
+			<div class="mt-10 flex flex-wrap items-center gap-2" id="lectura-filter" role="group" aria-label="Filtrar libros por tipo">
+				{shelves.map((shelf, index) => (
+					<button
+						type="button"
+						data-shelf={index}
+						aria-pressed={index === defaultShelf}
+						class="inline-flex items-center gap-2 border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-aka/40 aria-[pressed=true]:border-aka/60 aria-[pressed=true]:bg-card aria-[pressed=true]:text-foreground"
+					>
+						{shelf.title}
+						<span class="text-[11px] text-muted-foreground" aria-hidden="true">{shelf.books.length}</span>
+					</button>
+				))}
+			</div>
+		)}
+		{reading.length > 0 && (
+			shelves.map((shelf, index) => (
+				<div class="mt-8" data-shelf-panel={index} hidden={index !== defaultShelf}>
 					<h3 class="font-mincho text-2xl font-semibold tracking-tight">{shelf.title}</h3>
 					<p class="mt-1 text-[13px] text-muted-foreground">{shelf.description}</p>
 					{shelf.books.length === 0 && (
@@ -97,3 +118,23 @@ const shelves: { title: string; description: string; books: typeof reading }[] =
 		)}
 	</div>
 </section>
+
+<script>
+	// Toggle filter (issue 23): the buttons switch between the two kind
+	// shelves; `aria-pressed` carries the active state (the styles key on it).
+	const filter = document.getElementById('lectura-filter');
+	const panels = [...document.querySelectorAll<HTMLElement>('[data-shelf-panel]')];
+
+	filter?.querySelectorAll<HTMLButtonElement>('button[data-shelf]').forEach((button) => {
+		button.addEventListener('click', () => {
+			const shelf = button.dataset.shelf ?? '';
+
+			filter.querySelectorAll('button[data-shelf]').forEach((other) => {
+				other.setAttribute('aria-pressed', String(other === button));
+			});
+			panels.forEach((panel) => {
+				panel.hidden = panel.dataset.shelfPanel !== shelf;
+			});
+		});
+	});
+</script>
