@@ -21,7 +21,7 @@ interface Props {
 const { class: className } = Astro.props;
 ---
 
-<aside aria-label="Herramientas que uso" class={className}>
+<aside aria-label="Herramientas que uso, con enlaces de afiliado" class={className}>
 	<div class="flex h-full flex-col border border-border bg-card p-6">
 		<p class="flex items-center gap-2 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">
 			<Icon name="wrench" class="size-3.5 text-aka" />
@@ -108,7 +108,7 @@ const { class: className } = Astro.props;
 			</div>
 		)}
 
-		{!showSponsorship && toolList.length > 0 && (
+		{!showSponsorship && (
 			<p class="mt-5 border-t border-border pt-3 text-[11px] leading-relaxed text-muted-foreground">Enlaces de afiliado: si comprás, me llega una comisión sin costo extra para vos. Solo listo lo que uso de verdad.</p>
 		)}
 	</div>
