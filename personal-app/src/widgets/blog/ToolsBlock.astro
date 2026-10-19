@@ -3,9 +3,16 @@ import { fetchTools, toolsFallback } from '../../features/tool/api/tools';
 import Icon from '../../shared/ui/Icon.astro';
 
 /* The tools are read while the server renders the page; the fallback below is
-   the list this grid shipped with before the tools entity existed. */
+   the list this grid shipped with before the tools entity existed. API rows
+   carry the `sponsorship` classification, so the block then splits into the
+   love-of-art and the sponsored sections; the fallback keeps the plain list
+   and its original copy (no classification to apply). */
 const serverOrigin = Astro.url.origin;
-const toolList = (await fetchTools(serverOrigin)) ?? toolsFallback;
+const apiTools = await fetchTools(serverOrigin);
+const toolList = apiTools ?? toolsFallback;
+const sponsored = apiTools?.filter((tool) => tool.sponsorship === 'patrocinada') ?? [];
+const loveOfArt = apiTools?.filter((tool) => tool.sponsorship !== 'patrocinada') ?? [];
+const showSponsorship = apiTools !== null;
 
 interface Props {
 	class?: string;
@@ -20,23 +27,89 @@ const { class: className } = Astro.props;
 			<Icon name="wrench" class="size-3.5 text-aka" />
 			HERRAMIENTAS QUE USO
 		</p>
-		{toolList.length === 0 ? (
-			<p class="mt-4 text-sm leading-relaxed text-muted-foreground">Pronto va a haber herramientas nuevas acá.</p>
+
+		{!showSponsorship ? (
+			toolList.length === 0 ? (
+				<p class="mt-4 text-sm leading-relaxed text-muted-foreground">Pronto va a haber herramientas nuevas acá.</p>
+			) : (
+				<ul class="mt-4 flex-1 space-y-4">
+					{toolList.map((tool) => (
+						<li>
+							<a href="#marcas" class="group flex items-start justify-between gap-3">
+								<span>
+									<span class="block text-sm font-semibold transition-colors group-hover:text-aka">{tool.name}</span>
+									<span class="mt-0.5 block text-[12px] leading-snug text-muted-foreground">{tool.what}</span>
+								</span>
+								<Icon name="arrow-up-right" class="mt-0.5 size-4 shrink-0 text-muted-foreground transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-aka" />
+							</a>
+						</li>
+					))}
+				</ul>
+			)
 		) : (
-			<ul class="mt-4 flex-1 space-y-4">
-				{toolList.map((tool) => (
-				<li>
-					<a href="#marcas" class="group flex items-start justify-between gap-3">
-						<span>
-							<span class="block text-sm font-semibold transition-colors group-hover:text-aka">{tool.name}</span>
-							<span class="mt-0.5 block text-[12px] leading-snug text-muted-foreground">{tool.what}</span>
-						</span>
-						<Icon name="arrow-up-right" class="mt-0.5 size-4 shrink-0 text-muted-foreground transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-aka" />
-					</a>
-				</li>
-			))}
-			</ul>
+			<div class="mt-2 flex-1">
+				<section aria-label="Recomendadas por amor al arte">
+					<p class="text-[11px] font-medium tracking-[0.2em] text-muted-foreground">RECOMENDADAS POR AMOR AL ARTE</p>
+					<p class="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+						Uso estas herramientas de verdad: nadie me paga para recomendarlas.
+					</p>
+					{loveOfArt.length === 0 ? (
+						<p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+							De a poco vas a ver acá las herramientas que uso cada día.
+						</p>
+					) : (
+						<ul class="mt-4 space-y-4">
+							{loveOfArt.map((tool) => (
+								<li>
+									<a href="#marcas" class="group flex items-start justify-between gap-3">
+										<span>
+											<span class="block text-sm font-semibold transition-colors group-hover:text-aka">{tool.name}</span>
+											<span class="mt-0.5 block text-[12px] leading-snug text-muted-foreground">{tool.what}</span>
+										</span>
+										<Icon name="arrow-up-right" class="mt-0.5 size-4 shrink-0 text-muted-foreground transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-aka" />
+									</a>
+								</li>
+							))}
+						</ul>
+					)}
+				</section>
+
+				<section aria-label="Patrocinadas">
+					<p class="mt-5 border-t border-border pt-5 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">
+						PATROCINADAS
+					</p>
+					<p class="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+						Cartel visible: con estas me pagan por incluirlas acá.
+					</p>
+					{sponsored.length === 0 ? (
+						<p class="mt-4 text-[12px] leading-relaxed text-muted-foreground">
+							Nada en esta lista por ahora: acá aparecería cada acuerdo pago, marcado como tal.
+						</p>
+					) : (
+						<ul class="mt-4 space-y-4">
+							{sponsored.map((tool) => (
+								<li>
+									<a href="#marcas" class="group flex items-start justify-between gap-3">
+										<span>
+											<span class="block text-sm font-semibold transition-colors group-hover:text-aka">{tool.name}</span>
+											<span class="mt-0.5 block text-[12px] leading-snug text-muted-foreground">{tool.what}</span>
+										</span>
+										<span class="shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px] leading-none text-muted-foreground">Pago</span>
+									</a>
+								</li>
+							))}
+						</ul>
+					)}
+				</section>
+
+				<p class="mt-5 border-t border-border pt-3 text-[11px] leading-relaxed text-muted-foreground">
+					Cada herramienta está marcada según tenga (o no) un acuerdo pago detrás.
+				</p>
+			</div>
 		)}
-		<p class="mt-5 border-t border-border pt-3 text-[11px] leading-relaxed text-muted-foreground">Enlaces de afiliado: si comprás, me llega una comisión sin costo extra para vos. Solo listo lo que uso de verdad.</p>
+
+		{!showSponsorship && (
+			<p class="mt-5 border-t border-border pt-3 text-[11px] leading-relaxed text-muted-foreground">Enlaces de afiliado: si comprás, me llega una comisión sin costo extra para vos. Solo listo lo que uso de verdad.</p>
+		)}
 	</div>
 </aside>

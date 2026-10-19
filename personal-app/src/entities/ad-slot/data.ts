@@ -32,16 +32,6 @@ export const adSlots: AdSlotInfo[] = [
 		note: 'El momento de máxima atención: el lector ya eligió quedarse. Formato editorial nativo, nunca un banner.',
 	},
 	{
-		id: 'carta',
-		name: 'La carta',
-		visibility: 'Íntima',
-		moment: 'Al pie de la newsletter mensual',
-		format: 'Mención escrita con contexto real',
-		price: 'USD 80',
-		cadence: '/envío',
-		note: 'Quien abre un correo es quien más confía. Una sola mención por carta, en mis palabras.',
-	},
-	{
 		id: 'patrono',
 		name: 'Patrono del mes',
 		visibility: 'Exclusiva · 1 por mes',

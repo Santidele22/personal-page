@@ -6,7 +6,6 @@ export type AdminSection =
 	| 'libros'
 	| 'herramientas'
 	| 'publicidad'
-	| 'suscriptores'
 	| 'menu'
 	| 'perfil';
 
@@ -87,8 +86,6 @@ export type AdminPost = {
 	date: string;
 };
 
-export type AdminSubscriberStatus = 'activo' | 'pendiente';
-
 export type AdminSummaryStatDot = 'neutral' | 'hollow' | 'aka';
 
 export type AdminSummaryStat = {
@@ -96,21 +93,6 @@ export type AdminSummaryStat = {
 	label: string;
 	/** Color del punto decorativo junto al valor. */
 	dot: AdminSummaryStatDot;
-};
-
-export type AdminSubscriber = {
-	id: string;
-	email: string;
-	name: string;
-	origin: string;
-	/** Fecha ya formateada, p. ej. «2026.10.15». */
-	date: string;
-	status: AdminSubscriberStatus;
-};
-
-export type AdminSignupByMonth = {
-	month: string;
-	value: number;
 };
 
 /* ---------- Contrato de la API (DTO tal cual los devuelve el backend) ---------- */

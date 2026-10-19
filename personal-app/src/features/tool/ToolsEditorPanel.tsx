@@ -1,6 +1,7 @@
 import { createSignal, For, onMount, Show } from 'solid-js';
 import { createTool, deleteTool, fetchToolRows, updateTool } from './api/tools-admin';
 import type { ToolRow } from './api/tools-admin';
+import type { ToolSponsorship } from '../../entities/tool/types';
 
 /**
  * Admin CRUD for the `tools` domain — the "herramientas que uso" grid the
@@ -20,6 +21,16 @@ type Feedback =
 	| { kind: 'saved' }
 	| { kind: 'deleted' }
 	| { kind: 'error'; message: string };
+
+const SPONSORSHIP_OPTIONS: { value: ToolSponsorship; label: string }[] = [
+	{ value: 'genuina', label: 'Por amor al arte' },
+	{ value: 'patrocinada', label: 'Patrocinada' },
+];
+
+/** Rendered label of a stored sponsorship key; raw keys show as they come. */
+function sponsorshipLabel(sponsorship: string): string {
+	return SPONSORSHIP_OPTIONS.find((option) => option.value === sponsorship)?.label ?? sponsorship;
+}
 
 const labelClass = 'block text-[11px] font-medium tracking-[0.2em] text-muted-foreground';
 const inputClass =
@@ -74,6 +85,40 @@ function Field(props: FieldProps) {
 	);
 }
 
+type SelectFieldProps = {
+	id: string;
+	label: string;
+	value: string;
+	options: { value: ToolSponsorship; label: string }[];
+	hint?: string;
+	onInput: (value: ToolSponsorship) => void;
+};
+
+/** One labelled select whose options are the sponsorship enum keys. */
+function SelectField(props: SelectFieldProps) {
+	return (
+		<div>
+			<label for={props.id} class={labelClass}>
+				{props.label}
+			</label>
+			<select
+				id={props.id}
+				onChange={(event) => props.onInput(event.currentTarget.value as ToolSponsorship)}
+				class={`${inputClass} mt-2`}
+			>
+				<For each={props.options}>
+					{(option) => (
+						<option value={option.value} selected={option.value === props.value}>
+							{option.label}
+						</option>
+					)}
+				</For>
+			</select>
+			{props.hint && <p class="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">{props.hint}</p>}
+		</div>
+	);
+}
+
 export default function ToolsEditorPanel() {
 	const [status, setStatus] = createSignal<Status>('loading');
 	const [rows, setRows] = createSignal<ToolRow[]>([]);
@@ -83,8 +128,10 @@ export default function ToolsEditorPanel() {
 	const [confirmingDeleteId, setConfirmingDeleteId] = createSignal<number | null>(null);
 	const [newName, setNewName] = createSignal('');
 	const [newWhat, setNewWhat] = createSignal('');
+	const [newSponsorship, setNewSponsorship] = createSignal<ToolSponsorship>('genuina');
 	const [draftName, setDraftName] = createSignal('');
 	const [draftWhat, setDraftWhat] = createSignal('');
+	const [draftSponsorship, setDraftSponsorship] = createSignal<ToolSponsorship>('genuina');
 
 	async function load(options: { silent?: boolean } = {}) {
 		if (!options.silent) setStatus('loading');
@@ -129,11 +176,15 @@ export default function ToolsEditorPanel() {
 		const name = newName().trim();
 		if (!name) return;
 
-		const created = await mutate(() => createTool({ name, what: newWhat().trim() }), { kind: 'created' });
+		const created = await mutate(
+			() => createTool({ name, what: newWhat().trim(), sponsorship: newSponsorship() }),
+			{ kind: 'created' },
+		);
 
 		if (created) {
 			setNewName('');
 			setNewWhat('');
+			setNewSponsorship('genuina');
 		}
 	}
 
@@ -142,6 +193,7 @@ export default function ToolsEditorPanel() {
 		setConfirmingDeleteId(null);
 		setDraftName(row.name);
 		setDraftWhat(row.what);
+		setDraftSponsorship(row.sponsorship ?? 'genuina');
 		setFeedback({ kind: 'idle' });
 	}
 
@@ -156,7 +208,10 @@ export default function ToolsEditorPanel() {
 		const name = draftName().trim();
 		if (!name) return;
 
-		const saved = await mutate(() => updateTool(id, { name, what: draftWhat().trim() }), { kind: 'saved' });
+		const saved = await mutate(
+			() => updateTool(id, { name, what: draftWhat().trim(), sponsorship: draftSponsorship() }),
+			{ kind: 'saved' },
+		);
 
 		if (saved) setEditingId(null);
 	}
@@ -224,7 +279,7 @@ export default function ToolsEditorPanel() {
 					<h2 id="herramientas-nueva" class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">
 						NUEVA HERRAMIENTA
 					</h2>
-					<form onSubmit={handleCreate} class="mt-5 grid gap-5 sm:grid-cols-[1fr_2fr_auto] sm:items-end">
+					<form onSubmit={handleCreate} class="mt-5 grid gap-5 sm:grid-cols-2 sm:items-end lg:grid-cols-[1fr_2fr_auto_auto]">
 						<Field
 							id="tool-new-name"
 							label="NOMBRE"
@@ -238,6 +293,14 @@ export default function ToolsEditorPanel() {
 							value={newWhat()}
 							placeholder="El sitio entero, del markdown al HTML"
 							onInput={(value) => setNewWhat(value)}
+						/>
+						<SelectField
+							id="tool-new-sponsorship"
+							label="PATROCINIO"
+							value={newSponsorship()}
+							options={SPONSORSHIP_OPTIONS}
+							hint="Una herramienta patrocinada se muestra aparte y marcada en la landing."
+							onInput={(value) => setNewSponsorship(value)}
 						/>
 						<button type="submit" disabled={pending() || !newName().trim()} class={primaryButtonClass}>
 							{pending() ? 'Guardando…' : 'Añadir'}
@@ -279,6 +342,9 @@ export default function ToolsEditorPanel() {
 														<p class="truncate font-medium">{row.name}</p>
 														<p class="mt-1 text-sm leading-relaxed text-muted-foreground">
 															{row.what || 'Sin nota.'}
+														</p>
+														<p class="mt-1.5 text-[12px] text-muted-foreground">
+															{sponsorshipLabel(row.sponsorship ?? 'genuina')}
 														</p>
 													</div>
 													<div class="flex shrink-0 flex-wrap items-center gap-2">
@@ -322,7 +388,7 @@ export default function ToolsEditorPanel() {
 										>
 											<form
 												onSubmit={(event) => void handleEdit(event, row.id)}
-												class="grid gap-5 sm:grid-cols-[1fr_2fr]"
+												class="grid gap-5 sm:grid-cols-2 lg:grid-cols-[1fr_2fr_auto]"
 											>
 												<Field
 													id={`tool-edit-name-${row.id}`}
@@ -335,6 +401,13 @@ export default function ToolsEditorPanel() {
 													label="PARA QUÉ SIRVE"
 													value={draftWhat()}
 													onInput={(value) => setDraftWhat(value)}
+												/>
+												<SelectField
+													id={`tool-edit-sponsorship-${row.id}`}
+													label="PATROCINIO"
+													value={draftSponsorship()}
+													options={SPONSORSHIP_OPTIONS}
+													onInput={(value) => setDraftSponsorship(value)}
 												/>
 												<div class="flex flex-wrap items-center gap-2 sm:col-span-2">
 													<button

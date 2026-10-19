@@ -1,6 +1,6 @@
 # santi. — web personal
 
-Frontend de la web personal y el diario de Santi, migrado desde Next.js a Astro. El contenido se renderiza con Astro y Solid.js solo se hidrata en las partes interactivas: menú móvil, selector de tema y formulario de newsletter.
+Frontend de la web personal y el diario de Santi, migrado desde Next.js a Astro. El contenido se renderiza con Astro y Solid.js solo se hidrata en las partes interactivas: menú móvil y selector de tema.
 
 ## Stack
 
@@ -19,7 +19,7 @@ src/
 ├── app/        # configuración, estilos globales y layouts
 ├── pages/      # rutas de Astro (incluye el proxy /api de producción)
 ├── widgets/    # secciones completas de las páginas
-├── features/   # loaders del backend por dominio, islas interactivas y caso de uso del newsletter
+├── features/   # loaders del backend por dominio e islas interactivas
 ├── entities/   # tipos, fallbacks declarados y UI propia de cada entidad
 ├── shared/     # API, iconos y componentes reutilizables
 └── content/    # colección Markdown/MDX del diario
@@ -48,15 +48,6 @@ Resolución del `/api` según entorno:
 - **`pnpm dev`**: el proxy de Vite en `astro.config.mjs` redirige `/api/*` a `http://localhost:3000` — igual que en producción, respetando el mount exacto `/api/auth/*` de Better Auth.
 - **`pnpm build` + `pnpm start`** (adapter Node standalone): `src/pages/api/[...path].ts` actúa de proxy same-origin contra `BACKEND_URL` (`http://localhost:3000` por defecto). Sin proxy externo necesario en despliegue en la misma caja; si el despliegue ya enruta `/api` con un reverse proxy, esa ruta puede desactivarse.
 - Con `output: 'server'` todo render ocurre on-demand: los loaders leen la API en cada request y, si el backend no responde, usan los fallbacks declarados (nunca 500).
-
-```text
-POST {PUBLIC_API_BASE_URL}/newsletter/subscribe
-Content-Type: application/json
-
-{ "email": "tu@correo.com" }
-```
-
-El formulario muestra éxito únicamente después de una respuesta HTTP satisfactoria. El endpoint está aislado en `src/features/newsletter-form/api/subscribeNewsletter.ts` para poder adaptarlo al controlador de Nest sin modificar la UI.
 
 ## Comandos
 
