@@ -14,6 +14,12 @@ const blog = defineCollection({
 			pubDate: z.coerce.date(),
 			updatedDate: z.coerce.date().optional(),
 			heroImage: z.optional(image()),
+			// Portada card columns the diario section renders (`widgets/blog/`).
+			// The icon pair mirrors `entities/post/types.ts` PostIcon.
+			category: z.string().min(1).optional(),
+			icon: z.enum(['compass', 'database', 'blocks', 'wrench', 'scale']).optional(),
+			readMin: z.number().int().min(1).optional(),
+			featured: z.boolean().optional(),
 		}),
 });
 
