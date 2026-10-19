@@ -44,7 +44,7 @@ Reglas de dependencias:
 - Hidratar con la directiva más restrictiva posible: `client:media`, `client:visible` o `client:idle`; usar `client:load` solo si la interacción debe estar disponible inmediatamente.
 - No añadir directivas `client:*` a componentes Astro.
 - Mantener el HTML útil antes de la hidratación y respetar `prefers-reduced-motion`.
-- Actualmente solo hay tres islas: menú móvil, selector de tema y newsletter.
+- Actualmente solo hay dos islas: menú móvil y selector de tema.
 
 ## Estilos, fuentes y contenido
 
@@ -60,7 +60,6 @@ Reglas de dependencias:
 - Nunca guardar secretos, tokens de LinkedIn ni credenciales en variables `PUBLIC_*`, en el frontend o en Git.
 - La comunicación HTTP se aísla en `shared/api` y en la carpeta `api` de cada feature.
 - No simular respuestas exitosas del backend. La UI debe reflejar estados de carga, éxito y error reales.
-- Contrato inicial del newsletter: `POST {PUBLIC_API_BASE_URL}/newsletter/subscribe` con `{ "email": "..." }`.
 
 ## Comandos
 
