@@ -2,7 +2,7 @@ import { createSignal, For, onCleanup, onMount, Show } from 'solid-js';
 import { toDiarioPosts } from '../../entities/admin/adapter';
 import type { AdminSummaryStat, ApiBlog } from '../../entities/admin/types';
 import { fetchBlogs } from '../../features/admin/api/collections';
-import { createBlogEntry, updateBlogEntry } from '../../features/admin/api/diario';
+import { createBlogEntry, deleteBlogEntry, updateBlogEntry } from '../../features/admin/api/diario';
 import { loadDiarioPanel } from '../../features/admin/api/dashboards';
 
 /**
@@ -19,6 +19,13 @@ import { loadDiarioPanel } from '../../features/admin/api/dashboards';
 type Status = 'loading' | 'ready' | 'error';
 type ModalMode = 'create' | 'edit';
 type Pending = 'draft' | 'publish' | 'row' | null;
+
+/** The entry waiting on the confirm dialog; `id` is the only mandatory handle. */
+type DeleteTarget = {
+	id: number;
+	title: string;
+	isPublished: boolean;
+};
 
 type FormState = {
 	title: string;
@@ -41,6 +48,14 @@ const TRIGGER_ID = 'nueva-entrada';
  */
 const OPEN_EDITOR_EVENT = 'diario:open-editor';
 
+/**
+ * Document event the server-rendered published table publishes from its
+ * «Eliminar» action. Deleting is irreversible, so the island takes the request
+ * and requires an explicit confirmation dialog before it calls the API; the
+ * table itself never deletes anything.
+ */
+const REQUEST_DELETE_EVENT = 'diario:request-delete';
+
 const DOT_CLASS: Record<AdminSummaryStat['dot'], string> = {
 	neutral: 'bg-foreground/60',
 	hollow: 'border border-muted-foreground',
@@ -57,6 +72,8 @@ const secondaryButtonClass =
 	'inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-3 text-[12px] font-medium transition-colors hover:border-aka hover:text-aka disabled:cursor-not-allowed disabled:opacity-60';
 const badgeClass =
 	'inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground';
+const dangerButtonClass =
+	'inline-flex h-9 items-center justify-center rounded-md bg-destructive px-3 text-[12px] font-medium text-[#fdf8ee] transition-colors hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-60';
 const headClass = 'py-4 text-[11px] font-medium tracking-[0.2em] text-muted-foreground';
 const cellClass = 'py-4';
 
@@ -134,6 +151,9 @@ export default function DiarioEditorPanel() {
 	const [form, setForm] = createSignal<FormState>(EMPTY_FORM);
 	const [pending, setPending] = createSignal<Pending>(null);
 	const [modalError, setModalError] = createSignal('');
+	const [deleteTarget, setDeleteTarget] = createSignal<DeleteTarget | null>(null);
+	const [deleting, setDeleting] = createSignal(false);
+	const [deleteError, setDeleteError] = createSignal('');
 
 	const draftPosts = () => toDiarioPosts(drafts());
 	const draftById = (id: string) => drafts().find((draft) => String(draft.id) === id);
@@ -162,7 +182,14 @@ export default function DiarioEditorPanel() {
 		trigger?.addEventListener('click', onTrigger);
 
 		const onKey = (event: KeyboardEvent) => {
-			if (event.key === 'Escape' && open()) closeModal();
+			if (event.key !== 'Escape') return;
+
+			if (deleting()) return;
+			if (deleteTarget() !== null) {
+				closeDelete();
+				return;
+			}
+			if (open() && pending() === null) closeModal();
 		};
 		document.addEventListener('keydown', onKey);
 
@@ -175,10 +202,31 @@ export default function DiarioEditorPanel() {
 		};
 		document.addEventListener(OPEN_EDITOR_EVENT, onOpenEditor);
 
+		// Bridge for the published table's «Eliminar»: the row id and title
+		// arrive in the event detail and the confirm dialog takes over.
+		const onRequestDelete = (event: Event) => {
+			const detail = (event as CustomEvent<{ id?: string; title?: string }>).detail;
+			const id = Number(detail?.id);
+
+			// Same one-crew rule as the drafts table: a mutation in flight wins.
+			if (deleting() || pending() !== null) return;
+
+			if (detail?.id && Number.isInteger(id)) {
+				setDeleteError('');
+				setDeleteTarget({
+					id,
+					title: detail?.title ?? 'Entrada publicada',
+					isPublished: true,
+				});
+			}
+		};
+		document.addEventListener(REQUEST_DELETE_EVENT, onRequestDelete);
+
 		onCleanup(() => {
 			trigger?.removeEventListener('click', onTrigger);
 			document.removeEventListener('keydown', onKey);
 			document.removeEventListener(OPEN_EDITOR_EVENT, onOpenEditor);
+			document.removeEventListener(REQUEST_DELETE_EVENT, onRequestDelete);
 		});
 	});
 
@@ -293,6 +341,42 @@ export default function DiarioEditorPanel() {
 		} catch (cause) {
 			setActionError(messageFrom(cause) || 'No se pudo publicar el borrador. Inténtalo de nuevo.');
 			setPending(null);
+		}
+	}
+
+	/** Opens the confirm dialog for a draft row action. */
+	function requestDelete(draft: ApiBlog) {
+		// One crew at a time: while the modal submits, deleting is paused so a
+		// reload can never race the still-in-flight save.
+		if (deleting() || pending() !== null) return;
+
+		setDeleteError('');
+		setDeleteTarget({ id: draft.id, title: draft.title, isPublished: false });
+	}
+
+	function closeDelete() {
+		if (deleting()) return;
+		setDeleteTarget(null);
+	}
+
+	/**
+	 * Runs the confirmed deletion. The reload keeps both tables honest with
+	 * storage, the same pass every other mutation uses.
+	 */
+	async function confirmDelete() {
+		const target = deleteTarget();
+
+		if (target === null || deleting()) return;
+
+		setDeleting(true);
+		setDeleteError('');
+
+		try {
+			await deleteBlogEntry(target.id);
+			window.location.reload();
+		} catch (cause) {
+			setDeleteError(messageFrom(cause) || 'No se pudo eliminar la entrada. Inténtalo de nuevo.');
+			setDeleting(false);
 		}
 	}
 
@@ -416,6 +500,14 @@ export default function DiarioEditorPanel() {
 																class={secondaryButtonClass}
 															>
 																{pending() === 'row' ? 'Publicando…' : 'Publicar'}
+															</button>
+															<button
+																type="button"
+																disabled={deleting() || pending() !== null}
+																onClick={() => draft && requestDelete(draft)}
+																class={`${secondaryButtonClass} hover:border-destructive hover:bg-destructive/10 hover:text-destructive`}
+															>
+																Eliminar
 															</button>
 														</span>
 													</td>
@@ -547,6 +639,58 @@ export default function DiarioEditorPanel() {
 						</form>
 					</div>
 				</div>
-		</div>
+
+				{/*
+					Delete confirmation. Both entry kinds land here — the drafts
+					table through `requestDelete` and the server-rendered
+					published table through the document event bridge — so the
+					call to `DELETE /blogs/:id` happens behind an explicit
+					"Eliminar" and never from a stray click.
+				*/}
+				<Show when={deleteTarget() !== null}>
+					<div
+						class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
+						role="presentation"
+						onClick={(event) => {
+							if (event.target === event.currentTarget) closeDelete();
+						}}
+					>
+						<div
+							role="alertdialog"
+							aria-modal="true"
+							aria-labelledby="diario-delete-title"
+							aria-describedby="diario-delete-description"
+							class="w-full max-w-md border border-border bg-card p-6 shadow-xl"
+						>
+							<p class="text-[11px] font-medium tracking-[0.3em] text-destructive">ELIMINAR ENTRADA</p>
+							<h2 id="diario-delete-title" class="mt-2 font-mincho text-2xl font-semibold tracking-tight">
+								¿Eliminar esta entrada?
+							</h2>
+							<p id="diario-delete-description" class="mt-3 text-sm leading-relaxed text-muted-foreground">
+								«{deleteTarget()?.title}»
+								{deleteTarget()?.isPublished
+									? ' está publicada. '
+									: ' es un borrador abierto. '}
+								La entrada se borra del diario por completo y la acción no se puede deshacer.
+							</p>
+
+							<Show when={deleteError()}>
+								<p role="alert" class="mt-3 border border-destructive/40 bg-destructive/10 px-4 py-3 font-mono text-[11px] leading-relaxed text-destructive">
+									{deleteError()}
+								</p>
+							</Show>
+
+							<div class="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
+								<button type="button" disabled={deleting()} onClick={() => void confirmDelete()} class={dangerButtonClass}>
+									{deleting() ? 'Eliminando…' : 'Eliminar'}
+								</button>
+								<button type="button" disabled={deleting()} onClick={closeDelete} class={`${secondaryButtonClass} ml-auto`}>
+									Cancelar
+								</button>
+							</div>
+						</div>
+					</div>
+				</Show>
+			</div>
 	);
 }

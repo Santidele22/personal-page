@@ -1,4 +1,4 @@
-import { getJson, patchJson, postJson } from '../../../shared/api/http';
+import { deleteJson, getJson, patchJson, postJson } from '../../../shared/api/http';
 import type { ApiBlog, ApiBlogLevel } from '../../../entities/admin/types';
 
 /**
@@ -37,4 +37,13 @@ export function createBlogEntry(body: BlogEntryBody): Promise<void> {
  */
 export function updateBlogEntry(id: number, body: Partial<BlogEntryBody>): Promise<void> {
 	return patchJson(`/blogs/${id}`, body);
+}
+
+/**
+ * Removes an entry for good (`DELETE /blogs/:id`): irreversible, both for a
+ * draft that was never shown and for a published post the landing links to.
+ * The confirm dialog in the editor island is the only path to this call.
+ */
+export function deleteBlogEntry(id: number): Promise<void> {
+	return deleteJson(`/blogs/${id}`);
 }
