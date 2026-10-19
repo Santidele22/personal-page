@@ -8,7 +8,6 @@ import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
 import SeigaihaBand from '../../shared/ui/SeigaihaBand.astro';
 import PostCard from './PostCard.astro';
-import ToolsBlock from './ToolsBlock.astro';
 
 /* The portada cards come from the Astro content collection the whole diario
    is built on (`src/content/blog/`): every card links to a page the collection
@@ -122,11 +121,5 @@ const flujo = slots.find((slot) => slot.id === 'flujo');
 				</Reveal>
 			</div>
 		)}
-		{/* The tools leave the post grid for their own full-width band: the
-		    entries keep the same love-of-art vs sponsored split, with room to
-		    breathe instead of squeezing into a post-shaped slot. */}
-		<Reveal class="mt-8">
-			<ToolsBlock />
-		</Reveal>
 	</div>
 </section>

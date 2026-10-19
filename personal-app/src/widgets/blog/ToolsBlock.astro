@@ -16,16 +16,21 @@ const showSponsorship = apiTools !== null;
 
 interface Props {
 	class?: string;
+	/** Small-caps band label; each section overrides it with its own angle. */
+	label?: string;
 }
 
-const { class: className } = Astro.props;
+const {
+	class: className,
+	label = 'HERRAMIENTAS QUE USO',
+} = Astro.props;
 ---
 
 <aside aria-label="Herramientas que uso, con enlaces de afiliado" class={className}>
 	<div class="border border-border bg-card px-6 py-5 sm:px-7 sm:py-6">
 		<p class="flex items-center gap-2 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">
 			<Icon name="wrench" class="size-3.5 text-aka" />
-			HERRAMIENTAS QUE USO
+			{label}
 		</p>
 
 		{!showSponsorship ? (
