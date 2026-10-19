@@ -4,11 +4,18 @@ import type { Profile, ProfileCommitment } from './types';
 
 /**
  * Admin editor for the singleton site profile. It reads `GET /profile`, keeps
- * the list-shaped fields as textarea text (one entry per line) and writes the
- * whole editable shape back with `PUT /profile`; the backend merges it into the
- * stored row, so sending every field is safe. The session gate lives in the
- * admin shell (`AdminTopBar` mounts `SessionGuard`), like the other panels.
+ * bio as one paragraph per line and values as `title`/`description` rows, then
+ * writes the whole editable shape back with `PUT /profile`; the backend merges
+ * it into the stored row, so sending every field is safe. The session gate
+ * lives in the admin shell (`AdminTopBar` mounts `SessionGuard`), like the
+ * other panels.
  */
+
+/** One VALUE row; the API still stores it as a single `Title: description` line. */
+type ProfileValue = {
+	title: string;
+	description: string;
+};
 
 type FormState = {
 	name: string;
@@ -18,8 +25,8 @@ type FormState = {
 	heroIntro: string;
 	/** One paragraph per line. */
 	bioParagraphs: string;
-	/** One `Title: description` line each. */
-	values: string;
+	/** One `title`/`description` pair per row. */
+	values: ProfileValue[];
 	commitments: ProfileCommitment[];
 	siteName: string;
 	siteTitle: string;
@@ -42,7 +49,7 @@ const EMPTY_FORM: FormState = {
 	heroTitle: '',
 	heroIntro: '',
 	bioParagraphs: '',
-	values: '',
+	values: [],
 	commitments: [],
 	siteName: '',
 	siteTitle: '',
@@ -63,7 +70,7 @@ function toForm(profile: Profile): FormState {
 		heroTitle: profile.heroTitle,
 		heroIntro: profile.heroIntro,
 		bioParagraphs: profile.bioParagraphs.join('\n'),
-		values: profile.values.join('\n'),
+		values: toValuePairs(profile.values),
 		commitments: profile.commitments.map((item) => ({ ...item })),
 		siteName: profile.siteName,
 		siteTitle: profile.siteTitle,
@@ -83,6 +90,38 @@ function toLines(text: string): string[] {
 		.split('\n')
 		.map((line) => line.trim())
 		.filter(Boolean);
+}
+
+/**
+ * Stored `Title: description` line → pair. Each line is split on its FIRST colon
+ * only, so a colon inside the description survives untouched; a line without a
+ * colon keeps all its text as the title and an empty description.
+ */
+function toValuePairs(lines: string[]): ProfileValue[] {
+	return lines.map((line) => {
+		const separator = line.indexOf(':');
+
+		if (separator === -1) {
+			return { title: line, description: '' };
+		}
+
+		return {
+			title: line.slice(0, separator),
+			description: line.slice(separator + 1).trimStart(),
+		};
+	});
+}
+
+/**
+ * Pair list → the `string[]` the API stores, one `title: description` line each.
+ * Rows with an empty title and description are dropped, and a row without a
+ * description keeps only its title, so the values already stored round-trip.
+ */
+function fromValuePairs(values: ProfileValue[]): string[] {
+	return values
+		.map((item) => ({ title: item.title.trim(), description: item.description.trim() }))
+		.filter((item) => item.title || item.description)
+		.map((item) => (item.description ? `${item.title}: ${item.description}` : item.title));
 }
 
 const labelClass = 'block text-[11px] font-medium tracking-[0.2em] text-muted-foreground';
@@ -191,6 +230,32 @@ export default function ProfileEditorPanel() {
 		setFeedback('idle');
 	}
 
+	function updateValue(index: number, field: keyof ProfileValue, value: string) {
+		setForm((current) => ({
+			...current,
+			values: current.values.map((item, itemIndex) =>
+				itemIndex === index ? { ...item, [field]: value } : item,
+			),
+		}));
+		setFeedback('idle');
+	}
+
+	function addValue() {
+		setForm((current) => ({
+			...current,
+			values: [...current.values, { title: '', description: '' }],
+		}));
+		setFeedback('idle');
+	}
+
+	function removeValue(index: number) {
+		setForm((current) => ({
+			...current,
+			values: current.values.filter((_, itemIndex) => itemIndex !== index),
+		}));
+		setFeedback('idle');
+	}
+
 	async function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
 
@@ -208,7 +273,7 @@ export default function ProfileEditorPanel() {
 				heroTitle: current.heroTitle,
 				heroIntro: current.heroIntro,
 				bioParagraphs: toLines(current.bioParagraphs),
-				values: toLines(current.values),
+				values: fromValuePairs(current.values),
 				commitments: current.commitments
 					.map((item) => ({ value: item.value.trim(), label: item.label.trim() }))
 					.filter((item) => item.value || item.label),
@@ -309,16 +374,55 @@ export default function ProfileEditorPanel() {
 								hint="Un párrafo por línea; las líneas vacías se descartan."
 								onInput={(value) => update('bioParagraphs', value)}
 							/>
-							<Field
-								id="profile-values"
-								label="VALORES"
-								value={form().values}
-								multiline
-								rows={5}
-								hint="Uno por línea, con el formato «Título: descripción»."
-								onInput={(value) => update('values', value)}
-							/>
 						</div>
+					</section>
+
+					<section aria-labelledby="perfil-valores" class="border border-border bg-card p-6">
+						<div class="flex items-center justify-between gap-4">
+							<h2 id="perfil-valores" class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">
+								VALORES
+							</h2>
+							<button
+								type="button"
+								onClick={addValue}
+								class="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-[12px] font-medium transition-colors hover:border-aka hover:text-aka"
+							>
+								+ Añadir
+							</button>
+						</div>
+						<p class={hintClass}>Cada valor con su descripción; se muestra en la web tal como se guarda.</p>
+						<Show
+							when={form().values.length > 0}
+							fallback={<p class="mt-5 text-sm text-muted-foreground">Sin valores: la web no muestra la lista.</p>}
+						>
+							<ul class="mt-4 flex flex-col gap-3">
+								<For each={form().values}>
+									{(value, index) => (
+										<li class="grid items-end gap-3 sm:grid-cols-[1fr_2fr_auto]">
+											<Field
+												id={`profile-value-title-${index()}`}
+												label="VALOR"
+												value={value.title}
+												onInput={(input) => updateValue(index(), 'title', input)}
+											/>
+											<Field
+												id={`profile-value-description-${index()}`}
+												label="EXPLICACIÓN"
+												value={value.description}
+												onInput={(input) => updateValue(index(), 'description', input)}
+											/>
+											<button
+												type="button"
+												onClick={() => removeValue(index())}
+												class="mb-0.5 inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive"
+											>
+												Quitar
+											</button>
+										</li>
+									)}
+								</For>
+							</ul>
+						</Show>
 					</section>
 
 					<section aria-labelledby="perfil-compromisos" class="border border-border bg-card p-6">

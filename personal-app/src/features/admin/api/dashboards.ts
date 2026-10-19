@@ -37,8 +37,17 @@ export type DiarioPanelData = {
  */
 export async function loadDiario(serverOrigin?: string): Promise<AdminDiarioView> {
 	const blogs = await fetchBlogs(serverOrigin);
+	const posts = toDiarioPosts(blogs);
 
-	return { stats: toDiarioStats(blogs), posts: toDiarioPosts(blogs) };
+	// The table's contract stays owned by the adapter; the public slug the
+	// «Ver» action needs lives on `ApiBlog`, so it is mapped onto the rows by
+	// id here instead of widening what `toDiarioPosts` returns.
+	const slugById = new Map(blogs.map((blog) => [String(blog.id), blog.slug]));
+
+	return {
+		stats: toDiarioStats(blogs),
+		posts: posts.map((post) => ({ ...post, slug: slugById.get(post.id) })),
+	};
 }
 
 /**

@@ -1,6 +1,7 @@
 import { createSignal, For, onCleanup, onMount, Show } from 'solid-js';
 import { toDiarioPosts } from '../../entities/admin/adapter';
 import type { AdminSummaryStat, ApiBlog } from '../../entities/admin/types';
+import { fetchBlogs } from '../../features/admin/api/collections';
 import { createBlogEntry, updateBlogEntry } from '../../features/admin/api/diario';
 import { loadDiarioPanel } from '../../features/admin/api/dashboards';
 
@@ -31,6 +32,14 @@ const EMPTY_FORM: FormState = { title: '', description: '', content: '', pubDate
 
 /** Server-rendered button in `pages/admin/diario.astro`. */
 const TRIGGER_ID = 'nueva-entrada';
+
+/**
+ * Document event the server-rendered published table publishes from its «Editar»
+ * action (`widgets/admin/AdminPostTable.astro`). It lets that button reach this
+ * island's modal without the table importing the island; the payload is the row
+ * id, the only handle the server render carries.
+ */
+const OPEN_EDITOR_EVENT = 'diario:open-editor';
 
 const DOT_CLASS: Record<AdminSummaryStat['dot'], string> = {
 	neutral: 'bg-foreground/60',
@@ -157,9 +166,19 @@ export default function DiarioEditorPanel() {
 		};
 		document.addEventListener('keydown', onKey);
 
+		// Bridge for the published table's «Editar»: the row id arrives in the
+		// event detail and the full entry is read before opening the modal.
+		const onOpenEditor = (event: Event) => {
+			const id = (event as CustomEvent<{ id?: string }>).detail?.id;
+
+			if (id) void openPublished(id);
+		};
+		document.addEventListener(OPEN_EDITOR_EVENT, onOpenEditor);
+
 		onCleanup(() => {
 			trigger?.removeEventListener('click', onTrigger);
 			document.removeEventListener('keydown', onKey);
+			document.removeEventListener(OPEN_EDITOR_EVENT, onOpenEditor);
 		});
 	});
 
@@ -191,6 +210,25 @@ export default function DiarioEditorPanel() {
 	function closeModal() {
 		if (pending() !== null) return;
 		setOpen(false);
+	}
+
+	/**
+	 * Opens the modal for a published entry. The published table carries only the
+	 * row id, so the full entry is read from the public list first and then handed
+	 * to `openEdit`, the exact path the drafts table already uses.
+	 */
+	async function openPublished(id: string) {
+		setActionError('');
+
+		try {
+			const blogs = await fetchBlogs();
+			const blog = blogs.find((entry) => String(entry.id) === id);
+
+			if (blog) openEdit(blog);
+			else setActionError('No se encontró la entrada para editar.');
+		} catch (cause) {
+			setActionError(messageFrom(cause) || 'No se pudo abrir la entrada para editar.');
+		}
 	}
 
 	function update<K extends keyof FormState>(key: K, value: FormState[K]) {
