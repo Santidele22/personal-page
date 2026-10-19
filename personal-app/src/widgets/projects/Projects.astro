@@ -30,13 +30,19 @@ const rest = projectCards.filter((project) => project !== featured);
 				<p class="mt-4 text-[15px] leading-relaxed text-muted-foreground">Proyectos reales, con código abierto y sin promesas infladas: algunos en producción, otros todavía en el banco de trabajo.</p>
 			</div>
 		</Reveal>
+		{/* Two columns from md up: the projects keep the wide column and the
+		    tools band becomes a tall side panel (narrower at md, roomier at lg).
+		    Below md the grid collapses to a single column, so the section still
+		    reads header → projects → tools on mobile. */}
+		<div class="mt-10 grid gap-y-8 md:grid-cols-[minmax(0,1fr)_16rem] md:items-start md:gap-x-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-x-10">
+			<div class="min-w-0">
 		{/* The headline card only exists when the backend serves at least one
 		    project: an empty list renders the section without cards instead of
 		    falling back to the shipped copy. */}
 		{projectCards.length > 0 && (
 			<Reveal delay={0.1}>
-			<article class="group mt-10 grid overflow-hidden border border-border bg-card transition-colors hover:border-aka/60 md:grid-cols-2">
-				<div class="relative flex min-h-[240px] items-center justify-center overflow-hidden border-b border-border bg-secondary/60 md:border-b-0 md:border-r">
+			<article class="group grid overflow-hidden border border-border bg-card transition-colors hover:border-aka/60 lg:grid-cols-2">
+				<div class="relative flex min-h-[240px] items-center justify-center overflow-hidden border-b border-border bg-secondary/60 lg:border-b-0 lg:border-r">
 					<SeigaihaBand class="absolute inset-x-0 top-0 h-24 text-foreground opacity-[0.16]" rows={3} />
 					<SeigaihaBand class="absolute inset-x-0 bottom-0 h-24 rotate-180 text-foreground opacity-[0.1]" rows={3} />
 					<Icon name={featured.icon} class="relative size-24 text-aka" strokeWidth={1} />
@@ -68,7 +74,7 @@ const rest = projectCards.filter((project) => project !== featured);
 			</Reveal>
 		)}
 		{projectCards.length === 0 && (
-			<Reveal delay={0.1} class="mt-10">
+			<Reveal delay={0.1}>
 				<EmptyState
 					icon="blocks"
 					title="Todavía no hay proyectos"
@@ -77,7 +83,7 @@ const rest = projectCards.filter((project) => project !== featured);
 			</Reveal>
 		)}
 		{rest.length > 0 && (
-			<div class="mt-6 grid gap-6 md:grid-cols-3">
+			<div class="mt-6 grid gap-6 lg:grid-cols-2">
 			{rest.map((project, index) => (
 				<Reveal delay={0.1 * index} class="h-full">
 					<article class="group flex h-full flex-col border border-border bg-card p-7 transition-colors hover:border-aka/60">
@@ -110,12 +116,15 @@ const rest = projectCards.filter((project) => project !== featured);
 			))}
 			</div>
 		)}
-		{/* The projects show what was built; the tools band closes the section
-		    with the real, backend-managed list of what built it. Each entry
-		    keeps the love-of-art vs sponsored split; tools without a managed
-		    link fall back to the dedicated /marcas page. */}
-		<Reveal class="mt-8">
+			</div>
+
+		{/* The projects show what was built; the tools band sits beside them
+		    from md up with the real, backend-managed list of what built it. Each
+		    entry keeps the love-of-art vs sponsored split; tools without a
+		    managed link fall back to the dedicated /marcas page. */}
+		<Reveal>
 			<ToolsBlock label="CON LO QUE LOS CONSTRUYO" />
 		</Reveal>
+		</div>
 	</div>
 </section>
