@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../app/layouts/BaseLayout.astro';
+import { showServicesOnLanding } from '../app/config/sections';
 import AdSlot from '../entities/ad-slot/AdSlot.astro';
 import { adSlotsFallback, fetchAdSlots } from '../features/ad-slot/api/ad-slots';
 import About from '../widgets/about/About.astro';
@@ -30,7 +31,7 @@ const patrono = adSlots.find((slot) => slot.id === 'patrono');
 	<About />
 	<Projects />
 	<Reading />
-	<Services />
+	{showServicesOnLanding && <Services />}
 	<Brands />
 	<Contact />
 </BaseLayout>
