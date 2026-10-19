@@ -33,14 +33,16 @@ Assumptions (marked, not user-verbatim):
   feat(books) — e2e 7/7 (`test/books.e2e-spec.ts`), unit 138/138, build OK.
 - T2 [S2] PDF upload: `POST /books/:id/file` multipart, streaming to disk
   (multer disk storage), PDF-only filter, size cap. Route: inline.
-  Issue: Santidele22/personal-page#15. Commit: —
+  Issue: Santidele22/personal-page#15. Commit: 311b4ab (backend dev). e2e 13/13.
 - T3 [S2/S3] Download endpoint `GET /books/:id/download` with per-IP daily
   rate limiting (`download_events` table). Route: inline.
-  Issue: Santidele22/personal-page#17. Commit: —
+  Issue: Santidele22/personal-page#17. Commit: aaf6357 (backend dev). e2e 16/16.
 - T4 [S3] Landing widget `widgets/reading/` + section on the landing. Route:
-  inline. Issue: Santidele22/personal-page#18. Commit: —
+  delegated. Issue: Santidele22/personal-page#18. Commit: (outer repo, uncommitted) —
+  astro check 0/0/0 (119 files), tsc clean, build complete.
 - T5 [S1] Admin page `/admin/libros` + `BooksEditorPanel` island + sidebar
-  entry. Route: inline. Issue: Santidele22/personal-page#19. Commit: —
+  entry. Route: delegated. Issue: Santidele22/personal-page#19. Commit: (outer repo, uncommitted) —
+  astro check 0/0/0 (122 files), tsc clean.
 - T6 [S2] Chunked upload endpoints, only if T2 evidence shows the streaming
   path cannot absorb large books. Route: inline.
   Issue: Santidele22/personal-page#20 (conditional; closes `wontfix` with

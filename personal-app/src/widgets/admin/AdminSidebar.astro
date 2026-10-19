@@ -11,13 +11,14 @@ type NavItem = {
 	id: AdminSection;
 	href: string;
 	label: string;
-	icon: 'layout-grid' | 'pen-line' | 'megaphone' | 'mail' | 'user' | 'blocks' | 'code-2' | 'wrench' | 'list';
+	icon: 'layout-grid' | 'pen-line' | 'megaphone' | 'mail' | 'user' | 'blocks' | 'code-2' | 'wrench' | 'list' | 'book-open';
 };
 
 const navItems: NavItem[] = [
 	{ id: 'resumen', href: '/admin/', label: 'Resumen', icon: 'layout-grid' },
 	{ id: 'diario', href: '/admin/diario/', label: 'Diario', icon: 'pen-line' },
 	{ id: 'proyectos', href: '/admin/proyectos/', label: 'Proyectos', icon: 'blocks' },
+	{ id: 'libros', href: '/admin/libros/', label: 'Libros', icon: 'book-open' },
 	{ id: 'servicios', href: '/admin/servicios/', label: 'Servicios', icon: 'code-2' },
 	{ id: 'herramientas', href: '/admin/herramientas/', label: 'Herramientas', icon: 'wrench' },
 	{ id: 'publicidad', href: '/admin/publicidad/', label: 'Publicidad', icon: 'megaphone' },

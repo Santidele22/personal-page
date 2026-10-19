@@ -3,6 +3,7 @@ export type AdminSection =
 	| 'diario'
 	| 'servicios'
 	| 'proyectos'
+	| 'libros'
 	| 'herramientas'
 	| 'publicidad'
 	| 'suscriptores'
