@@ -26,6 +26,8 @@ const actionBase =
 const actionLive = `${actionBase} hover:bg-secondary hover:text-aka motion-safe:hover:-translate-y-0.5`;
 /** Misma base, pero apagada y no interactiva cuando la acción no tiene destino. */
 const actionMuted = `${actionBase} pointer-events-none opacity-40`;
+/** El borrado pide su rojo: hover destructive para que no se lea como edición. */
+const actionDanger = `${actionBase} hover:bg-destructive/15 hover:text-destructive motion-safe:hover:-translate-y-0.5`;
 
 const columns = [
 	{ label: 'ENTRADA', class: `${headBase} px-6` },
@@ -92,6 +94,15 @@ const columns = [
 									<button type="button" data-editor-id={post.id} aria-label={`Editar ${post.title}`} class={actionLive}>
 										<Icon name="pen-line" class="size-4" strokeWidth={1.5} />
 									</button>
+									<button
+										type="button"
+										data-delete-id={post.id}
+										data-delete-title={post.title}
+										aria-label={`Eliminar ${post.title}`}
+										class={actionDanger}
+									>
+										<Icon name="trash-2" class="size-4" strokeWidth={1.5} />
+									</button>
 								</span>
 							</td>
 						</tr>
@@ -108,15 +119,31 @@ const columns = [
 	 * isla Solid `DiarioEditorPanel`. En vez de importar la isla desde acá, el
 	 * botón delega en un evento de documento que la isla escucha y abre el modal
 	 * igual que con su propio botón «+ Nueva entrada».
+	 *
+	 * «Eliminar» sigue el mismo puente: la isla abre el diálogo de confirmación,
+	 * así que esta tabla nunca llama a la API ni decide el borrado por sí sola.
 	 */
 	const OPEN_EDITOR_EVENT = 'diario:open-editor';
+	const REQUEST_DELETE_EVENT = 'diario:request-delete';
 
 	document.addEventListener('click', (event) => {
 		if (!(event.target instanceof Element)) return;
 
-		const trigger = event.target.closest('[data-editor-id]');
-		const id = trigger?.getAttribute('data-editor-id');
+		const editTrigger = event.target.closest('[data-editor-id]');
+		const editId = editTrigger?.getAttribute('data-editor-id');
+		if (editId) {
+			document.dispatchEvent(new CustomEvent(OPEN_EDITOR_EVENT, { detail: { id: editId } }));
+			return;
+		}
 
-		if (id) document.dispatchEvent(new CustomEvent(OPEN_EDITOR_EVENT, { detail: { id } }));
+		const deleteTrigger = event.target.closest('[data-delete-id]');
+		const deleteId = deleteTrigger?.getAttribute('data-delete-id');
+		if (deleteId) {
+			document.dispatchEvent(
+				new CustomEvent(REQUEST_DELETE_EVENT, {
+					detail: { id: deleteId, title: deleteTrigger?.getAttribute('data-delete-title') ?? '' },
+				}),
+			);
+		}
 	});
 </script>
