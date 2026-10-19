@@ -45,8 +45,7 @@ Assumptions (marked, not user-verbatim):
   astro check 0/0/0 (122 files), tsc clean.
 - T6 [S2] Chunked upload endpoints, only if T2 evidence shows the streaming
   path cannot absorb large books. Route: inline.
-  Issue: Santidele22/personal-page#20 (conditional; closes `wontfix` with
-  evidence if T2 holds). Commit: —
+  Issue: Santidele22/personal-page#20 (closed wontfix: T2 streaming holds). Commit: —
 
 ## Log
 
