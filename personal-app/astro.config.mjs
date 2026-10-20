@@ -18,6 +18,62 @@ export default defineConfig({
 	// cheap at this site's scale, and it avoids a static/SSR split.
 	adapter: node({ mode: 'standalone' }),
 	output: 'server',
+	// Content Security Policy (issue 41). Astro hashes the inline scripts and
+	// styles it generates (font faces, island runtime, hydration directives).
+	// The site is fully SSR, so Astro sends the policy as a per-render
+	// `Content-Security-Policy` response header; `frame-ancestors` stays out of
+	// it because browsers ignore that directive in a `<meta>` element and
+	// `src/middleware.ts` appends it as a separate policy on the response.
+	//
+	// Two inline scripts are not tracked by Astro's build-time hasher, so their
+	// hashes are supplied by hand (sha256, base64):
+	//
+	// 1. `ThemeScript.astro`, author-authored `is:inline` code intended to run
+	//    before first paint. The hash must match the exact text between its
+	//    `<script is:inline>` tags; if that body changes, recompute it or the
+	//    browser blocks the theme bootstrap.
+	// 2. Solid's SSR hydration bootstrap (`window._$HY`, emitted by
+	//    `@astrojs/solid-js` via `renderHydrationScript`, which Astro renders
+	//    without adding it to the policy). Without this hash every island
+	//    hydration module throws and no Solid component hydrates. Recheck it
+	//    when upgrading `solid-js` or `@astrojs/solid-js`.
+	//
+	// Attributes: no `script-src-attr` entry is needed, `default-src 'none'`
+	// already blocks inline event handlers. `style-src-attr 'unsafe-inline'` is
+	// required because templates do set inline `style` attributes: `Reveal.astro`
+	// writes each stagger delay as `style="--reveal-delay: …"` (8 per page, values
+	// come from props) and `BambooArt.astro` sets a font-family on an SVG
+	// `<text>`. Hash sources cannot allow style attributes without
+	// `'unsafe-hashes'`, and per-render values would need a hash each, so the
+	// attribute scope stays `'unsafe-inline'`; `<style>` elements remain
+	// hash-only. Revisit if those attributes are replaced by classes.
+	security: {
+		csp: {
+			directives: [
+				"default-src 'none'",
+				"connect-src 'self'",
+				// `data:` is the washi paper noise texture (an inline SVG in global.css).
+				"img-src 'self' https: data:",
+				"font-src 'self'",
+				"base-uri 'self'",
+				"form-action 'self'",
+			],
+			scriptDirective: {
+				resources: ["'self'"],
+				hashes: [
+					'sha256-4j2Fjb5t5epKsFGmCGFD0NPY/2JEZi9pUW8KeCytZFk=',
+					'sha256-VmEf2BGdqVUwcvyhTyarJo/bY7DNqS2+T2sz4IO/kbw=',
+				],
+			},
+			styleDirective: {
+				// Only the attribute scope is listed: Astro keeps its implicit
+				// `style-src 'self'` default for elements and adds the generated
+				// hashes there. Declaring `'self'` here too would only trigger the
+				// "shadowed by style-src-attr" warning for the same output.
+				resources: [{ resource: "'unsafe-inline'", kind: 'attribute' }],
+			},
+		},
+	},
 	vite: {
 		plugins: [tailwindcss()],
 		server: {

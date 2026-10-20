@@ -1,6 +1,5 @@
 ---
 import { Font } from 'astro:assets';
-import { ClientRouter } from 'astro:transitions';
 import AdminSidebar from '../../widgets/admin/AdminSidebar.astro';
 import AdminTopBar from '../../widgets/admin/AdminTopBar.astro';
 import type { AdminSection } from '../../entities/admin/types';
@@ -28,7 +27,6 @@ const { active, title } = Astro.props;
 		<Font cssVariable="--font-shippori" preload />
 		<Font cssVariable="--font-zen" preload />
 		<Font cssVariable="--font-geist-mono" />
-		<ClientRouter />
 		<ThemeScript />
 	</head>
 	<body class="bg-background font-sans text-foreground antialiased">

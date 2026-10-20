@@ -2,8 +2,15 @@
 /**
  * Script inline de restauración de tema.
  * Aplica el tema guardado (o el preferido del sistema) en cuanto se parsea el
- * `<head>`, y reaplica el tema sobre cada documento entrante durante la
- * navegación con `<ClientRouter />` para evitar el flash de tema.
+ * `<head>`: se mantiene `is:inline` para que corra antes del primer pintado y
+ * evitar el flash de tema. Ya no escucha `astro:before-swap` porque la app no
+ * usa `<ClientRouter />` (issue 41): cada navegación es una carga de documento
+ * completa y vuelve a ejecutar este script.
+ *
+ * CSP: al ser un script de autor sin empaquetar, Astro no genera su hash. El
+ * hash del contenido exacto entre las etiquetas vive en
+ * `security.csp.scriptDirective.hashes` de `astro.config.mjs`; si el cuerpo
+ * cambia, hay que recalcularlo (sha256 en base64) o el navegador lo bloquea.
  */
 ---
 
@@ -20,13 +27,6 @@
 				root.style.colorScheme = 'light';
 			}
 		};
-
-		if (!window.__santiThemeHandler) {
-			document.addEventListener('astro:before-swap', (event) => {
-				applyTheme(event.newDocument.documentElement);
-			});
-			window.__santiThemeHandler = true;
-		}
 
 		applyTheme(document.documentElement);
 	})();

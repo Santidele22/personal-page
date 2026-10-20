@@ -15,9 +15,17 @@ import { LOGIN_PATH } from './features/auth/paths';
  * session expiry mid-navigation).
  *
  * Security headers: applied to every response the app produces, including the
- * redirect above and the `/api/*` proxy responses. The CSP only pins
- * `frame-ancestors` (clickjacking); a full strict CSP would break Astro's
- * inline hydration scripts, so that one stays a documented follow-up.
+ * redirect above and the `/api/*` proxy responses.
+ *
+ * CSP ownership (issue 41): Astro's native `security.csp` renders the full
+ * policy, with hashes for every inline script/style it generates, as a
+ * `Content-Security-Policy` header on each SSR response. This middleware only
+ * appends the one directive Astro deliberately leaves out: `frame-ancestors`
+ * (clickjacking), because browsers ignore it inside a `<meta>` element. It is
+ * appended as a second policy rather than overwritten, so both stay in force;
+ * multiple policies intersect only on directives they both define. Never add
+ * `script-src`/`style-src` here: those would intersect with Astro's hashes and
+ * block the framework's own inline code.
  */
 
 const ADMIN_PREFIX = '/admin';
@@ -34,7 +42,7 @@ function isProtectedAdminRoute(pathname: string): boolean {
 function applySecurityHeaders(headers: Headers): void {
 	headers.set('X-Content-Type-Options', 'nosniff');
 	headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-	headers.set('Content-Security-Policy', "frame-ancestors 'none'");
+	headers.append('Content-Security-Policy', "frame-ancestors 'none'");
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
