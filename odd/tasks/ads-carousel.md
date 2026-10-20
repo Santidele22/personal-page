@@ -180,3 +180,8 @@ superficies disjuntas; se delegan juntas con contrato fijado en Specs. Git lo ma
   tsc limpio, build completo, probe con stub vacio: 28 boxes `h-10 w-36`, CTA hero "Una
   tarjeta destacada, USD 150 /mes", CTA footer sello + destacada, 0 errores SSR, puertos
   liberados. Commit `aa09995`. Push de ambas ramas pedido por el usuario.
+- L12 (2026-10-19, verbatim): "Agregale un texto adentro que diga \"tu logo\"" — el lugar
+  reservado lleva la leyenda centrada "Tu logo" (`text-[10px] tracking-[0.18em]
+  text-muted-foreground/70`); sigue clicable y con el hover de acento. Evidencia: check 0,
+  tsc limpio, build completo, probe con stub vacío: 28 leyes (7 × 2 copias × 2 bandas), precio
+  CTA intacta, 0 errores SSR, puertos liberados. Commit `7233864`.
