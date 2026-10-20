@@ -20,14 +20,16 @@ push/PR/merge es decisión del usuario). Test runners: backend `pnpm test` y `pn
   "¿Tu marca aquí? Una tarjeta destacada, {precio} {cadencia} · ver todos los espacios", con
   "ver todos los espacios" como enlace a `/marcas` en color acento. {precio}/{cadencia} salen de
   los datos del plan destacado disponible (plan disponible de mayor precio visible en la banda
-  hero); hardcodear euros o montos está prohibido. La banda reemplaza la actual tarjeta estática
+  hero); hardcodear euros o montos está prohibido. Sin datos, el destacado toma su precio de la
+  copia de slots por defecto del sitio (`entities/ad-slot/data.ts`, L10). La banda reemplaza la actual tarjeta estática
   del slot `patrono` entre el Hero y el diario (`personal-app/src/pages/index.astro:24-28`).
 - S4: Banda del footer (captura de referencia): encabezado "SELLOS DE MARCAS AMIGAS"; carrusel;
   fila CTA: "Un sello diminuto, {precio} {cadencia} · una tarjeta destacada, {precio} {cadencia} ·
   ver todos los espacios". Derivar de datos: «sello diminuto» = plan del sello (slug `pie`),
   «tarjeta destacada» = plan disponible destacado (mayor precio); si falta uno de los dos, la
-  fila muestra solo la parte disponible; si no hay datos de planes, queda solo el enlace
-  "ver todos los espacios". Idioma del copy: español.
+  fila muestra solo la parte disponible; si no hay datos de planes, la fila toma los precios
+  por defecto de la copia de slots del sitio (`entities/ad-slot/data.ts`, L10) y conserva el
+  enlace "ver todos los espacios". Idioma del copy: español.
 - S5: Composición mixto: los sponsors van primero y las ofertas completan. Sponsors activos =
   marcas con `activeUntil` vacío o vigente (misma regla ya declarada en
   `personal-app/src/entities/admin/adapter.ts:22-36` — reutilizar/exportar esa función, no
@@ -37,7 +39,7 @@ push/PR/merge es decisión del usuario). Test runners: backend `pnpm test` y `pn
   `patrono`, `lectura`, `flujo`, `carta` desocupados, en el orden en que la API los trae. Sin
   datos —backend sin cargar o request fallido— (L9): la banda NO muestra ofertas por defecto ni
   colapsa; pasa un único cuadradito punteado reservado (el placeholder del espacio que ocuparía
-  el spot) y la fila CTA queda con el enlace "ver todos los espacios".
+  el spot) y la fila CTA recupera los precios por defecto de la copia de slots del sitio (L10).
 - S6: Marca sponsor: tarjeta con logo (`imageUrl`), nombre y, si existe, enlace (`target="_blank"`
   `rel="noopener noreferrer"`). El modelo no tiene `url` hoy: agregar columna nullable `url` en
   la entidad `Brand` (`synchronize` la crea), campo opcional en `CreateBrandDto`/`UpdateBrandDto`,
