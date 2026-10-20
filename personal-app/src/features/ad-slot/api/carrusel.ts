@@ -1,6 +1,8 @@
 import { isBrandActive } from '../../../entities/admin/adapter';
 import type { ApiAdvertisingPlan, ApiBrand } from '../../../entities/admin/types';
 import type { AdBandPayload, AdBandPrice, SponsorCarouselItem } from '../../../entities/ad-slot/types';
+/** Reexport the shipped slot copy; the entity data owns the printed prices. */
+import { adSlots as adSlotsFallback } from '../../../entities/ad-slot/data';
 import { toAdSlotInfo } from './ad-slots';
 
 /**
@@ -64,13 +66,14 @@ type ComposeInput = {
 export function composeAdBands({ plans, brands, now }: ComposeInput): CarruselBands {
 	const heroItems: SponsorCarouselItem[] = [];
 	const footerItems: SponsorCarouselItem[] = [];
-
 	const safePlans = plans ?? [];
 	const safeBrands = brands ?? [];
+	const noData = !safePlans.length && !safeBrands.length;
 
-	if (!safePlans.length && !safeBrands.length) {
+	if (noData) {
 		// With nothing loaded the band keeps only the reserved spot: a dashed
-		// placekeeper square, the space the carousel would occupy (L9).
+		// placekeeper square, the space the carousel would occupy (L9). Its CTA
+		// row still names the default prices from the shipped slot copy (L10).
 		heroItems.push({ kind: 'placeholder' });
 		footerItems.push({ kind: 'placeholder' });
 	} else {
@@ -78,10 +81,13 @@ export function composeAdBands({ plans, brands, now }: ComposeInput): CarruselBa
 		pushOffers(heroItems, footerItems, safePlans, safeBrands, now);
 	}
 
-	// A2: the CTA features the highest-priced available plan of the hero band.
-	const featured = highestPricedOffer(heroItems);
+	// A2: the CTA features the highest-priced available offer of the band; with
+	// no data at all the shipped slot copy supplies those default prices (L10).
+	const featured = highestPricedOffer(heroItems) ?? (noData ? defaultOffer(HERO_SLUGS) : null);
 	// A1: the footer seal is only offered while its plan is available.
-	const seal = highestPricedOffer(footerItems.filter((item) => item.kind === 'offer' && item.ad.id === FOOTER_SLUG));
+	const seal =
+		highestPricedOffer(footerItems.filter((item) => item.kind === 'offer' && item.ad.id === FOOTER_SLUG)) ??
+		(noData ? defaultOffer(new Set([FOOTER_SLUG])) : null);
 
 	return {
 		hero: {
@@ -148,6 +154,18 @@ function pushOffers(
 		if (plan.slug === FOOTER_SLUG) footerItems.push({ kind: 'offer', ad });
 		else if (HERO_SLUGS.has(plan.slug)) heroItems.push({ kind: 'offer', ad });
 	}
+}
+
+/** Cheap offer view of the shipped slot copy, filtered by band slugs (L10). */
+function fallbackOffers(slugs: Set<string>): SponsorCarouselItem[] {
+	return adSlotsFallback
+		.filter((ad) => slugs.has(ad.id))
+		.map((ad): SponsorCarouselItem => ({ kind: 'offer', ad }));
+}
+
+/** Highest-priced shipped offer, so an empty band still quotes a price (L10). */
+function defaultOffer(slugs: Set<string>): AdBandPrice | null {
+	return highestPricedOffer(fallbackOffers(slugs));
 }
 
 /**

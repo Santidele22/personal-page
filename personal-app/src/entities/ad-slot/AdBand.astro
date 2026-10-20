@@ -74,10 +74,15 @@ const copies: (boolean | undefined)[] = [false, true];
 									</span>
 								</a>
 							) : (
-								<span
+								<a
 									aria-hidden={decorative ? 'true' : undefined}
-									class="inline-block size-10 rounded-[4px] border border-dashed border-border"
-								/>
+									aria-label="Reservar lugar: ver la tarifa completa"
+									class="block"
+									href="/marcas"
+									{...focusable}
+								>
+									<span class="inline-block h-20 w-44 rounded-[6px] border border-dashed border-border/70 transition-colors hover:border-aka/60" />
+								</a>
 							);
 						})}
 					</div>
