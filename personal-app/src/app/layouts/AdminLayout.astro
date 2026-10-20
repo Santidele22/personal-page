@@ -32,7 +32,7 @@ const { active, title } = Astro.props;
 	<body class="bg-background font-sans text-foreground antialiased">
 		<div class="flex min-h-dvh flex-col lg:flex-row">
 			<AdminSidebar active={active} />
-			<div class="flex min-w-0 flex-1 flex-col">
+			<div class="flex min-w-0 flex-1 flex-col lg:pl-64">
 				<AdminTopBar />
 				<main class="flex-1 px-4 py-10 sm:px-8 lg:px-12 lg:py-12">
 					<div class="mx-auto flex max-w-6xl flex-col gap-8">

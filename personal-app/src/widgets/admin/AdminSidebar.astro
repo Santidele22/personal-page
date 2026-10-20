@@ -29,7 +29,7 @@ const navItems: NavItem[] = [
 const { active } = Astro.props;
 ---
 
-<aside class="flex overflow-x-auto border-b border-border bg-card lg:h-dvh lg:w-64 lg:flex-col lg:overflow-visible lg:border-r lg:border-b-0">
+<aside class="lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 flex overflow-x-auto border-b border-border bg-card lg:w-64 lg:flex-col lg:overflow-hidden lg:border-r lg:border-b-0">
 	<nav class="flex min-w-0 flex-1 items-center gap-1 px-4 py-3 lg:flex-col lg:items-stretch lg:px-6 lg:py-8" aria-label="Secciones del panel">
 		<a href="/admin/" class="mr-2 flex items-center gap-2.5 whitespace-nowrap lg:mr-0 lg:mb-8">
 			<span class="hanko size-8 rounded-[5px] font-mono text-[10px]" aria-hidden="true">&lt;/&gt;</span>
