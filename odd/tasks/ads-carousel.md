@@ -37,9 +37,10 @@ push/PR/merge es decisión del usuario). Test runners: backend `pnpm test` y `pn
   «Tu marca aquí». Reparto por banda (A3): sponsors del plan slug `pie` → banda footer; el resto
   de los sponsors → banda hero. Ofertas: footer ← plan `pie` si desocupado; hero ← planes
   `patrono`, `lectura`, `flujo`, `carta` desocupados, en el orden en que la API los trae. Sin
-  datos —backend sin cargar o request fallido— (L9): la banda NO muestra ofertas por defecto ni
-  colapsa; pasa un único cuadradito punteado reservado (el placeholder del espacio que ocuparía
-  el spot) y la fila CTA recupera los precios por defecto de la copia de slots del sitio (L10).
+  datos —backend sin cargar o request fallido— (L9, ajustado por L11): la banda NO muestra
+  ofertas por defecto ni colapsa; pasan 7 lugares reservados pequeños (`h-10 w-36`, dashed
+  opaco) con el espaciado real `gap-12`, simulando la franja poblada, y la fila CTA recupera
+  los precios por defecto de la copia de slots del sitio (L10). Cada lugar clicable a `/marcas`.
 - S6: Marca sponsor: tarjeta con logo (`imageUrl`), nombre y, si existe, enlace (`target="_blank"`
   `rel="noopener noreferrer"`). El modelo no tiene `url` hoy: agregar columna nullable `url` en
   la entidad `Brand` (`synchronize` la crea), campo opcional en `CreateBrandDto`/`UpdateBrandDto`,
@@ -167,3 +168,15 @@ superficies disjuntas; se delegan juntas con contrato fijado en Specs. Git lo ma
   stub (sin datos): links Reservar ×4, franjas ×4, CTA hero «¿Tu marca aquí? Una tarjeta
   destacada, USD 150 /mes · ver todos los espacios», CTA footer con sello + destacada, 0
   errores SSR, puertos liberados. Commit `c6b6655`.
+- L11 (2026-10-19, verbatim): "Subi los cambios y empezamos devuelta: entendiste a medias ...
+  que falta: placeholders mas chiquitos y con un dashboad (lineas alrededor del contendedor)
+  que este en movimiento mostrando como se mostraria en la realidad" (con captura del estado
+  actual: dos franjas grandes y vacias) — tres ajustes: (1) franja mas chica: `h-10 w-36`
+  (antes `h-20 w-44`), dashed opaco (`border-border`, hover `border-aka`); (2) sin datos la
+  banda ya no pasa UN solo lugar: pasa un tren de `PLACEHOLDER_SLOTS = 7` lugares reservados
+  con el mismo espaciado `gap-12` que los items reales (medio de 1344px > contenedor max
+  ~1152px, loop -50% sin huecos), simulando como se veria la franja poblada; (3) siguen
+  clicable a `/marcas` (28 links en probe = 7 × 2 copias × 2 bandas). Evidencia: check 0,
+  tsc limpio, build completo, probe con stub vacio: 28 boxes `h-10 w-36`, CTA hero "Una
+  tarjeta destacada, USD 150 /mes", CTA footer sello + destacada, 0 errores SSR, puertos
+  liberados. Commit `aa09995`. Push de ambas ramas pedido por el usuario.
