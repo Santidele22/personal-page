@@ -192,3 +192,8 @@ superficies disjuntas; se delegan juntas con contrato fijado en Specs. Git lo ma
   (`mt-12`) y la grilla pierde su `mt-12` (el `pt-12` del contenedor la espacia). Orden
   verificado en probe SSR: último "Tarifa completa" < "SELLOS DE MARCAS AMIGAS" < "© 2026".
   check 0, tsc limpio, build completo, 0 errores SSR, puertos liberados. Commit `6783e8b`.
+- L14 (2026-10-19, verbatim): "Si esta vacio esconde el link de ver archivo completo [Image 1]"
+  — en `Blog.astro` el enlace "Ver archivo completo" se renderiza solo cuando hay cards
+  (`{featured && ...}`); el estado vacío muestra solo el EmptyState del diario. Evidencia:
+  probe con stub vacío — 0 "Ver archivo completo", 1 "Todavía no hay entradas"; check 0, tsc
+  limpio, build completo, puertos liberados. Commit `1e1dfad`.
