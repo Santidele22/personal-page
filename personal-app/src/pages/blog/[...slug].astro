@@ -1,11 +1,12 @@
 ---
-import { marked } from 'marked';
 import BlogPostLayout from '../../app/layouts/BlogPostLayout.astro';
 import { fetchBlogArticle } from '../../features/blog/api/blogs';
+import { renderMarkdown } from '../../shared/lib/markdown';
 
 /* The diario entries live in the backend (issue 28), so the article renders
    on demand: new entries from the panel appear without a rebuild. Bodies are
-   markdown stored server side, rendered here with `marked`. */
+   markdown stored server side, rendered and sanitized here before the layout
+   pours them into `set:html` (issue 38: `marked` alone does not sanitize). */
 const { slug } = Astro.params;
 
 let post = null;
@@ -18,9 +19,7 @@ if (!post) {
 	return new Response(null, { status: 404 });
 }
 
-// marked.parse with `async: false` resolves synchronously: awaiting a string
-// only adds the TS hint Astro surfaces.
-const html = marked.parse(post.content, { async: false });
+const html = renderMarkdown(post.content);
 ---
 
 <BlogPostLayout
