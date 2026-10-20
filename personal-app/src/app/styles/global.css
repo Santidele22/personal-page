@@ -141,6 +141,29 @@ body::after {
   }
 }
 
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/*
+ * Sponsor band (S8): the ad spots pass continuously; only hover and keyboard
+ * focus freeze the strip, and `prefers-reduced-motion` zeroes durations
+ * globally above, which leaves the static strip in place.
+ */
+.marquee-track {
+  animation: marquee var(--marquee-duration, 36s) linear infinite;
+}
+
+.marquee-hover:hover .marquee-track,
+.marquee-hover:focus-within .marquee-track {
+  animation-play-state: paused;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

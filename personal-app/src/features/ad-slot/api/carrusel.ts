@@ -1,7 +1,6 @@
 import { isBrandActive } from '../../../entities/admin/adapter';
 import type { ApiAdvertisingPlan, ApiBrand } from '../../../entities/admin/types';
-import { adSlots as adSlotsFallback } from '../../../entities/ad-slot/data';
-import type { AdBandPayload, AdBandPrice, SponsorCarouselItem } from '../../../entities/ad-slot/ui/SponsorCarousel';
+import type { AdBandPayload, AdBandPrice, SponsorCarouselItem } from '../../../entities/ad-slot/types';
 import { toAdSlotInfo } from './ad-slots';
 
 /**
@@ -16,10 +15,9 @@ import { toAdSlotInfo } from './ad-slots';
  *   `lectura`, `flujo` and `carta` plans the hero offers, in API order;
  * - sponsors come first in each band and offers complete it (S2).
  *
- * `plans: null` or `brands: null` means the request failed, not that the
- * collection is empty: the shipped `adSlotsFallback` then supplies the offers.
- * Empty successful collections yield bands with no cards, which the caller
- * renders as heading plus CTA row only (S5).
+ * The band with no data at all (or a failed read) shows neither the shipped
+ * slot copy nor a collapsed strip: a single dashed placekeeper square passes,
+ * so the reserved ad space stays visible without publishing any offer (L9).
  */
 
 /** Public columns the API adds to a plan row beyond the admin DTO. */
@@ -67,15 +65,17 @@ export function composeAdBands({ plans, brands, now }: ComposeInput): CarruselBa
 	const heroItems: SponsorCarouselItem[] = [];
 	const footerItems: SponsorCarouselItem[] = [];
 
-	if (!plans || !brands) {
-		// API failure: the shipped slot copy is the declared fallback (S5).
-		for (const ad of adSlotsFallback) {
-			if (ad.id === FOOTER_SLUG) footerItems.push({ kind: 'offer', ad });
-			else if (HERO_SLUGS.has(ad.id)) heroItems.push({ kind: 'offer', ad });
-		}
+	const safePlans = plans ?? [];
+	const safeBrands = brands ?? [];
+
+	if (!safePlans.length && !safeBrands.length) {
+		// With nothing loaded the band keeps only the reserved spot: a dashed
+		// placekeeper square, the space the carousel would occupy (L9).
+		heroItems.push({ kind: 'placeholder' });
+		footerItems.push({ kind: 'placeholder' });
 	} else {
-		pushSponsors(heroItems, footerItems, plans, brands, now);
-		pushOffers(heroItems, footerItems, plans, brands, now);
+		pushSponsors(heroItems, footerItems, safePlans, safeBrands, now);
+		pushOffers(heroItems, footerItems, safePlans, safeBrands, now);
 	}
 
 	// A2: the CTA features the highest-priced available plan of the hero band.
@@ -152,8 +152,8 @@ function pushOffers(
 
 /**
  * Price of the most expensive offer. The string is already formatted by
- * `toAdSlotInfo` (or the shipped fallback), so only its numeric part is read
- * back for the comparison; no currency is hardcoded here.
+ * `toAdSlotInfo`, so only its numeric part is read back for the comparison;
+ * no currency is hardcoded here.
  */
 function highestPricedOffer(items: SponsorCarouselItem[]): AdBandPrice | null {
 	let best: AdBandPrice | null = null;

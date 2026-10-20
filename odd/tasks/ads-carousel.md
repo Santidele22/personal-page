@@ -34,22 +34,24 @@ push/PR/merge es decisión del usuario). Test runners: backend `pnpm test` y `pn
   reimplementarla). Ocupación: un plan con una marca activa no se ofrece como tarjeta
   «Tu marca aquí». Reparto por banda (A3): sponsors del plan slug `pie` → banda footer; el resto
   de los sponsors → banda hero. Ofertas: footer ← plan `pie` si desocupado; hero ← planes
-  `patrono`, `lectura`, `flujo`, `carta` desocupados, en el orden en que la API los trae. Si el
-  backend falla: usar el fallback declarado (`adSlotsFallback`) como ofertas; si no hay datos en
-  absoluto, cada banda colapsa a encabezado + fila CTA (como las capturas).
+  `patrono`, `lectura`, `flujo`, `carta` desocupados, en el orden en que la API los trae. Sin
+  datos —backend sin cargar o request fallido— (L9): la banda NO muestra ofertas por defecto ni
+  colapsa; pasa un único cuadradito punteado reservado (el placeholder del espacio que ocuparía
+  el spot) y la fila CTA queda con el enlace "ver todos los espacios".
 - S6: Marca sponsor: tarjeta con logo (`imageUrl`), nombre y, si existe, enlace (`target="_blank"`
   `rel="noopener noreferrer"`). El modelo no tiene `url` hoy: agregar columna nullable `url` en
   la entidad `Brand` (`synchronize` la crea), campo opcional en `CreateBrandDto`/`UpdateBrandDto`,
   `url?` en `ApiBrand` (`personal-app/src/entities/admin/types.ts:135-142`), y campo en el panel
   admin. El sello siempre marcado como publicidad (ética publicitaria del sitio).
-- S7: Tarjeta de oferta: reutilizar el diseño existente de `personal-app/src/entities/ad-slot/AdSlot.astro`
-  (encabezado "PUBLICIDAD · DISPONIBLE", precio, acceso a `/marcas`) en versión tarjetas de
-  carrusel; no reinventar el look.
-- S8: Carrusel: rotación automática (~6 s), pausa con hover/focus, puntos de posición y botones
-  anterior/siguiente con `aria-label`; contenedor `aria-roledescription="carrusel"`. Con
-  `prefers-reduced-motion` (`personal-app/src/app/styles/global.css:163-175` ya anula animaciones):
-  sin autoavance, cambio instantáneo por controles. Hidratación con la directiva más restrictiva
-  útil, sin HTML inútil antes de hidratar: la primera tarjeta renderiza en SSR.
+- S7: Ítems del carrusel: sellos planos de banda, sin tarjeta con marco (como la referencia del
+  usuario): sponsor = logo (`imageUrl`) + nombre, con enlace cuando tiene `url`
+  (`target="_blank"` `rel="noopener noreferrer"`); oferta = «Tu marca aquí» + nombre del plan +
+  precio/cadencia, enlace a `/marcas`. Cada ítem lleva el tag pequeño `PUBLICIDAD` (ética
+  publicitaria). No reinyentar cards con marco: la banda es una franja de sellos.
+- S8: Movimiento: **marquee**: la franja pasa continua y automáticamente (loop lineal sin dots ni
+  botones), banda baja y limpia como la captura del usuario; pausa con hover y con focus dentro
+  de la banda; con `prefers-reduced-motion` queda la franja estática (el CSS global ya anula
+  animaciones). SSR pura en Astro: la animación es CSS y no requiere isla de cliente.
 - S9: FSD y stack: sin dependencias nuevas, sin React; Solid solo donde hay interacción.
   Composición pura en `personal-app/src/features/ad-slot/api/carrusel.ts` (features → entities
   permitido). Panel admin en `personal-app/src/features/ad-slot` + página
@@ -73,11 +75,11 @@ Supuestos declarados (no requisitos del usuario):
 
 | ID | S# | Contenido | Route | Commit |
 | --- | --- | --- | --- | --- |
-| T1 | S6, S10 | Backend: columna nullable `url` en `brands` + DTO + servicio público `GET /brands` incluye relación `plan` (additivo) + e2e RED→GREEN | delegated (writer:contract) | pendiente |
-| T2 | S6, S9 | Admin: panel Marcas (sponsor) en `/admin/publicidad`: listar (name, plan, vigencia), crear/editar (name, imageUrl, url, planId, activeUntil) + borrar con confirmación; tipos ApiBrand | delegated (writer) | pendiente |
-| T3 | S5, S9 | Composición mixto en `features/ad-slot/api/carrusel.ts` (pura; fallback; regla de vigencia reutilizada del adapter) | delegated (writer) | pendiente |
-| T4 | S7, S8, S9 | Isla Solid `SponsorCarousel` + banda `AdBand.astro` (encabezado, carrusel, fila CTA) accesible y responsive (390px+), light/dark | delegated (writer) | pendiente |
-| T5 | S1, S3, S4 | Wiring: banda hero reemplaza bloque `patrono` en `index.astro`; banda footer reemplaza `AdSlot pie` en `SiteFooter.astro` | delegated (writer) | pendiente |
+| T1 | S6, S10 | Backend: columna nullable `url` en `brands` + DTO + servicio público `GET /brands` incluye relación `plan` (additivo) + e2e RED→GREEN | delegated (writer:contract) | backend `ed51ce1` (r. `feat/brands-carousel-contract`) |
+| T2 | S6, S9 | Admin: panel Marcas (sponsor) en `/admin/publicidad`: listar (name, plan, vigencia), crear/editar (name, imageUrl, url, planId, activeUntil) + borrar con confirmación; tipos ApiBrand | delegated (writer) | front `021daae` |
+| T3 | S5, S9 | Composición mixto en `features/ad-slot/api/carrusel.ts` (pura; fallback; regla de vigencia reutilizada del adapter) | delegated (writer: beam, reanudado) | front `10c39a7` |
+| T4 | S7, S8, S9 | Marquee de sellos plano en banda `AdBand.astro` (SSR puro; strip duplicada, loop CSS continuo, pausa hover/focus) + types band y composición | delegated (writer: beam, reanudado) + inline (marquee tras L9) | front `10c39a7` + `125ee18` |
+| T5 | S1, S3, S4 | Wiring: banda hero reemplaza bloque `patrono` en `index.astro`; banda footer reemplaza `AdSlot pie` en `SiteFooter.astro` | delegated (writer: beam, reanudado) | front `10c39a7` |
 
 Superficie declarada (max diff esperado): T1 ~80 líneas · T2 ~380 · T3 ~140 · T4 ~260 · T5 ~60 →
 ~900 líneas → slices: [T1] | [T2] | [T3+T4+T5]. Rutas en paralelo: T1, T2 y T3–T5 son unidades con
@@ -105,3 +107,54 @@ superficies disjuntas; se delegan juntas con contrato fijado en Specs. Git lo ma
   `personal-app/src/widgets/blog/ToolsBlock.astro`,
   `personal-app/src/widgets/projects/Projects.astro`): no tocar, no commitear, no formatear. Los
   commits de esta feature agregan paths explícitos solamente.
+- L5 (2026-10-19, ejecución): 3 slices conmutados. Backend `backend` r. `feat/brands-carousel-contract`
+  commit `ed51ce1` — RED→GREEN observado (3 fallas → 4 verdes), unit 9/9, `pnpm lint` 0 errores,
+  `pnpm build` ok. Frontend r. `feat/carousel-ads` commits `021daae` (774 líneas) y `10c39a7`
+  (516 líneas) — `astro check` 0, `tsc` limpio, `build` completo; probe SSR con backend scratch
+  observado: CTA hero "¿Tu marca aquí? Una tarjeta destacada, USD 150 /mes · ver todos los
+  espacios", sponsor con url enlaza target=_blank, marca vencida excluida, controles SSR
+  ("Tarjeta anterior"/"Ir a la tarjeta N"), primera tarjeta en SSR. El writer original de T3–T5
+  murió por rate limit tras avanzar parcialmente; reanudado con writer beam que audito y verificó
+  sin nuevos edits. Spot check del padre: e2e brands 4/4, tsc limpio, headings via
+  `carrusel.ts:52-53`, CTA solo de datos de planes (`AdBand.astro`).
+- L6 (2026-10-19, verificación native + limitación): `gentle-ai review assess` — frontend
+  (base `origin/dev`, ambos commits): `risk: medium`, `review_due: false` (`under_budget`);
+  backend (base `dev` con inventario canónico, excluyendo untracked ajeno `src/database/seed-projects.ts`):
+  `risk: medium`, `review_due: false` (`under_budget`). Limitaciones registradas: (1) las suites
+  backend `pnpm test` / `pnpm test:e2e` completas quedan rojas SOLO por 2 aserciones
+  pre-existentes en dev-auth (`c31fab8` cambió la sesión a `id: dev-admin`; archivos ajenos), no
+  corregidas por esta feature; (2) móvil 390px y dark mode verificados por revisión de clases,
+  no visualmente; (3) sin probe HTTP del panel admin (requiere backend + sesión admin, reportado
+  N/A por el writer de T2); (4) el fallback sin-backend de la banda no es probeable por una
+  `fetchBlogRows` pre-existente que no captura errores en `Blog.astro` (ajeno; la composición se
+  probó por lógica + build). Risk lines: T1 `Risk: item 3 (contracto GET /brands, cambio
+  additivo — commit aislado)`; T2 `Risk: none (additivo, un nuevo panel)`; T3–T5 `Risk: none
+  (cards/copy derivados de datos; rotacion de UI nueva)`.
+- L7 (2026-10-19, pendiente): push de ambas ramas + PRs es decisión del usuario. Cargar sponsors
+  reales va por el nuevo panel admin (crear `Brand` con plan y vigencia). Archivos ajenos aún
+  sin commitear (los 4 de L4).
+- L8 (2026-10-19, verbatim): "Agrega la animacion desde ahora que pasen los lugares en el
+  carrusel" — pista deslizante `translateX` con `motion-safe:transition-transform`; commit
+  `125ee18`; probe SSR con stub validó la pista y los controles.
+- L9 (2026-10-19, verbatim): "Perfecto, dejalo el cuadradito nada mas del espacio que ocuparia y
+  ya estaria" + aclaración del usuario: "es el placeholder del lugar que ocuparia en el
+  carrusel" — cambia el estado sin datos: adiós ofertas por defecto (`adSlotsFallback` deja de
+  usarse en la composición); composición emite `kind: 'placeholder'` (nuevo miembro del union en
+  `entities/ad-slot/types.ts`) y `AdBand.astro` lo dibuja como cuadradito punteado
+  (`size-10 rounded-[4px] border border-dashed border-border`) que pasa con el mismo marquee; la
+  CTA deja precio (no hay datos) y queda "¿Tu marca aquí?" (hero) y solo el enlace (footer).
+  Evidencia (probe con stub vacío): placeholders ×4 (2 copias × 2 bandas), 0 chips "Tu marca
+  aquí" en marquee, CTA hero "¿Tu marca aquí? · ver todos los espacios", artmarquee vivo en las
+  dos bandas. Nota de verificación: un servidor zombie huérfano (ppid 1) sirvió una versión
+  anterior durante el probe — hallazgo propio, no del código: mi barrido usaba
+  `kill "${f#/proc/}"` con el cmdline como pid; corrección + verificación con `ss` antes de
+  cada curl. Commit pendiente de este turn. Evidencia: `astro check` 0, `tsc` limpio,
+  `build` completo; probe SSR con stub propio (PUBLIC_API_BASE_URL horneado, ports
+  3999/4399, luego arranque y limpieza completa): banda hero con sponsor enlazado
+  (`marca-uno.example`), banda footer con oferta sello + CTA "Un sello diminuto",
+  `translateX(-0%)` + `w-full shrink-0` + clases motion-safe ×2 bandas, y
+  `transition-property:transform,translate,scale,rotate` compilado en el CSS cliente (gated por
+  la media query). Nota de entorno: `astro dev` proxy está hardcodeado a `:3000`
+  (`astro.config.mjs:32`); un build verifica integración con env horneado. El backend vivo del
+  usuario en :3000 (sin tocarlo) tiene 0 planes/brands — bandas correctas colapsadas. Commit
+  `125ee18`. Risk: none (presentación pura; rotación y accesibilidad ya cubiertas).
