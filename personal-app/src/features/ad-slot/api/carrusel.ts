@@ -57,6 +57,12 @@ const HERO_SLUGS = new Set(['patrono', 'lectura', 'flujo', 'carta']);
 /** The footer seal (A1). */
 const FOOTER_SLUG = 'pie';
 
+/**
+ * Reserved spots shown when no data is loaded (L11): enough of them to fill
+ * the widest band once, so the duplicated halves loop without a visible gap.
+ */
+const PLACEHOLDER_SLOTS = 7;
+
 type ComposeInput = {
 	plans: CarruselPlan[] | null;
 	brands: CarruselBrand[] | null;
@@ -71,11 +77,15 @@ export function composeAdBands({ plans, brands, now }: ComposeInput): CarruselBa
 	const noData = !safePlans.length && !safeBrands.length;
 
 	if (noData) {
-		// With nothing loaded the band keeps only the reserved spot: a dashed
-		// placekeeper square, the space the carousel would occupy (L9). Its CTA
+		// With nothing loaded the band previews its real rhythm (L11): a train of
+		// small dashed reserved spots keeps passing, so the visitor sees how the
+		// populated strip would sit. The count clears the widest band (a 36px
+		// slot plus the 48px gap ends at 192px; 7 places give 1344px per half,
+		// larger than any container) so the -50% loop stays seamless. The CTA
 		// row still names the default prices from the shipped slot copy (L10).
-		heroItems.push({ kind: 'placeholder' });
-		footerItems.push({ kind: 'placeholder' });
+		const train = Array.from({ length: PLACEHOLDER_SLOTS }, () => ({ kind: 'placeholder' }) as const);
+		heroItems.push(...train);
+		footerItems.push(...train);
 	} else {
 		pushSponsors(heroItems, footerItems, safePlans, safeBrands, now);
 		pushOffers(heroItems, footerItems, safePlans, safeBrands, now);
