@@ -1,34 +1,69 @@
 ---
-import { GITHUB_URL, LINKEDIN_URL } from '../../app/config/site';
+import { CONTACT_EMAIL, GITHUB_URL, LINKEDIN_URL } from '../../app/config/site';
 import { fetchProfile } from '../../features/profile/api/profile';
 import Icon from '../../shared/ui/Icon.astro';
 import type { IconName } from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
 
-/* The profile is read while the server renders the page; the fallback below
-   is the copy this section ships with when no profile exists yet. */
+/* The profile is read while the server renders the page; the fallbacks below
+   are the copy this section ships with when no profile exists yet. */
 const serverOrigin = Astro.url.origin;
 const profile = await fetchProfile(serverOrigin);
 
 const intro =
 	profile?.contactIntro ||
-	'Lo más directo para charlar es una cita por LinkedIn; el código habla por sí solo en GitHub, y el diario sale por el RSS.';
+	'Nada de formularios eternos ni listas de correo: lo que llega a la bandeja lo contesto yo, despacio y en serio, normalmente en 48 horas.';
 
 const githubUrl = profile?.githubUrl || GITHUB_URL;
 const linkedinUrl = profile?.linkedinUrl || LINKEDIN_URL;
 
+/* Display handles for the channels card, derived from the canonical URLs. */
+const githubHandle = `github.com/${githubUrl.replace(/\/$/, '').split('/').pop()}`;
+const lastLinkedinSegment = linkedinUrl.replace(/\/$/, '').split('/').pop() || '';
+const linkedinHandle = `in/${lastLinkedinSegment}`;
+
 type SocialLink = { icon: IconName; label: string; href: string };
+type Channel = {
+	icon: IconName;
+	title: string;
+	description: string;
+	href: string;
+	red?: boolean;
+};
+
+const channels: Channel[] = [
+	{
+		icon: 'mail',
+		title: CONTACT_EMAIL,
+		description: 'Proyectos, dudas del diario y tarifas para marcas.',
+		href: `mailto:${CONTACT_EMAIL}`,
+		red: true,
+	},
+	{
+		icon: 'linkedin',
+		title: linkedinHandle,
+		description: 'Marcas y colaboraciones: la vía más rápida.',
+		href: linkedinUrl,
+	},
+	{
+		icon: 'github',
+		title: githubHandle,
+		description: 'Código, issues y pull requests.',
+		href: githubUrl,
+	},
+];
 
 const socials: SocialLink[] = [
 	{ icon: 'rss', label: 'RSS del diario', href: '/rss.xml' },
 	{ icon: 'github', label: 'GitHub', href: githubUrl },
 	{ icon: 'linkedin', label: 'LinkedIn', href: linkedinUrl },
+	{ icon: 'at-sign', label: 'Escribime por correo', href: `mailto:${CONTACT_EMAIL}` },
 ];
 ---
 
 <section id="contacto" class="relative scroll-mt-20 overflow-hidden" aria-labelledby="contacto-title">
 	<div aria-hidden="true" class="pointer-events-none absolute -left-32 bottom-0 size-[420px] rounded-full bg-aka opacity-[0.06]"></div>
-	<div class="mx-auto max-w-6xl px-5 py-16 sm:px-8 lg:py-24">
+	<div class="mx-auto grid max-w-6xl gap-12 px-5 py-16 sm:px-8 lg:grid-cols-2 lg:py-24">
 		<Reveal class="max-w-2xl">
 			<p class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
 				<Icon name="mail" class="size-4 text-aka" />
@@ -36,6 +71,15 @@ const socials: SocialLink[] = [
 			</p>
 			<h2 id="contacto-title" class="mt-3 text-balance font-mincho text-3xl font-semibold tracking-tight sm:text-4xl">¿Escribimos<span class="text-aka">?</span></h2>
 			<p class="mt-4 max-w-md text-[15px] leading-relaxed text-muted-foreground">{intro}</p>
+			<p class="mt-4 max-w-md text-[15px] leading-relaxed text-muted-foreground">
+				Si sos marca o herramienta dev, los espacios y las tarifas están en
+				<a href="/marcas" class="font-medium text-aka underline decoration-aka/40 underline-offset-4 transition-colors hover:decoration-aka focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">la sección de marcas</a>.
+				El código habla por sí solo en GitHub.
+			</p>
+			<p class="mt-6 inline-flex items-center gap-2.5 rounded-full border border-border bg-card px-4 py-2 text-[13px] text-foreground">
+				<span class="size-1.5 rounded-full bg-aka" aria-hidden="true"></span>
+				Abierto a colaboraciones — dos huecos este trimestre
+			</p>
 			<div class="mt-6 flex items-center gap-3">
 				{socials.map((social) => {
 					const isExternal = social.href.startsWith('http');
@@ -53,6 +97,46 @@ const socials: SocialLink[] = [
 					);
 				})}
 			</div>
+		</Reveal>
+		<Reveal class="relative lg:justify-self-end lg:w-full lg:max-w-[530px]">
+			<span aria-hidden="true" class="absolute -top-3 -left-3 hidden size-6 rounded-sm border border-aka/50 bg-background lg:block"></span>
+			<aside class="border border-border bg-card p-6 sm:p-8" aria-label="Canales directos de contacto">
+				<div class="flex items-baseline justify-between gap-4 border-b border-border pb-4">
+					<h3 class="font-mincho text-lg font-semibold tracking-tight">Canales directos</h3>
+					<span class="text-[12px] text-muted-foreground">~48 h</span>
+				</div>
+				<ul>
+					{
+						channels.map((channel) => (
+							<li class="border-b border-border">
+								<a
+									href={channel.href}
+									target={channel.href.startsWith('http') ? '_blank' : undefined}
+									rel={channel.href.startsWith('http') ? 'noreferrer' : undefined}
+									class="group flex items-center gap-4 py-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+								>
+									<span
+										class:list={[
+											'flex size-10 shrink-0 items-center justify-center rounded-md border',
+											channel.red ? 'border-aka/30 bg-aka/10 text-aka' : 'border-border bg-secondary text-muted-foreground group-hover:border-aka group-hover:text-aka',
+										]}
+									>
+										<Icon name={channel.icon} class="size-4" />
+									</span>
+									<span class="min-w-0 flex-1">
+										<span class="block truncate text-sm font-semibold text-foreground">{channel.title}</span>
+										<span class="mt-0.5 block text-[13px] text-muted-foreground">{channel.description}</span>
+									</span>
+									<Icon name="arrow-up-right" class="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-aka" />
+								</a>
+							</li>
+						))
+					}
+				</ul>
+				<p class="pt-5 text-[13px] leading-relaxed text-muted-foreground">
+					Para seguir el diario bastan <strong class="font-semibold text-foreground">RSS</strong> o <strong class="font-semibold text-foreground">Mastodon</strong>: sin correo de por medio.
+				</p>
+			</aside>
 		</Reveal>
 	</div>
 </section>
