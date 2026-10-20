@@ -78,7 +78,7 @@ Supuestos declarados (no requisitos del usuario):
 | T1 | S6, S10 | Backend: columna nullable `url` en `brands` + DTO + servicio público `GET /brands` incluye relación `plan` (additivo) + e2e RED→GREEN | delegated (writer:contract) | backend `ed51ce1` (r. `feat/brands-carousel-contract`) |
 | T2 | S6, S9 | Admin: panel Marcas (sponsor) en `/admin/publicidad`: listar (name, plan, vigencia), crear/editar (name, imageUrl, url, planId, activeUntil) + borrar con confirmación; tipos ApiBrand | delegated (writer) | front `021daae` |
 | T3 | S5, S9 | Composición mixto en `features/ad-slot/api/carrusel.ts` (pura; fallback; regla de vigencia reutilizada del adapter) | delegated (writer: beam, reanudado) | front `10c39a7` |
-| T4 | S7, S8, S9 | Marquee de sellos plano en banda `AdBand.astro` (SSR puro; strip duplicada, loop CSS continuo, pausa hover/focus) + types band y composición | delegated (writer: beam, reanudado) + inline (marquee tras L9) | front `10c39a7` + `125ee18` |
+| T4 | S7, S8, S9 | Marquee de sellos plano en banda `AdBand.astro` (SSR puro; strip duplicada, loop CSS continuo, pausa hover/focus; placeholder reservado sin datos, L9) + types band y composición | delegated (writer: beam, reanudado) + inline (marquee tras L9/cuadradito) | front `10c39a7` + `125ee18` + `e877d5a` |
 | T5 | S1, S3, S4 | Wiring: banda hero reemplaza bloque `patrono` en `index.astro`; banda footer reemplaza `AdSlot pie` en `SiteFooter.astro` | delegated (writer: beam, reanudado) | front `10c39a7` |
 
 Superficie declarada (max diff esperado): T1 ~80 líneas · T2 ~380 · T3 ~140 · T4 ~260 · T5 ~60 →
@@ -148,7 +148,7 @@ superficies disjuntas; se delegan juntas con contrato fijado en Specs. Git lo ma
   dos bandas. Nota de verificación: un servidor zombie huérfano (ppid 1) sirvió una versión
   anterior durante el probe — hallazgo propio, no del código: mi barrido usaba
   `kill "${f#/proc/}"` con el cmdline como pid; corrección + verificación con `ss` antes de
-  cada curl. Commit pendiente de este turn. Evidencia: `astro check` 0, `tsc` limpio,
+  cada curl. Commit `e877d5a` (marquee + placeholder + tipos + CSS). Evidencia: `astro check` 0, `tsc` limpio,
   `build` completo; probe SSR con stub propio (PUBLIC_API_BASE_URL horneado, ports
   3999/4399, luego arranque y limpieza completa): banda hero con sponsor enlazado
   (`marca-uno.example`), banda footer con oferta sello + CTA "Un sello diminuto",
