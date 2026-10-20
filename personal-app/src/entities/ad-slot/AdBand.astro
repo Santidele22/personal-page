@@ -1,0 +1,99 @@
+---
+import type { AdBandPayload } from './types';
+
+/**
+ * Server-rendered advertising band (S3, S4): tracking heading, the seal
+ * marquee (S8: CSS-only continuous pass, no island) and the CTA row. The
+ * composition decides prices and items; this component only lays them out,
+ * so no currency or amount lives here (S10). The strip renders twice and the
+ * global CSS shifts the track -50%, which makes the loop seamless; the second
+ * copy is decorative (aria-hidden, unfocusable links).
+ */
+
+interface Props {
+	band: AdBandPayload;
+	class?: string;
+}
+
+const { band, class: className } = Astro.props;
+
+const priceLabel = ({ price, cadence }: { price: string; cadence: string }) => `${price} ${cadence}`.trim();
+const ctaParts =
+	band.variant === 'hero'
+		? band.featured
+			? [`Una tarjeta destacada, ${priceLabel(band.featured)}`]
+			: []
+		: [
+				...(band.seal ? [`Un sello diminuto, ${priceLabel(band.seal)}`] : []),
+				...(band.featured ? [`una tarjeta destacada, ${priceLabel(band.featured)}`] : []),
+			];
+const beforeLink = band.variant === 'hero' || ctaParts.length > 0;
+const copies: (boolean | undefined)[] = [false, true];
+---
+
+<section class:list={['flex flex-col items-center gap-3 text-center', className]} aria-label={band.heading}>
+	<h2 class="text-[10px] font-medium tracking-[0.28em] text-muted-foreground">{band.heading}</h2>
+	{band.items.length > 0 && (
+		<div class="marquee-hover w-full overflow-hidden">
+			<div class="marquee-track flex w-max items-center">
+				{copies.map((decorative) => (
+					<div class="flex items-center gap-12 pr-12" aria-hidden={decorative ? 'true' : undefined}>
+						{band.items.map((item) => {
+							const focusable = decorative ? { tabindex: -1 } : {};
+							return item.kind === 'sponsor' ? (
+								item.url ? (
+									<a
+										class="flex items-center gap-2.5 opacity-80 transition-opacity hover:opacity-100"
+										href={item.url}
+										target="_blank"
+										rel="noopener noreferrer"
+										{...focusable}
+									>
+										<span class="text-[9px] font-medium tracking-[0.22em] text-muted-foreground">PUBLICIDAD</span>
+										<img src={item.imageUrl} alt={item.name} loading="lazy" decoding="async" class="h-8 w-auto max-w-24 object-contain" />
+										<span class="font-mincho text-sm font-semibold">{item.name}</span>
+									</a>
+								) : (
+									<span class="flex items-center gap-2.5 opacity-80">
+										<span class="text-[9px] font-medium tracking-[0.22em] text-muted-foreground">PUBLICIDAD</span>
+										<img src={item.imageUrl} alt={item.name} loading="lazy" decoding="async" class="h-8 w-auto max-w-24 object-contain" />
+										<span class="font-mincho text-sm font-semibold">{item.name}</span>
+									</span>
+								)
+							) : item.kind === 'offer' ? (
+								<a
+									class="flex flex-wrap items-baseline gap-2.5 opacity-80 transition-opacity hover:text-aka hover:opacity-100"
+									href="/marcas"
+									{...focusable}
+								>
+									<span class="text-[9px] font-medium tracking-[0.22em] text-muted-foreground">PUBLICIDAD</span>
+									<span class="font-mincho text-sm font-semibold text-foreground">Tu marca aquí</span>
+									<span class="text-[12px] text-muted-foreground">
+										{item.ad.name} · {item.ad.price}
+										<span class="text-[11px]">{item.ad.cadence}</span>
+									</span>
+								</a>
+							) : (
+								<a
+									aria-hidden={decorative ? 'true' : undefined}
+									aria-label="Reservar lugar: ver la tarifa completa"
+									class="block"
+									href="/marcas"
+									{...focusable}
+								>
+									<span class="flex h-10 w-36 items-center justify-center rounded-[6px] border border-dashed border-border text-[10px] font-medium tracking-[0.18em] text-muted-foreground/70 transition-colors hover:border-aka hover:text-muted-foreground">Tu logo</span>
+								</a>
+							);
+						})}
+					</div>
+				))}
+			</div>
+		</div>
+	)}
+	<p class="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-[12px] leading-relaxed text-muted-foreground">
+		{band.variant === 'hero' && <span class="font-medium text-foreground">¿Tu marca aquí?</span>}
+		{ctaParts.map((part) => <span>{part}</span>)}
+		{beforeLink && <span aria-hidden="true">·</span>}
+		<a href="/marcas" class="font-medium text-aka hover:underline">ver todos los espacios</a>
+	</p>
+</section>
