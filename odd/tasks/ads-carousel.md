@@ -78,7 +78,7 @@ Supuestos declarados (no requisitos del usuario):
 | T1 | S6, S10 | Backend: columna nullable `url` en `brands` + DTO + servicio público `GET /brands` incluye relación `plan` (additivo) + e2e RED→GREEN | delegated (writer:contract) | backend `ed51ce1` (r. `feat/brands-carousel-contract`) |
 | T2 | S6, S9 | Admin: panel Marcas (sponsor) en `/admin/publicidad`: listar (name, plan, vigencia), crear/editar (name, imageUrl, url, planId, activeUntil) + borrar con confirmación; tipos ApiBrand | delegated (writer) | front `021daae` |
 | T3 | S5, S9 | Composición mixto en `features/ad-slot/api/carrusel.ts` (pura; fallback; regla de vigencia reutilizada del adapter) | delegated (writer: beam, reanudado) | front `10c39a7` |
-| T4 | S7, S8, S9 | Marquee de sellos plano en banda `AdBand.astro` (SSR puro; strip duplicada, loop CSS continuo, pausa hover/focus; placeholder reservado sin datos, L9) + types band y composición | delegated (writer: beam, reanudado) + inline (marquee tras L9/cuadradito) | front `10c39a7` + `125ee18` + `e877d5a` |
+| T4 | S7, S8, S9 | Marquee de sellos plano en banda `AdBand.astro` (SSR puro; strip duplicada, loop CSS continuo, pausa hover/focus; placeholder reservado clicable con CTA a precio por defecto, L9-L10) + types band y composición | delegated (writer: beam, reanudado) + inline (marquee tras L9/cuadradito) | front `10c39a7` + `125ee18` + `e877d5a` + `c6b6655` |
 | T5 | S1, S3, S4 | Wiring: banda hero reemplaza bloque `patrono` en `index.astro`; banda footer reemplaza `AdSlot pie` en `SiteFooter.astro` | delegated (writer: beam, reanudado) | front `10c39a7` |
 
 Superficie declarada (max diff esperado): T1 ~80 líneas · T2 ~380 · T3 ~140 · T4 ~260 · T5 ~60 →
@@ -135,7 +135,9 @@ superficies disjuntas; se delegan juntas con contrato fijado en Specs. Git lo ma
   sin commitear (los 4 de L4).
 - L8 (2026-10-19, verbatim): "Agrega la animacion desde ahora que pasen los lugares en el
   carrusel" — pista deslizante `translateX` con `motion-safe:transition-transform`; commit
-  `125ee18`; probe SSR con stub validó la pista y los controles.
+  `125ee18`; probe SSR con stub validó la pista y los controles. Nota de entorno: el proxy de
+  dev está hardcodeado a `:3000` (`astro.config.mjs:32`), el build con env horneado es la vía
+  de verificación; el backend vivo del usuario en :3000 responde 200 con colecciones vacías.
 - L9 (2026-10-19, verbatim): "Perfecto, dejalo el cuadradito nada mas del espacio que ocuparia y
   ya estaria" + aclaración del usuario: "es el placeholder del lugar que ocuparia en el
   carrusel" — cambia el estado sin datos: adiós ofertas por defecto (`adSlotsFallback` deja de
@@ -148,13 +150,18 @@ superficies disjuntas; se delegan juntas con contrato fijado en Specs. Git lo ma
   dos bandas. Nota de verificación: un servidor zombie huérfano (ppid 1) sirvió una versión
   anterior durante el probe — hallazgo propio, no del código: mi barrido usaba
   `kill "${f#/proc/}"` con el cmdline como pid; corrección + verificación con `ss` antes de
-  cada curl. Commit `e877d5a` (marquee + placeholder + tipos + CSS). Evidencia: `astro check` 0, `tsc` limpio,
-  `build` completo; probe SSR con stub propio (PUBLIC_API_BASE_URL horneado, ports
-  3999/4399, luego arranque y limpieza completa): banda hero con sponsor enlazado
-  (`marca-uno.example`), banda footer con oferta sello + CTA "Un sello diminuto",
-  `translateX(-0%)` + `w-full shrink-0` + clases motion-safe ×2 bandas, y
-  `transition-property:transform,translate,scale,rotate` compilado en el CSS cliente (gated por
-  la media query). Nota de entorno: `astro dev` proxy está hardcodeado a `:3000`
-  (`astro.config.mjs:32`); un build verifica integración con env horneado. El backend vivo del
-  usuario en :3000 (sin tocarlo) tiene 0 planes/brands — bandas correctas colapsadas. Commit
-  `125ee18`. Risk: none (presentación pura; rotación y accesibilidad ya cubiertas).
+  cada curl. Commit `e877d5a` (marquee + placeholder + tipos + CSS).
+- L10 (2026-10-19, verbatim): "Ultimo cambio y quiero que se vean asi los placeholders pasando
+  por la pagina y que al hacerlo click se puedan comprar. [Image 1] ahora esta asi [Image 2]
+  entendes la diferencia?" — tres correcciones sobre el estado cuadradito: (1) la fila CTA
+  recupera el precio destacado incluso sin datos (imagen 1: «¿Tu marca aquí? Una tarjeta
+  destacada, €120/mes»): la composición deriva featured/seal de la copia de slots por defecto
+  del sitio (`entities/ad-slot/data.ts`, adSlotsFallback) cuando no hay datos — la banda no
+  hardcodea moneda (S10); footer: «Un sello diminuto, USD 10/mes · una tarjeta destacada,
+  USD 150/mes». (2) El cuadradito pasa más presente: franja reservada `h-20 w-44` punteada
+  (`rounded-[6px]`, hover `border-aka/60`). (3) Clic en el cuadradito → comprar: link a
+  `/marcas` con `aria-label="Reservar lugar: ver la tarifa completa"`; la copia decorativa
+  sigue aria-hidden + tabindex -1. Evidencia: check 0, tsc limpio, build completo, probe con
+  stub (sin datos): links Reservar ×4, franjas ×4, CTA hero «¿Tu marca aquí? Una tarjeta
+  destacada, USD 150 /mes · ver todos los espacios», CTA footer con sello + destacada, 0
+  errores SSR, puertos liberados. Commit `c6b6655`.
