@@ -134,10 +134,14 @@ function SponsorCard(props: { item: Extract<SponsorCarouselItem, { kind: 'sponso
 }
 
 /**
- * Sponsor/offer carousel for the landing bands (S1, S5, S7, S8). The active
- * card is the only slide rendered, so the first one is useful HTML before the
- * island hydrates. Auto-advance pauses on hover/focus and disappears entirely
- * under `prefers-reduced-motion`, where the controls switch instantly.
+ * Sponsor/offer carousel for the landing bands (S1, S5, S7, S8). All cards
+ * are laid out on one sliding track: the current card is positioned with an
+ * animated `translateX`, so the ad spots visibly pass across the band. The
+ * first card sits at translateX(0) in SSR, so the page shows useful HTML
+ * before the island hydrates. Auto-advance pauses on hover/focus and the
+ * slide transition disappears under `prefers-reduced-motion`, where the
+ * controls switch instantly (the global washi stylesheet already zeroes
+ * animation and transition durations for that query).
  */
 export default function SponsorCarousel(props: Props) {
 	const [active, setActive] = createSignal(0);
@@ -146,6 +150,7 @@ export default function SponsorCarousel(props: Props) {
 
 	const count = () => props.items.length;
 
+	/** Moves around the ring in both directions; dots jump straight to a slot. */
 	function go(direction: number) {
 		const total = count();
 		if (total === 0) return;
@@ -190,21 +195,27 @@ export default function SponsorCarousel(props: Props) {
 				else if (event.key === 'ArrowRight') go(1);
 			}}
 		>
-			<div class="min-h-[10rem]">
-				<Show when={item()}>
-					{(current) => (
-						<div
-							role="group"
-							aria-roledescription="diapositiva"
-							aria-label={`${active() + 1} de ${count()}`}
-							class="h-full"
-						>
-							<Show when={current().kind === 'sponsor'} fallback={<OfferCard ad={(current() as Extract<SponsorCarouselItem, { kind: 'offer' }>).ad} />}>
-								<SponsorCard item={current() as Extract<SponsorCarouselItem, { kind: 'sponsor' }>} />
-							</Show>
-						</div>
-					)}
-				</Show>
+			<div class="min-h-[10rem] overflow-hidden">
+				<div
+					class="flex h-full motion-safe:transition-transform motion-safe:duration-500 motion-safe:ease-out"
+					style={{ transform: `translateX(-${active() * 100}%)` }}
+				>
+					<For each={props.items}>
+						{(slide) => (
+							<div
+								role="group"
+								aria-roledescription="diapositiva"
+								aria-label={`${props.items.indexOf(slide) + 1} de ${count()}`}
+								aria-hidden={props.items.indexOf(slide) !== active() ? 'true' : undefined}
+								class="h-full w-full shrink-0"
+							>
+								<Show when={slide.kind === 'sponsor'} fallback={<OfferCard ad={(slide as Extract<SponsorCarouselItem, { kind: 'offer' }>).ad} />}>
+									<SponsorCard item={slide as Extract<SponsorCarouselItem, { kind: 'sponsor' }>} />
+								</Show>
+							</div>
+						)}
+					</For>
+				</div>
 			</div>
 			<Show when={count() > 1}>
 				<div class="mt-2 flex items-center justify-between gap-3">
