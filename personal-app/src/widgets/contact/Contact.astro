@@ -1,5 +1,5 @@
 ---
-import { CONTACT_EMAIL, GITHUB_URL, LINKEDIN_URL } from '../../app/config/site';
+import { CONTACT_EMAIL, GITHUB_URL, LINKEDIN_URL, MASTODON_URL } from '../../app/config/site';
 import { fetchProfile } from '../../features/profile/api/profile';
 import Icon from '../../shared/ui/Icon.astro';
 import type { IconName } from '../../shared/ui/Icon.astro';
@@ -134,7 +134,11 @@ const socials: SocialLink[] = [
 					}
 				</ul>
 				<p class="pt-5 text-[13px] leading-relaxed text-muted-foreground">
-					Para seguir el diario bastan <strong class="font-semibold text-foreground">RSS</strong> o <strong class="font-semibold text-foreground">Mastodon</strong>: sin correo de por medio.
+					Para seguir el diario bastan
+					<a href="/rss.xml" data-astro-reload class="font-semibold text-foreground transition-colors hover:text-aka focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">RSS</a>
+					o
+					<a href={MASTODON_URL} target="_blank" rel="noreferrer" class="font-semibold text-foreground transition-colors hover:text-aka focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">Mastodon</a>:
+					sin correo de por medio.
 				</p>
 			</aside>
 		</Reveal>

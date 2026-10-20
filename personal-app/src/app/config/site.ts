@@ -7,6 +7,7 @@ export const SITE_AUTHOR = 'Santiago Delebecq';
 export const GITHUB_URL = 'https://github.com/Santidele22';
 export const LINKEDIN_URL = 'https://www.linkedin.com/in/santiago-delebecq-8630a2215/';
 export const CONTACT_EMAIL = 'hola@devlog.es';
+export const MASTODON_URL = 'https://mastodon.social/@santidele22';
 
 export type NavLink = {
 	href: string;
