@@ -1,8 +1,10 @@
 ---
 import BaseLayout from '../app/layouts/BaseLayout.astro';
 import { showServicesOnLanding } from '../app/config/sections';
-import AdSlot from '../entities/ad-slot/AdSlot.astro';
-import { adSlotsFallback, fetchAdSlots } from '../features/ad-slot/api/ad-slots';
+import AdBand from '../entities/ad-slot/AdBand.astro';
+import { fetchAdvertisingPlans, fetchBrands } from '../features/admin/api/collections';
+import { composeAdBands } from '../features/ad-slot/api/carrusel';
+import Reveal from '../shared/ui/Reveal.astro';
 import About from '../widgets/about/About.astro';
 import Blog from '../widgets/blog/Blog.astro';
 import Contact from '../widgets/contact/Contact.astro';
@@ -11,21 +13,24 @@ import Projects from '../widgets/projects/Projects.astro';
 import Reading from '../widgets/reading/Reading.astro';
 import Services from '../widgets/services/Services.astro';
 
-/* The patrono slot above the diario is read while the server renders the
-   page; the fallback below is the slot the page shipped with before the
-   public columns of advertising-plans existed. */
+/* The hero advertising band is composed while the server renders the page.
+   Plans and brands are read in parallel; a failed request becomes `null`, the
+   composition's fallback path, exactly like the other landing loaders. */
 const serverOrigin = Astro.url.origin;
-const adSlots = (await fetchAdSlots(serverOrigin)) ?? adSlotsFallback;
-const patrono = adSlots.find((slot) => slot.id === 'patrono');
+const [plans, brands] = await Promise.all([
+	fetchAdvertisingPlans(serverOrigin).catch(() => null),
+	fetchBrands(serverOrigin).catch(() => null),
+]);
+const bands = composeAdBands({ plans, brands, now: new Date() });
 ---
 
 <BaseLayout>
 	<Hero />
-	{patrono && (
+	<Reveal>
 		<div class="mx-auto max-w-6xl px-5 sm:px-8">
-			<AdSlot ad={patrono} class="h-36" />
+			<AdBand band={bands.hero} />
 		</div>
-	)}
+	</Reveal>
 	<Blog />
 	<About />
 	<Projects />

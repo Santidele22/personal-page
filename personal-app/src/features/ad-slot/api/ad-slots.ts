@@ -7,7 +7,7 @@ import { getJson } from '../../../shared/api/http';
  * public columns carry the slot face the landing renders; plans without their
  * `slug` have no public placement and stay out of the lookup.
  */
-type ApiAdvertisingSlot = {
+export type ApiAdvertisingSlot = {
 	id: number;
 	price: number;
 	description: string;
@@ -21,6 +21,27 @@ type ApiAdvertisingSlot = {
 };
 
 /**
+ * Maps one plan row to the slot face the landing renders. This is the only
+ * place that formats a plan price (S10), so the advertising bands reuse it
+ * instead of hardcoding currency or amounts. A plan without `slug` has no
+ * public placement and maps to `null`.
+ */
+export function toAdSlotInfo(plan: ApiAdvertisingSlot): AdSlotInfo | null {
+	if (!plan.slug) return null;
+
+	return {
+		id: plan.slug as AdSlotInfo['id'],
+		name: plan.name ?? '',
+		visibility: plan.visibility ?? '',
+		moment: plan.moment ?? '',
+		format: plan.format ?? '',
+		price: `USD ${plan.price}`,
+		cadence: plan.cadence ?? '',
+		note: plan.note ?? plan.description,
+	};
+}
+
+/**
  * The public slots the landing renders (the "marcas" grid, the footer seal and
  * the flow slot of the blog grid). `null` only means the request itself failed
  * (API down, proxy misconfigured, server without the backend): widgets then
@@ -32,20 +53,7 @@ export async function fetchAdSlots(serverOrigin?: string): Promise<AdSlotInfo[] 
 	try {
 		const plans = await getJson<ApiAdvertisingSlot[]>('/advertising-plans', { serverOrigin });
 
-		const slots = plans
-			.filter((plan) => plan.slug)
-			.map((plan) => ({
-				id: plan.slug as AdSlotInfo['id'],
-				name: plan.name ?? '',
-				visibility: plan.visibility ?? '',
-				moment: plan.moment ?? '',
-				format: plan.format ?? '',
-				price: `USD ${plan.price}`,
-				cadence: plan.cadence ?? '',
-				note: plan.note ?? plan.description,
-			}));
-
-		return slots;
+		return plans.map(toAdSlotInfo).filter((slot): slot is AdSlotInfo => slot !== null);
 	} catch {
 		return null;
 	}

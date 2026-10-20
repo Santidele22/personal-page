@@ -1,0 +1,45 @@
+---
+import SponsorCarousel from './ui/SponsorCarousel';
+import type { AdBandPayload } from './ui/SponsorCarousel';
+
+/**
+ * Server-rendered advertising band (S3, S4): tracking heading, the carousel
+ * island and the CTA row. The composition decides prices and cards; this
+ * component only lays them out, so no currency or amount lives here (S10).
+ * Without items the band collapses to heading plus CTA row, and without plan
+ * data the CTA keeps just the `/marcas` link.
+ */
+interface Props {
+	band: AdBandPayload;
+	class?: string;
+}
+
+const { band, class: className } = Astro.props;
+
+const priceLabel = (price: { price: string; cadence: string }) => `${price.price} ${price.cadence}`.trim();
+const ctaParts =
+	band.variant === 'hero'
+		? band.featured
+			? [`Una tarjeta destacada, ${priceLabel(band.featured)}`]
+			: []
+		: [
+				...(band.seal ? [`Un sello diminuto, ${priceLabel(band.seal)}`] : []),
+				...(band.featured ? [`una tarjeta destacada, ${priceLabel(band.featured)}`] : []),
+			];
+---
+
+<section class:list={['flex flex-col gap-3', className]} aria-label={band.heading}>
+	<h2 class="text-[10px] font-medium tracking-[0.28em] text-muted-foreground">{band.heading}</h2>
+	{band.items.length > 0 && <SponsorCarousel client:visible items={band.items} label={band.heading} />}
+	<p class="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[12px] leading-relaxed text-muted-foreground">
+		{band.variant === 'hero' && <span class="font-medium text-foreground">¿Tu marca aquí?</span>}
+		{ctaParts.map((part, index) => (
+			<>
+				{index > 0 && <span aria-hidden="true">·</span>}
+				<span>{part}</span>
+			</>
+		))}
+		{(band.variant === 'hero' || ctaParts.length > 0) && <span aria-hidden="true">·</span>}
+		<a href="/marcas" class="font-medium text-aka hover:underline">ver todos los espacios</a>
+	</p>
+</section>
