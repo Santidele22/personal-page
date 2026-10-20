@@ -9,6 +9,7 @@ import type { IconName } from '../../shared/ui/Icon.astro';
 import type { AdminPublicidadView } from '../../entities/admin/types';
 import { loadPublicidad } from '../../features/admin/api/dashboards';
 import AdvertisingPlansEditorPanel from '../../features/ad-slot/AdvertisingPlansEditorPanel';
+import BrandsEditorPanel from '../../features/ad-slot/BrandsEditorPanel';
 
 /* See the resumen page: the data is read while the server renders the page. */
 const serverOrigin = Astro.url.origin;
@@ -75,6 +76,20 @@ const kpiIcons: Record<string, IconName> = {
 		</div>
 		<div class="mt-5">
 			<AdvertisingPlansEditorPanel client:load />
+		</div>
+	</section>
+
+	<section aria-labelledby="publicidad-marcas" class="mt-10">
+		<div class="flex flex-wrap items-baseline justify-between gap-3">
+			<h2 id="publicidad-marcas" class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">
+				MARCAS
+			</h2>
+			<p class="text-[11px] text-muted-foreground">
+				Los sponsors reales que ocupan un plan: logo, enlace y vigencia.
+			</p>
+		</div>
+		<div class="mt-5">
+			<BrandsEditorPanel client:load />
 		</div>
 	</section>
 </AdminLayout>

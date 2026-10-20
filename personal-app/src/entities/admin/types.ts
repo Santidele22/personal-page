@@ -136,6 +136,8 @@ export type ApiBrand = {
 	id: number;
 	name: string;
 	imageUrl: string;
+	/** Optional link of the sponsor card (S6); absent on brands saved before it. */
+	url?: string | null;
 	activeUntil: string | null;
 	createdAt: string;
 	planId: number;
