@@ -1,6 +1,7 @@
 import type { Project, ProjectIcon, ProjectStatus } from '../../../entities/project/types';
 import { projects } from '../../../entities/project/data';
 import { getJson } from '../../../shared/api/http';
+import { safeHref } from '../../../shared/api/url';
 
 const PROJECT_ICONS: ProjectIcon[] = ['sprout', 'feather', 'blocks', 'wrench'];
 const PROJECT_STATUSES: ProjectStatus[] = ['en-produccion', 'en-construccion', 'codigo-abierto'];
@@ -47,6 +48,14 @@ export async function fetchProjects(serverOrigin?: string): Promise<Project[] | 
 				? (project.status as ProjectStatus)
 				: 'en-construccion';
 
+			// Esquemas http/https/mailto únicamente (issue 38): una URL
+			// administrable con otro esquema queda vacía y la tarjeta omite
+			// ese enlace en vez de renderizarlo.
+			const repo = safeHref(project.githubUrl ?? project.url) ?? '';
+			// A demo row that holed at the repo URL is not a demo; the card then
+			// renders only the repository link instead of a lying Demo anchor.
+			const demo = project.url === project.githubUrl ? undefined : project.url;
+
 			return {
 				name: project.name,
 				icon: PROJECT_ICONS.includes(project.icon as ProjectIcon)
@@ -57,8 +66,8 @@ export async function fetchProjects(serverOrigin?: string): Promise<Project[] | 
 				stack: project.technologies,
 				status,
 				statusLabel: STATUS_LABELS[status],
-				repoUrl: project.githubUrl ?? project.url,
-				demoUrl: project.url,
+				repoUrl: repo,
+				demoUrl: safeHref(demo),
 				featured: project.featured === true,
 			};
 		});

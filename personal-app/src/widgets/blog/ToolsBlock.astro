@@ -26,13 +26,27 @@ const {
 } = Astro.props;
 ---
 
-<aside aria-label="Herramientas que uso, con enlaces de afiliado" class={className}>
-	<div class="border border-border bg-card px-6 py-5 sm:px-7 sm:py-6">
-		<p class="flex items-center gap-2 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">
-			<Icon name="wrench" class="size-3.5 text-aka" />
-			{label}
-		</p>
+<aside aria-label="Herramientas que uso, con enlaces de afiliado" data-tools-panel class={className}>
+	<div data-tools-frame class="flex flex-col overflow-hidden border border-border bg-card px-6 py-5 sm:px-7 sm:py-6">
+		<div class="flex items-center justify-between gap-2">
+			<p class="flex items-center gap-2 text-[11px] font-medium tracking-[0.2em] text-muted-foreground">
+				<Icon name="wrench" class="size-3.5 text-aka" />
+				{label}
+			</p>
+			<button
+				type="button"
+				data-tools-toggle
+				aria-expanded="true"
+				aria-controls="tools-body-content"
+				aria-label="Plegar o desplegar la lista de herramientas"
+				class="group -mr-1 shrink-0 border border-transparent p-1 text-muted-foreground transition-colors hover:border-border hover:text-aka"
+			>
+				<span class="block group-aria-expanded:hidden"><Icon name="minus" class="size-3.5" /></span>
+				<span class="hidden group-aria-expanded:block"><Icon name="plus" class="size-3.5" /></span>
+			</button>
+		</div>
 
+		<div id="tools-body-content" data-tools-body class="min-h-0 overflow-y-auto [scrollbar-width:thin]">
 		{!showSponsorship ? (
 			toolList.length === 0 ? (
 				<p class="mt-3 text-sm leading-relaxed text-muted-foreground">Pronto va a haber herramientas nuevas acá.</p>
@@ -131,5 +145,49 @@ const {
 		{!showSponsorship && (
 			<p class="mt-4 border-t border-border pt-2 text-[11px] leading-relaxed text-muted-foreground">Enlaces de afiliado: si comprás, me llega una comisión sin costo extra para vos. Solo listo lo que uso de verdad.</p>
 		)}
+		</div>
 	</div>
 </aside>
+
+<script>
+	const mq = window.matchMedia('(min-width: 768px)');
+	/* Room under the sticky top offset so a pinned panel still fits the
+	   viewport instead of hanging past the fold. */
+	const VIEWPORT_RESERVE = 128;
+
+	function initToolsPanel(): void {
+		const panel = document.querySelector<HTMLElement>('[data-tools-panel]');
+		const frame = panel?.querySelector<HTMLElement>('[data-tools-frame]');
+		const body = panel?.querySelector<HTMLElement>('[data-tools-body]');
+		const toggle = panel?.querySelector<HTMLButtonElement>('[data-tools-toggle]');
+		const column = document.querySelector<HTMLElement>('[data-projects-column]');
+		if (!panel || !frame || !body || !toggle || !column) return;
+
+		/* The frame never grows past the projects column (and, pinned beside
+		   it, never past the viewport): the body scrolls internally instead of
+		   pushing the section taller than its neighbour. */
+		const clamp = (): void => {
+			if (!mq.matches) {
+				frame.style.maxHeight = '';
+				return;
+			}
+			const columnHeight = column.getBoundingClientRect().height;
+			const viewportHeight = window.innerHeight - VIEWPORT_RESERVE;
+			frame.style.maxHeight = `${Math.max(120, Math.min(columnHeight, viewportHeight))}px`;
+		};
+
+		const resizeObserver = new ResizeObserver(clamp);
+		resizeObserver.observe(column);
+		window.addEventListener('resize', clamp);
+		mq.addEventListener('change', clamp);
+		clamp();
+
+		toggle.addEventListener('click', () => {
+			const expanded = toggle.getAttribute('aria-expanded') === 'true';
+			toggle.setAttribute('aria-expanded', String(!expanded));
+			body.classList.toggle('hidden', expanded);
+		});
+	}
+
+	initToolsPanel();
+</script>
