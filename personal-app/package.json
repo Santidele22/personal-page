@@ -20,12 +20,14 @@
     "astro": "^7.4.0",
     "better-auth": "1.7.10",
     "marked": "^18.1.1",
+    "sanitize-html": "^2.18.1",
     "sharp": "^0.35.0",
     "solid-js": "^1.9.17"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "@tailwindcss/vite": "^4.3.3",
+    "@types/sanitize-html": "^2.16.2",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3"
   }

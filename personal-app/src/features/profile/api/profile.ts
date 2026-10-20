@@ -1,4 +1,5 @@
 import { getJson, putJson } from '../../../shared/api/http';
+import { safeHref } from '../../../shared/api/url';
 import type { Profile, UpdateProfile } from '../types';
 
 /**
@@ -8,10 +9,20 @@ import type { Profile, UpdateProfile } from '../types';
  * widgets then render their existing hardcoded fallback instead of breaking.
  * `serverOrigin` resolves the relative `/api` base during a server-side render,
  * the same way the admin loaders do.
+ *
+ * The social URLs the profile stores go through `safeHref` (issue 38): any
+ * scheme other than http/https/mailto comes back empty and the widgets fall
+ * back to the `app/config/site` constants.
  */
 export async function fetchProfile(serverOrigin?: string): Promise<Profile | null> {
 	try {
-		return await getJson<Profile>('/profile', { serverOrigin });
+		const profile = await getJson<Profile>('/profile', { serverOrigin });
+
+		return {
+			...profile,
+			githubUrl: safeHref(profile.githubUrl) ?? '',
+			linkedinUrl: safeHref(profile.linkedinUrl) ?? '',
+		};
 	} catch {
 		return null;
 	}

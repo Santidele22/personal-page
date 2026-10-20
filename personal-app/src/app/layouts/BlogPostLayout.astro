@@ -54,9 +54,10 @@ const updated = asDate(updatedDate);
 			<h1 transition:name={`blog-title-${slug}`} class="mt-4 text-balance font-mincho text-3xl font-semibold tracking-tight sm:text-5xl">{title}</h1>
 			<p class="mx-auto mt-4 max-w-2xl text-muted-foreground">{description}</p>
 		</header>
-		{/* The backend stores the markdown body; rendered with `marked` at request
-		    time (XSS tradeoff documented in odd/tasks/issue-28-diario-backend-unified.md
-		    S5). */}
+		{/* The backend stores the markdown body; `renderMarkdown`
+		    (`src/shared/lib/markdown.ts`) renders it with `marked` and sanitizes
+		    the HTML on the server before this `set:html`: no scripts, no `on*`
+		    handlers, and only http/https/mailto link schemes survive. */}
 		<div class="article-content mx-auto max-w-3xl text-[15px] leading-relaxed text-foreground/90 sm:text-base" set:html={html} />
 	</article>
 </BaseLayout>

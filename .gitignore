@@ -4,3 +4,14 @@
 # Agent tooling state/cache
 .atl/
 
+# Safety net for anything not covered by a nested repo's own .gitignore
+node_modules/
+dist/
+.astro/
+.env
+.env.*
+!.env.example
+!.env.sample
+*.sqlite
+*.sqlite-*
+

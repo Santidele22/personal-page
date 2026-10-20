@@ -35,7 +35,10 @@ const rest = projectCards.filter((project) => project !== featured);
 		    Below md the grid collapses to a single column, so the section still
 		    reads header → projects → tools on mobile. */}
 		<div class="mt-10 grid gap-y-8 md:grid-cols-[minmax(0,1fr)_16rem] md:items-start md:gap-x-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-x-10">
-			<div class="min-w-0">
+			{/* The data attribute marks the height reference the tools panel
+		    clamps itself to (see ToolsBlock): the band is never taller than the
+		    projects column. */}
+		<div class="min-w-0" data-projects-column>
 		{/* The headline card only exists when the backend serves at least one
 		    project: an empty list renders the section without cards instead of
 		    falling back to the shipped copy. */}
@@ -121,9 +124,14 @@ const rest = projectCards.filter((project) => project !== featured);
 		{/* The projects show what was built; the tools band sits beside them
 		    from md up with the real, backend-managed list of what built it. Each
 		    entry keeps the love-of-art vs sponsored split; tools without a
-		    managed link fall back to the dedicated /marcas page. */}
-		<Reveal>
-			<ToolsBlock label="CON LO QUE LOS CONSTRUYO" />
+		    managed link fall back to the dedicated /marcas page. `md:self-stretch`
+		    cancels the grid's `md:items-start` for this one item so the wrapper
+		    spans the full row height: that wrapper is the containing block the
+		    sticky aside (see ToolsBlock) travels in while the projects column
+		    scrolls past — without it the wrapper only hugs its content and the
+		    band stays pinned at the top (nothing to stick against). */}
+		<Reveal class="md:self-stretch">
+			<ToolsBlock label="CON LO QUE LOS CONSTRUYO" class="md:sticky md:top-24" />
 		</Reveal>
 		</div>
 	</div>
