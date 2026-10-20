@@ -185,3 +185,10 @@ superficies disjuntas; se delegan juntas con contrato fijado en Specs. Git lo ma
   text-muted-foreground/70`); sigue clicable y con el hover de acento. Evidencia: check 0,
   tsc limpio, build completo, probe con stub vacío: 28 leyes (7 × 2 copias × 2 bandas), precio
   CTA intacta, 0 errores SSR, puertos liberados. Commit `7233864`.
+- L13 (2026-10-19, verbatim): "Perfecto y ahora cambia de lugar de esto [Image 1] para que
+  este en el medio (abajo del texto y links pero arriba del copy)" — la banda del footer pasa
+  de encabezar el footer a quedar entre la grilla de contenido (logo, blurb, columnas) y la
+  fila de copyright: en `SiteFooter.astro` se mueve el `<AdBand>` después de la grilla
+  (`mt-12`) y la grilla pierde su `mt-12` (el `pt-12` del contenedor la espacia). Orden
+  verificado en probe SSR: último "Tarifa completa" < "SELLOS DE MARCAS AMIGAS" < "© 2026".
+  check 0, tsc limpio, build completo, 0 errores SSR, puertos liberados. Commit `6783e8b`.
