@@ -2,6 +2,7 @@
 import FormattedDate from '../../shared/ui/FormattedDate.astro';
 import Icon from '../../shared/ui/Icon.astro';
 import BaseLayout from './BaseLayout.astro';
+import { SITE_NAME } from '../config/site';
 
 /**
  * Props of the article page. The diario reads from the backend (issue 28):
@@ -29,7 +30,7 @@ const date = asDate(pubDate);
 const updated = asDate(updatedDate);
 ---
 
-<BaseLayout title={`${title} · santi.`} description={description} image={heroImage ?? undefined}>
+<BaseLayout title={`${title} · ${SITE_NAME}`} description={description} image={heroImage ?? undefined}>
 	<article class="mx-auto max-w-4xl px-5 py-12 sm:px-8 sm:py-16">
 		<a
 			href="/blog/"

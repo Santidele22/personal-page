@@ -4,6 +4,7 @@ import AdBand from '../../entities/ad-slot/AdBand.astro';
 import { fetchAdvertisingPlans, fetchBrands } from '../../features/admin/api/collections';
 import { composeAdBands } from '../../features/ad-slot/api/carrusel';
 import { fetchProfile } from '../../features/profile/api/profile';
+import { SITE_NAME } from '../../app/config/site';
 import Icon from '../../shared/ui/Icon.astro';
 import type { IconName } from '../../shared/ui/Icon.astro';
 
@@ -21,7 +22,7 @@ const [profile, plans, brands] = await Promise.all([
 const footerBand = composeAdBands({ plans, brands, now: new Date() }).footer;
 
 /* The site name is stored with the accent period the design paints in aka. */
-const siteName = profile?.siteName || 'santi.';
+const siteName = profile?.siteName || SITE_NAME;
 const siteNameText = siteName.endsWith('.') ? siteName.slice(0, -1) : siteName;
 const siteNamePeriod = siteName.endsWith('.');
 
@@ -32,7 +33,7 @@ const blurb =
 /* Copyright is stored verbatim (year included); only the offline fallback
    rebuilds the current year, exactly as this footer used to. */
 const year = new Date().getFullYear();
-const copyright = profile?.footerCopyright || `© ${year} santi — Todos los textos son míos; el código también.`;
+const copyright = profile?.footerCopyright || `© ${year} ${siteNameText} — Todos los textos son míos; el código también.`;
 
 type SocialLink = { icon: IconName; label: string; href: string };
 

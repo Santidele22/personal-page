@@ -2,6 +2,7 @@
 // The archive is read from the backend on every request (issue 28): the
 // admin panel publishes entries that must appear without a rebuild.
 import BaseLayout from '../../app/layouts/BaseLayout.astro';
+import { SITE_NAME } from '../../app/config/site';
 import FormattedDate from '../../shared/ui/FormattedDate.astro';
 import Icon from '../../shared/ui/Icon.astro';
 import { fetchBlogRows, toPost } from '../../features/blog/api/blogs';
@@ -10,7 +11,7 @@ const rows = await fetchBlogRows(Astro.url.origin);
 const posts = rows.map((row) => toPost(row));
 ---
 
-<BaseLayout title="Archivo del diario · santi." description="Todas las entradas del diario de Santi sobre backend, blockchain e ingeniería de software.">
+<BaseLayout title={`Archivo del diario · ${SITE_NAME}`} description="Todas las entradas del diario de Santi sobre backend, blockchain e ingeniería de software.">
 	<section class="mx-auto max-w-6xl px-5 py-14 sm:px-8 lg:py-20" aria-labelledby="archive-title">
 		<a
 			href="/"
