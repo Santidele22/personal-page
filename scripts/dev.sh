@@ -2,8 +2,13 @@
 # Boot the full dev environment: PostgreSQL (docker compose), the NestJS API
 # (watch mode, `AUTH_MODE` from backend/.env) and the Astro dev server.
 #
+# The store is forced to DB_MODE=dev (local SQLite, where the owner's data
+# lives) so a DATABASE_URL left in backend/.env cannot silently move the API
+# onto an empty PostgreSQL. Override from the shell to try another store:
+#
 #   scripts/dev.sh              db + API + web app (default)
 #   scripts/dev.sh --no-docker  skip the database; the API runs on SQLite
+#   DB_MODE=dev-neon scripts/dev.sh   API against a Neon development branch
 #
 # Ctrl+C stops the API and the dev server; the database container keeps
 # running (`restart: unless-stopped`, see backend/docker-compose.yml).
@@ -28,6 +33,12 @@ need() {
   fi
 }
 need pnpm
+
+# This script is the local dev boot, so the store defaults to DB_MODE=dev
+# (SQLite) no matter what backend/.env carries — dotenv never overrides the
+# process environment, and an explicit shell DB_MODE wins over this default.
+: "${DB_MODE:=dev}"
+export DB_MODE
 
 port_is_used() {
   # Bash built-in TCP probe: works for any listener (HTTP or PostgreSQL), no
