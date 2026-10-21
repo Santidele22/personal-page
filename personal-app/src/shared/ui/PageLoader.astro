@@ -1,0 +1,120 @@
+---
+import Icon from './Icon.astro';
+
+interface Props {
+	/** Live brand name (profile first, constants as fallback), rendered as the wordmark. */
+	siteName: string;
+}
+
+/* Full-page brand splash: the markup ships inside every BaseLayout page and
+   is painted as soon as the HTML arrives, because the site is fully
+   server-rendered and the browser receives nothing until the backend
+   answered. `public/page-loader.js` hides it once the page is ready and
+   re-shows it on internal navigation, so a slow backend in production never
+   leaves the visitor staring at a dead tab. Fresh loads paint the solid
+   cover; navigation shows the translucent wash so the page being left stays
+   readable behind the mark. The wordmark is the live `siteName` (same
+   profile-driven value the header uses) with its trailing dot in the accent
+   color, like the wordmark itself. */
+const { siteName } = Astro.props;
+const wordmark = siteName.replace(/\.$/, '');
+---
+
+<div id="page-loader" class="page-loader page-loader--solid" role="status">
+	<div class="page-loader-mark">
+		<span class="page-loader-badge" aria-hidden="true">
+			<Icon name="code-2" class="size-6" strokeWidth={2} />
+		</span>
+		<span class="page-loader-name" aria-hidden="true">{wordmark}<span class="page-loader-dot">.</span></span>
+		<span class="page-loader-rule" aria-hidden="true"></span>
+		<span class="page-loader-label">Cargando</span>
+	</div>
+</div>
+
+<script is:inline src="/page-loader.js"></script>
+
+<style>
+	.page-loader {
+		position: fixed;
+		inset: 0;
+		z-index: 9999;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		/* Translucent wash: the navigation state (page being left stays
+		   readable, dimmed, behind the mark). */
+		background: color-mix(in srgb, var(--background) 82%, transparent);
+		transition:
+			opacity 0.25s ease,
+			visibility 0.25s ease;
+	}
+
+	/* Fresh page loads paint the solid brand cover instead. */
+	.page-loader--solid {
+		background: var(--background);
+	}
+
+	.page-loader--hidden {
+		opacity: 0;
+		visibility: hidden;
+		pointer-events: none;
+	}
+
+	.page-loader-mark {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.page-loader-badge {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 3.5rem;
+		height: 3.5rem;
+		border-radius: var(--radius-xl);
+		background: var(--aka);
+		color: #fdf8ee;
+		animation: page-loader-pulse 1.8s ease-in-out infinite;
+	}
+
+	.page-loader-name {
+		margin-top: 1.1rem;
+		font-family: var(--font-shippori), serif;
+		font-size: 1.65rem;
+		font-weight: 600;
+		letter-spacing: -0.01em;
+		color: var(--foreground);
+	}
+
+	.page-loader-dot {
+		color: var(--aka);
+	}
+
+	.page-loader-rule {
+		width: 6rem;
+		height: 2px;
+		margin-top: 0.85rem;
+		background: var(--aka);
+	}
+
+	.page-loader-label {
+		margin-top: 0.8rem;
+		font-size: 10px;
+		font-weight: 500;
+		letter-spacing: 0.35em;
+		text-transform: uppercase;
+		text-indent: 0.35em; /* recenters the tracked text */
+		color: var(--muted-foreground);
+	}
+
+	@keyframes page-loader-pulse {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.6;
+		}
+	}
+</style>

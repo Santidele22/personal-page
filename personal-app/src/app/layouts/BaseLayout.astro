@@ -6,6 +6,7 @@ import { fetchProfile } from '../../features/profile/api/profile';
 import SiteFooter from '../../widgets/site-footer/SiteFooter.astro';
 import SiteHeader from '../../widgets/site-header/SiteHeader.astro';
 import { SITE_AUTHOR, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE } from '../config/site';
+import PageLoader from '../../shared/ui/PageLoader.astro';
 import ThemeScript from '../../shared/ui/ThemeScript.astro';
 import '../styles/global.css';
 
@@ -58,8 +59,9 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 		<ThemeScript />
 	</head>
 	<body class="bg-background font-sans text-foreground antialiased">
+		<PageLoader siteName={siteName} />
 		<div class="flex min-h-dvh flex-col">
-			<SiteHeader />
+			<SiteHeader siteName={siteName} />
 			<main class="flex-1">
 				<slot />
 			</main>
