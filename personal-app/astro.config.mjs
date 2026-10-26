@@ -5,7 +5,12 @@ import sitemap from '@astrojs/sitemap';
 import solidJs from '@astrojs/solid-js';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, fontProviders } from 'astro/config';
-import node from '@astrojs/node';
+import cloudflare from '@astrojs/cloudflare';
+
+// Production API (Render). Unset in dev: the frontend calls relative `/api`
+// paths and the dev server proxy below forwards them to the Nest API.
+const apiBaseUrl = process.env.PUBLIC_API_BASE_URL?.replace(/\/+$/, '') ?? '';
+const apiOrigin = /^https?:\/\//i.test(apiBaseUrl) ? new URL(apiBaseUrl).origin : '';
 
 export default defineConfig({
 	site: 'https://santi.dev',
@@ -16,7 +21,10 @@ export default defineConfig({
 	// outage path is the declared fallback constants, which the loaders keep.
 	// Cost: the diario content-collection pages also render on demand; still
 	// cheap at this site's scale, and it avoids a static/SSR split.
-	adapter: node({ mode: 'standalone' }),
+	//
+	// Deploys to Cloudflare Pages (SSR runs as Pages Functions on the Workers
+	// runtime; the loaders only use `fetch`, so no Node APIs are needed).
+	adapter: cloudflare(),
 	output: 'server',
 	// Content Security Policy (issue 41). Astro hashes the inline scripts and
 	// styles it generates (font faces, island runtime, hydration directives).
@@ -51,7 +59,9 @@ export default defineConfig({
 		csp: {
 			directives: [
 				"default-src 'none'",
-				"connect-src 'self'",
+				// The admin islands call the API cross-origin in production
+				// (Pages → Render), so its origin joins 'self' at build time.
+				apiOrigin ? `connect-src 'self' ${apiOrigin}` : "connect-src 'self'",
 				// `data:` is the washi paper noise texture (an inline SVG in global.css).
 				"img-src 'self' https: data:",
 				"font-src 'self'",

@@ -6,7 +6,7 @@ Estas instrucciones se aplican a `personal-app`, el frontend de la web personal 
 
 ## Stack
 
-- Astro 7 con salida estática.
+- Astro 7 con renderizado en servidor (SSR) mediante `@astrojs/cloudflare`; el deploy es Cloudflare Pages (las páginas se ejecutan como Pages Functions).
 - Solid.js únicamente para islas interactivas.
 - Tailwind CSS 4 mediante `@tailwindcss/vite`.
 - TypeScript 6 y `@astrojs/check`.
@@ -56,7 +56,7 @@ Reglas de dependencias:
 
 ## API y backend
 
-- La URL pública base se configura con `PUBLIC_API_BASE_URL`; el valor predeterminado es `/api`.
+- La URL pública base se configura con `PUBLIC_API_BASE_URL`; el valor predeterminado es `/api` (same-origin vía proxy de desarrollo). En producción es absoluta (`https://<api>.onrender.com/api`): el cliente de auth y los helpers la usan tal cual, y su origen se agrega a la directiva CSP `connect-src` en build.
 - Nunca guardar secretos, tokens de LinkedIn ni credenciales en variables `PUBLIC_*`, en el frontend o en Git.
 - La comunicación HTTP se aísla en `shared/api` y en la carpeta `api` de cada feature.
 - No simular respuestas exitosas del backend. La UI debe reflejar estados de carga, éxito y error reales.
