@@ -1,6 +1,7 @@
 import { defineMiddleware } from 'astro:middleware';
 import { hasAdminSession } from './features/auth/api/serverSession';
 import { LOGIN_PATH } from './features/auth/paths';
+import { setWaitUntil } from './shared/api/contentCache';
 
 /**
  * Server-side middleware of the whole site.
@@ -52,6 +53,23 @@ function applySecurityHeaders(headers: Headers, isHttps: boolean): void {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
+	// The content cache (issue 44) hands background revalidations to the
+	// Worker's `waitUntil`, so a stale read can refresh a backend entry after
+	// the response already left. No runtime (local dev) simply runs them
+	// fire-and-forget; the sink is reset every request since it belongs to
+	// this single request's lifetime.
+const runtime = (
+	context.locals as unknown as {
+		cfContext?: { waitUntil?: (promise: Promise<unknown>) => void };
+		runtime?: { ctx?: { waitUntil?: (promise: Promise<unknown>) => void } };
+	}
+);
+
+// The Cloudflare adapter exposes the worker context as `cfContext` (Astro 7);
+// `runtime.ctx` was the pre-v6 shape and is kept as fallback for older adapters.
+const waitUntil = runtime.cfContext?.waitUntil ?? runtime.runtime?.ctx?.waitUntil;
+	setWaitUntil(waitUntil ? (promise) => waitUntil(promise) : undefined);
+
 	let response: Response;
 
 	if (isProtectedAdminRoute(context.url.pathname)) {

@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { backendUrl, neonAuthUrl } from '../../shared/api/serverEnvironment';
+import { invalidateContentCache } from '../../shared/api/contentCache';
 
 /**
  * Same-origin API proxy for the deployed SSR server. With Neon Auth configured,
@@ -268,7 +269,16 @@ function applyAuthCors(headers: Headers, crossOrigin: string): void {
 async function forwardApi(request: Request, clientAddress?: string): Promise<Response> {
 	const url = new URL(request.url);
 	if (!url.pathname.startsWith(BETTER_AUTH_PREFIX)) {
-		return forward(request, clientAddress);
+		const response = await forward(request, clientAddress);
+		// Cache invalidation for admin writes (issue 44): a successful content
+		// mutation drops every cached entry in this isolate, so panel edits
+		// surface immediately; other isolates refresh at most one TTL later.
+		// Auth mutations only change sessions, never content.
+		if (MUTATING_METHODS.has(request.method) && response.status < 400) {
+			invalidateContentCache();
+		}
+
+		return response;
 	}
 
 	const originHeader = request.headers.get('origin');

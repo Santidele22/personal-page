@@ -1,3 +1,5 @@
+import { cachedRead, cacheablePath } from './contentCache';
+
 const baseUrl = (import.meta.env.PUBLIC_API_BASE_URL || '/api').replace(/\/+$/, '');
 
 const ABSOLUTE_URL = /^https?:\/\//i;
@@ -104,7 +106,38 @@ export async function deleteJson(path: string, options: RequestOptions = {}): Pr
 }
 
 export async function getJson<T>(path: string, options: RequestOptions = {}): Promise<T> {
+	// Issue 44: SSR reads of public content share one backend call per head
+	// (60 s) — sessions, drafts, admin/bearer reads and browser traffic never
+	// reach the cache (see `cacheablePath`).
+	const cacheKey = await cacheKeyFor(path, options);
+	if (cacheKey) {
+		const raw = await cachedRead(cacheKey, () =>
+			request(path, { method: 'GET' }, options).then((response) => response.text()),
+		);
+
+		return JSON.parse(raw) as T;
+	}
+
 	const response = await request(path, { method: 'GET' }, options);
 
 	return (await response.json()) as T;
+}
+
+/**
+ * The cache key of a `getJson` read: the URL the request really resolves to —
+ * `null` when the read must bypass the cache (browser traffic, bearer-token
+ * reads, non-public endpoints). The URL is final, so different origins never
+ * collide in the same cache.
+ */
+async function cacheKeyFor(path: string, options: RequestOptions): Promise<string | null> {
+	if (!import.meta.env.SSR || options.bearerToken) return null;
+	if (!cacheablePath(path)) return null;
+
+	let url = resolveUrl(path, options.serverOrigin);
+	if (import.meta.env.SSR && !ABSOLUTE_URL.test(baseUrl)) {
+		const { backendUrl } = await import('./serverEnvironment');
+		url = `${backendUrl}${path}`;
+	}
+
+	return url;
 }
