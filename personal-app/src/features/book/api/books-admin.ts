@@ -1,13 +1,12 @@
 import type { BookKind, ReadingStatus } from '../../../entities/book/types';
-import { deleteJson, getJson, patchJson, postJson } from '../../../shared/api/http';
+import { deleteJson, getBearerToken, getJson, patchJson, postJson } from '../../../shared/api/authorizedHttp';
 
 /**
  * Admin CRUD for the `books` domain. It is deliberately separate from the
  * landing loader (`./books.ts`): the loader maps storage into the reading
  * cards, filters unpublished drafts and swallows failures, while the admin
- * needs every stored row and the real error of each mutation. The session
- * cookie travels with every call (`credentials: 'include'` inside the shared
- * helper), so the backend can reject anonymous writes with `401`/`403`.
+ * needs every stored row and the real error of each mutation. The authorized
+ * helper sends the credential for the active auth mode, including for uploads.
  */
 
 /**
@@ -96,9 +95,11 @@ export async function uploadBookFile(id: number, file: File): Promise<void> {
 	let response: Response;
 
 	try {
+		const token = await getBearerToken();
 		response = await fetch(`${baseUrl}/books/${id}/file`, {
 			method: 'POST',
 			credentials: 'include',
+			headers: token ? { Authorization: `Bearer ${token}` } : undefined,
 			body,
 		});
 	} catch {

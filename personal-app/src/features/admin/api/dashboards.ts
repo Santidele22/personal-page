@@ -32,7 +32,7 @@ export type DiarioPanelData = {
 /**
  * The published list the page renders while it server-renders. Stats are
  * computed from published entries alone because the drafts need the browser
- * session cookie; the live summary comes from `loadDiarioPanel` inside the
+ * browser credential; the live summary comes from `loadDiarioPanel` inside the
  * island.
  */
 export async function loadDiario(serverOrigin?: string): Promise<AdminDiarioView> {
@@ -53,7 +53,7 @@ export async function loadDiario(serverOrigin?: string): Promise<AdminDiarioView
 /**
  * Browser-side diario read: published entries plus the admin drafts, combined
  * so the summary counts real drafts (issue 29). Call it from the island only;
- * `GET /blogs/drafts` needs the session cookie the browser carries.
+ * `GET /blogs/drafts` needs the browser's admin credential.
  */
 export async function loadDiarioPanel(): Promise<DiarioPanelData> {
 	const [published, drafts] = await Promise.all([fetchBlogs(), fetchDrafts()]);

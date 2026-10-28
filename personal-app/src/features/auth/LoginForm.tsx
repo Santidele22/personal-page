@@ -1,5 +1,6 @@
 import { createSignal, Show } from 'solid-js';
 import { getAuthClient } from './api/authClient';
+import { getManagedAuthClient } from '../../shared/api/managedAuthClient';
 import { signInWithDev } from './api/devAuth';
 import { refreshSession } from './api/session';
 import { getAuthMode } from './api/sessionMode';
@@ -45,8 +46,9 @@ export default function LoginForm() {
 			if (mode === 'dev') {
 				authError = (await signInWithDev(email().trim(), password())).error;
 			} else {
+				const client = mode === 'neon' ? await getManagedAuthClient() : getAuthClient();
 				authError = (
-					await getAuthClient().signIn.email({
+					await client.signIn.email({
 						email: email().trim(),
 						password: password(),
 					})
@@ -115,6 +117,9 @@ export default function LoginForm() {
 				</svg>
 				{pending() ? 'Entrando…' : 'Entrar'}
 			</button>
+			<a href="/admin/recuperar/" class="text-center text-xs text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-aka">
+				¿Olvidaste tu contraseña?
+			</a>
 			<Show when={error()}>
 				<p role="alert" class="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-foreground">
 					{error()}

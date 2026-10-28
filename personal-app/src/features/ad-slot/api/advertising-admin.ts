@@ -1,4 +1,4 @@
-import { deleteJson, getJson, patchJson, postJson } from '../../../shared/api/http';
+import { deleteJson, getJson, patchJson, postJson } from '../../../shared/api/authorizedHttp';
 
 /**
  * Admin face of `/advertising-plans`: the CRUD the publicidad screen drives.

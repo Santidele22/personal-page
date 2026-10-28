@@ -19,6 +19,8 @@ export type RequestOptions = {
 	 * `/api` proxy forwards it to the backend. The browser ignores it.
 	 */
 	serverOrigin?: string;
+	/** JWT for cross-origin API calls when Managed Neon Auth is active. */
+	bearerToken?: string;
 };
 
 /** Builds the request URL, resolving the relative base against `serverOrigin`. */
@@ -31,15 +33,20 @@ function resolveUrl(path: string, serverOrigin?: string): string {
 }
 
 /**
- * Runs the request and normalises the error shape the API returns. The session
- * cookie travels with every call (`credentials: 'include'`), so the admin views
- * can read the API as the signed-in user.
+ * Runs the request and normalises the error shape the API returns. Self-hosted
+ * modes use cookies; managed mode can add a bearer token through the options.
  */
 async function request(path: string, init: RequestInit, options: RequestOptions = {}): Promise<Response> {
 	let response: Response;
 
 	try {
-		response = await fetch(resolveUrl(path, options.serverOrigin), { credentials: 'include', ...init });
+		const headers = new Headers(init.headers);
+		if (options.bearerToken) headers.set('Authorization', `Bearer ${options.bearerToken}`);
+		response = await fetch(resolveUrl(path, options.serverOrigin), {
+			credentials: 'include',
+			...init,
+			headers,
+		});
 	} catch {
 		throw new Error(CONNECTION_ERROR);
 	}
@@ -53,32 +60,44 @@ async function request(path: string, init: RequestInit, options: RequestOptions 
 	return response;
 }
 
-export async function postJson(path: string, body: unknown): Promise<void> {
-	await request(path, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(body),
-	});
+export async function postJson(path: string, body: unknown, options: RequestOptions = {}): Promise<void> {
+	await request(
+		path,
+		{
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body),
+		},
+		options,
+	);
 }
 
-export async function putJson(path: string, body: unknown): Promise<void> {
-	await request(path, {
-		method: 'PUT',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(body),
-	});
+export async function putJson(path: string, body: unknown, options: RequestOptions = {}): Promise<void> {
+	await request(
+		path,
+		{
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body),
+		},
+		options,
+	);
 }
 
-export async function patchJson(path: string, body: unknown): Promise<void> {
-	await request(path, {
-		method: 'PATCH',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(body),
-	});
+export async function patchJson(path: string, body: unknown, options: RequestOptions = {}): Promise<void> {
+	await request(
+		path,
+		{
+			method: 'PATCH',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body),
+		},
+		options,
+	);
 }
 
-export async function deleteJson(path: string): Promise<void> {
-	await request(path, { method: 'DELETE' });
+export async function deleteJson(path: string, options: RequestOptions = {}): Promise<void> {
+	await request(path, { method: 'DELETE' }, options);
 }
 
 export async function getJson<T>(path: string, options: RequestOptions = {}): Promise<T> {

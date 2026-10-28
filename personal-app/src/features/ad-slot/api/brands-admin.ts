@@ -1,4 +1,4 @@
-import { deleteJson, getJson, patchJson, postJson } from '../../../shared/api/http';
+import { deleteJson, getJson, patchJson, postJson } from '../../../shared/api/authorizedHttp';
 import type { ApiBrand } from '../../../entities/admin/types';
 
 /**

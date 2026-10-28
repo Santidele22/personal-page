@@ -1,5 +1,5 @@
 import type { ToolSponsorship } from '../../../entities/tool/types';
-import { deleteJson, getJson, patchJson, postJson } from '../../../shared/api/http';
+import { deleteJson, getJson, patchJson, postJson } from '../../../shared/api/authorizedHttp';
 
 /**
  * Admin CRUD for the `tools` domain (`/admin/herramientas/`), separate from the

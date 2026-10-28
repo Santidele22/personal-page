@@ -1,21 +1,13 @@
 import type { APIRoute } from 'astro';
+import { backendUrl, neonAuthUrl } from '../../shared/api/serverEnvironment';
 
 /**
- * Same-origin API proxy used by the production Node server. In `astro dev`
- * the Vite `server.proxy` forwards `/api/...` to the Nest backend on port
- * 3000; on the built server (`node dist/server/entry.mjs`) there is no proxy,
- * so this catch-all route forwards the call instead. The rule mirrors the
- * dev config: Better Auth keeps its real `/api/auth/*` mount (with its exact
- * prefix) while every domain route drops the `/api` prefix, because the
- * backend mounts plain domain paths (`/profile`, `/tools`, …).
- *
- * The request body travels verbatim (admin writes), and the browser cookie is
- * forwarded so the guarded admin routes answer through the proxy.
- * `BACKEND_URL` selects the upstream origin (`http://localhost:3000` by
- * default, the same-box deployment).
+ * Same-origin API proxy for the deployed SSR server. With Neon Auth configured,
+ * `/api/auth/*` goes to `NEON_AUTH_BASE_URL`, keeping its session cookie on the
+ * frontend origin; every other route goes to `BACKEND_URL` and drops `/api`.
+ * Without that setting the route mirrors the self-hosted development proxy.
+ * Request bodies and browser cookies travel verbatim, with bounded body sizes.
  */
-
-const backendUrl = (import.meta.env.BACKEND_URL || 'http://localhost:3000').replace(/\/+$/, '');
 
 const BETTER_AUTH_PREFIX = '/api/auth';
 
@@ -31,13 +23,17 @@ const BOOK_FILE_ROUTE = /^\/api\/books\/[^/]+\/file$/;
 /** The proxy answers requests at runtime, never at build time. */
 export const prerender = false;
 
-/** Rewrites a browser `/api/...` path into the backend's upstream path. */
-function upstreamPath(pathname: string): string {
-	if (pathname.startsWith(BETTER_AUTH_PREFIX)) {
-		return pathname;
+function upstreamUrl(url: URL): string {
+	if (neonAuthUrl && url.pathname.startsWith(BETTER_AUTH_PREFIX)) {
+		const authPath = url.pathname.slice(BETTER_AUTH_PREFIX.length);
+		return `${neonAuthUrl}${authPath}${url.search}`;
 	}
 
-	return pathname.replace(/^\/api/, '');
+	if (url.pathname.startsWith(BETTER_AUTH_PREFIX)) {
+		return `${backendUrl}${url.pathname}${url.search}`;
+	}
+
+	return `${backendUrl}${url.pathname.replace(/^\/api/, '')}${url.search}`;
 }
 
 function bodyLimitFor(pathname: string, method: string): number {
@@ -100,16 +96,24 @@ async function readBody(request: Request, limit: number): Promise<ArrayBuffer | 
 /** Forwards one request to the backend and echoes its response. */
 async function forward(request: Request, clientAddress?: string): Promise<Response> {
 	const url = new URL(request.url);
-	const upstream = `${backendUrl}${upstreamPath(url.pathname)}${url.search}`;
+	const upstream = upstreamUrl(url);
 
 	const headers = new Headers();
 	for (const [key, value] of request.headers) {
 		// Hop-by-hop headers describe this single hop (browser → proxy →
 		// backend), so they must not travel unchanged through the replacement.
 		if (
-			['host', 'connection', 'content-length', 'transfer-encoding', 'upgrade'].includes(
-				key.toLowerCase(),
-			)
+			[
+				'host',
+				'connection',
+				'content-length',
+				'transfer-encoding',
+				'upgrade',
+				'forwarded',
+				'x-forwarded-host',
+				'x-forwarded-proto',
+				'x-forwarded-port',
+			].includes(key.toLowerCase())
 		) {
 			continue;
 		}

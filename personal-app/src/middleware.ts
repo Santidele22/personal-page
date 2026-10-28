@@ -31,7 +31,7 @@ import { LOGIN_PATH } from './features/auth/paths';
 const ADMIN_PREFIX = '/admin';
 
 /** Admin routes an anonymous visitor may see; everything else under `/admin` is gated. */
-const PUBLIC_ADMIN_ROUTES = new Set(['/admin/login', LOGIN_PATH]);
+const PUBLIC_ADMIN_ROUTES = new Set(['/admin/login', LOGIN_PATH, '/admin/recuperar', '/admin/recuperar/']);
 
 function isProtectedAdminRoute(pathname: string): boolean {
 	const isAdmin = pathname === ADMIN_PREFIX || pathname.startsWith(`${ADMIN_PREFIX}/`);
@@ -49,7 +49,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 	let response: Response;
 
 	if (isProtectedAdminRoute(context.url.pathname)) {
-		const session = await hasAdminSession(context.request.headers.get('cookie'));
+		const session = await hasAdminSession(context.request.headers.get('cookie'), context.url.origin);
 
 		if (!session) {
 			// Same contract the client-side SessionGuard uses: carry the route

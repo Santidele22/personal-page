@@ -8,7 +8,7 @@ import { loadDiarioPanel } from '../../features/admin/api/dashboards';
 /**
  * Diario panel island (issue 29). The published table stays server-rendered in
  * the page; this island owns everything the server render cannot know because
- * it needs the browser session cookie: the drafts read, the live summary with
+ * it needs the browser admin credential: the drafts read, the live summary with
  * the real draft count, and the writing modal.
  *
  * The page's "+ Nueva entrada" button lives in the server-rendered header, so

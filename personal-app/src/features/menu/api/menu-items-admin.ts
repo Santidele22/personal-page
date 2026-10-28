@@ -1,4 +1,4 @@
-import { deleteJson, getJson, patchJson, postJson } from '../../../shared/api/http';
+import { deleteJson, getJson, patchJson, postJson } from '../../../shared/api/authorizedHttp';
 
 /**
  * Admin CRUD for the `menu-items` domain (`/admin/menu/`), separate from the

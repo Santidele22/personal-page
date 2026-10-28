@@ -1,19 +1,19 @@
 import type { AuthMode } from '../types';
+import { backendUrl } from '../../../shared/api/serverEnvironment';
 
 /**
  * Server-side session check for the admin gate (`src/middleware.ts`). It
  * re-implements what the browser does in `sessionMode.ts` + `session.ts`,
  * but on the SSR process: it asks the backend which auth stack is mounted
  * (`/session-mode`) and then forwards the request's `Cookie` header to that
- * stack's session endpoint (`/api/auth/get-session` for Better Auth,
- * `/api/auth/dev-session` for the interim dev mode).
+ * stack's session endpoint (`/api/auth/get-session` for Better Auth and Neon,
+ * `/api/auth/dev-session` for the interim dev mode). Neon is checked through
+ * the frontend's same-origin proxy so its cookie reaches the managed service.
  *
  * The check fails closed: no cookie, unreachable backend, unexpected payload —
  * every case answers «no session», so an anonymous visitor is redirected to
  * the login screen before any admin page renders.
  */
-
-const backendUrl = (import.meta.env.BACKEND_URL || 'http://localhost:3000').replace(/\/+$/, '');
 
 /** Ceiling for each session probe against the backend. */
 const SESSION_CHECK_TIMEOUT_MS = 5_000;
@@ -39,7 +39,7 @@ async function readAuthMode(): Promise<AuthMode> {
 			signal: AbortSignal.timeout(SESSION_CHECK_TIMEOUT_MS),
 		});
 		const payload = (await response.json()) as { mode?: AuthMode } | null;
-		mode = payload?.mode === 'dev' ? 'dev' : 'better';
+		mode = payload?.mode === 'dev' || payload?.mode === 'neon' ? payload.mode : 'better';
 	} catch {
 		// Unreachable backend: the session probe below fails closed anyway.
 	}
@@ -54,15 +54,18 @@ async function readAuthMode(): Promise<AuthMode> {
  * browser cookie is forwarded verbatim so the backend validates the same
  * signed value it issued.
  */
-export async function hasAdminSession(cookieHeader: string | null): Promise<boolean> {
+export async function hasAdminSession(cookieHeader: string | null, requestOrigin: string): Promise<boolean> {
 	if (!cookieHeader) {
 		return false;
 	}
 
+	const mode = await readAuthMode();
 	const sessionUrl =
-		(await readAuthMode()) === 'dev'
+		mode === 'dev'
 			? `${backendUrl}/api/auth/dev-session`
-			: `${backendUrl}/api/auth/get-session`;
+			: mode === 'neon'
+				? `${requestOrigin}/api/auth/get-session`
+				: `${backendUrl}/api/auth/get-session`;
 
 	try {
 		const response = await fetch(sessionUrl, {

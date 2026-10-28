@@ -1,4 +1,5 @@
-import { getJson, putJson } from '../../../shared/api/http';
+import { getJson } from '../../../shared/api/http';
+import { putJson } from '../../../shared/api/authorizedHttp';
 import { safeHref } from '../../../shared/api/url';
 import type { Profile, UpdateProfile } from '../types';
 

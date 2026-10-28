@@ -1,10 +1,9 @@
-import { deleteJson, getJson, patchJson, postJson } from '../../../shared/api/http';
+import { deleteJson, getJson, patchJson, postJson } from '../../../shared/api/authorizedHttp';
 import type { ApiBlog, ApiBlogLevel } from '../../../entities/admin/types';
 
 /**
  * Browser-side diario operations. The drafts read and both mutations require
- * the admin session cookie the shared helper sends (`credentials: 'include'`),
- * so these calls only work in the browser, never during a server render.
+ * the active admin credential, so these calls only work in the browser.
  *
  * Draft state is `pubDate: null` (issue 29): saving without a date keeps the
  * entry off the landing, and publishing sends the chosen date. The mutation

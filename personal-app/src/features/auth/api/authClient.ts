@@ -11,10 +11,9 @@ let authClient: ReturnType<typeof createAuthClient> | undefined;
  * `/api`, so the browser calls `/api/auth/*` same-origin and the Astro dev
  * server proxies it to the backend (`astro.config.mjs`); Better Auth requires
  * an absolute `baseURL`, so the relative base is resolved against
- * `window.location.origin`. In production the variable holds the absolute API
- * origin (e.g. `https://personal-page-api.onrender.com/api`) and is used
- * as-is — the session then travels cross-site (`BETTER_AUTH_CROSS_SITE` on
- * the backend).
+ * `window.location.origin`. An absolute production API URL is used as-is and
+ * the session then travels cross-site (`BETTER_AUTH_CROSS_SITE` on the
+ * backend); the default `/api` keeps it on the Worker proxy instead.
  *
  * The client is created on demand because it only exists in the browser: the
  * islands are rendered on the server first, where there is no origin and no

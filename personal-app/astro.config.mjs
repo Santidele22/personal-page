@@ -22,8 +22,8 @@ export default defineConfig({
 	// Cost: the diario content-collection pages also render on demand; still
 	// cheap at this site's scale, and it avoids a static/SSR split.
 	//
-	// Deploys to Cloudflare Pages (SSR runs as Pages Functions on the Workers
-	// runtime; the loaders only use `fetch`, so no Node APIs are needed).
+	// Deploys to Cloudflare Workers (the loaders only use `fetch`, so no Node
+	// APIs are needed). Runtime variables come from `cloudflare:workers`.
 	adapter: cloudflare(),
 	output: 'server',
 	// Content Security Policy (issue 41). Astro hashes the inline scripts and

@@ -1,13 +1,12 @@
 import type { ProjectIcon, ProjectStatus } from '../../../entities/project/types';
-import { deleteJson, getJson, patchJson, postJson } from '../../../shared/api/http';
+import { deleteJson, getJson, patchJson, postJson } from '../../../shared/api/authorizedHttp';
 
 /**
  * Admin CRUD for the `projects` domain. It is deliberately separate from the
  * landing loader (`./projects.ts`): the loader maps storage into the portada
  * cards and swallows failures, while the admin needs the stored rows and the
- * real error of each mutation. The session cookie travels with every call
- * (`credentials: 'include'` inside the shared helper), so the backend can
- * reject anonymous writes with `401`/`403`.
+ * real error of each mutation. The authorized helper sends the credential for
+ * the active auth mode, so the backend can reject anonymous writes.
  */
 
 /**

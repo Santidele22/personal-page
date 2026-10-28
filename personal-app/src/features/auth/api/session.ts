@@ -1,6 +1,7 @@
 import { createSignal } from 'solid-js';
 import type { AuthSession, AuthSessionStatus, AuthUser } from '../types';
 import { getAuthClient } from './authClient';
+import { getManagedAuthClient } from '../../../shared/api/managedAuthClient';
 import { readDevSession, signOutWithDev } from './devAuth';
 import { getAuthMode } from './sessionMode';
 
@@ -39,13 +40,14 @@ export function refreshSession(): Promise<void> {
 
 /** Ends the session on the API the current mode uses. */
 export async function signOut(): Promise<void> {
-	if ((await getAuthMode()) === 'dev') {
+	const mode = await getAuthMode();
+	if (mode === 'dev') {
 		await signOutWithDev();
 
 		return;
 	}
 
-	await getAuthClient().signOut();
+	await (mode === 'neon' ? await getManagedAuthClient() : getAuthClient()).signOut();
 }
 
 /** Drops the local session state after a sign-out, before the redirect. */
@@ -75,8 +77,9 @@ async function readSession(): Promise<void> {
 
 	try {
 		const mode = await getAuthMode();
+		const client = mode === 'neon' ? await getManagedAuthClient() : getAuthClient();
 
-		next = mode === 'dev' ? await readDevSession() : await readBetterAuthSession();
+		next = mode === 'dev' ? await readDevSession() : await readBetterAuthSession(client);
 	} catch {
 		// No session (or no backend): the gate treats both as anonymous.
 		next = null;
@@ -86,8 +89,10 @@ async function readSession(): Promise<void> {
 	setStatus(next ? 'authenticated' : 'anonymous');
 }
 
-async function readBetterAuthSession(): Promise<AuthSession | null> {
-	const { data } = await getAuthClient().getSession();
+async function readBetterAuthSession(
+	client: ReturnType<typeof getAuthClient> | Awaited<ReturnType<typeof getManagedAuthClient>>,
+): Promise<AuthSession | null> {
+	const { data } = await client.getSession();
 
 	return data as AuthSession | null;
 }

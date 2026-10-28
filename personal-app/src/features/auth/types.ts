@@ -29,7 +29,7 @@ export type AuthSession = {
 export type AuthSessionStatus = 'loading' | 'authenticated' | 'anonymous';
 
 /** Auth stack the API reports on its public mode endpoint. */
-export type AuthMode = 'dev' | 'better';
+export type { AuthMode } from '../../shared/api/sessionMode';
 
 /** Snapshot the interim dev API returns from `/auth/dev-session`. */
 export type DevSessionSnapshot = {

@@ -4,13 +4,13 @@ Frontend de la web personal y el diario de Santi, migrado desde Next.js a Astro.
 
 ## Stack
 
-- Astro con adapter Node y renderizado on-demand (`output: 'server'`): la página completa lee el backend en cada request
+- Astro con `@astrojs/cloudflare` 14 y renderizado on-demand (`output: 'server'`) en Cloudflare Workers
 - Solid.js para islas interactivas
 - Tailwind CSS 4 mediante `@tailwindcss/vite`
 - TypeScript
 - Markdown/MDX, RSS y sitemap
 
-El backend Nest con arquitectura MVC se integra en la misma caja y provee todo el contenido de la landing (`backend/README.md` del raíz del repositorio).
+El backend Nest con arquitectura MVC provee el contenido de la landing y se despliega en Render (`backend/README.md` del raíz del repositorio).
 
 ## Estructura
 
@@ -46,7 +46,7 @@ El sitio está disponible por defecto en `http://localhost:4321`.
 Resolución del `/api` según entorno:
 
 - **`pnpm dev`**: el proxy de Vite en `astro.config.mjs` redirige `/api/*` a `http://localhost:3000` — igual que en producción, respetando el mount exacto `/api/auth/*` de Better Auth.
-- **`pnpm build` + `pnpm start`** (adapter Node standalone): `src/pages/api/[...path].ts` actúa de proxy same-origin contra `BACKEND_URL` (`http://localhost:3000` por defecto). Sin proxy externo necesario en despliegue en la misma caja; si el despliegue ya enruta `/api` con un reverse proxy, esa ruta puede desactivarse.
+- **Workers**: `src/pages/api/[...path].ts` actúa de proxy same-origin. `BACKEND_URL` y `NEON_AUTH_BASE_URL` se leen de `cloudflare:workers` y se configuran en `wrangler.jsonc`; auth va a Neon y el resto a Render. En modo administrado, las escrituras admin envían JWT Bearer mediante `shared/api/authorizedHttp.ts`.
 - Con `output: 'server'` todo render ocurre on-demand: los loaders leen la API en cada request y, si el backend no responde, usan los fallbacks declarados (nunca 500).
 
 ## Comandos
@@ -55,6 +55,8 @@ Resolución del `/api` según entorno:
 | --- | --- |
 | `pnpm dev` | Inicia el servidor de desarrollo (proxy `/api` vía Vite) |
 | `pnpm build` | Genera el build de producción en `dist/` (`dist/client` + `dist/server`) |
-| `pnpm start` | Sirve el build de producción (adapter Node standalone, proxy `/api` interno) |
-| `pnpm preview` | Alias histórico del build estático; usar `pnpm start` |
+| `pnpm preview` | Sirve el build con el runtime Workers local |
+| `pnpm deploy:dry-run` | Valida el despliegue con Wrangler sin publicarlo |
+| `pnpm deploy` | Construye y despliega en Cloudflare Workers |
+| `pnpm cf:types` | Regenera los tipos del runtime tras cambiar `wrangler.jsonc` |
 | `pnpm astro ...` | Ejecuta comandos de Astro CLI |

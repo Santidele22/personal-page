@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "personal-page",
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "compatibility_date": "2026-10-26",
+  "vars": {
+    "BACKEND_URL": "https://personal-page-backend-ahbb.onrender.com",
+    "NEON_AUTH_BASE_URL": "https://ep-proud-king-b5wjw6eg.neonauth.c-7.us-east-2.aws.neon.tech/personal_page/auth"
+  },
+  "env": {
+    "preview": {
+      "vars": {
+        "BACKEND_URL": "http://localhost:3100",
+        "NEON_AUTH_BASE_URL": "https://ep-proud-king-b5wjw6eg.neonauth.c-7.us-east-2.aws.neon.tech/personal_page/auth"
+      }
+    }
+  }
+}

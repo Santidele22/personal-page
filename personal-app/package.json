@@ -9,7 +9,10 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "deploy": "astro build && wrangler deploy",
+    "deploy:dry-run": "astro build && wrangler deploy --dry-run",
+    "cf:types": "wrangler types"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.2",
@@ -17,6 +20,7 @@
     "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.4",
     "@astrojs/solid-js": "^7.1.0",
+    "@neondatabase/auth": "0.7.0-beta",
     "astro": "^7.4.0",
     "better-auth": "1.7.10",
     "marked": "^18.1.1",
@@ -27,8 +31,10 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^24.19.2",
     "@types/sanitize-html": "^2.16.2",
     "tailwindcss": "^4.3.3",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "wrangler": "^4.152.0"
   }
 }
