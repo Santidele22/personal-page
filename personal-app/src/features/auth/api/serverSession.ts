@@ -1,5 +1,5 @@
 import type { AuthMode } from '../types';
-import { backendUrl } from '../../../shared/api/serverEnvironment';
+import { backendUrl, neonAuthUrl } from '../../../shared/api/serverEnvironment';
 
 /**
  * Server-side session check for the admin gate (`src/middleware.ts`). It
@@ -7,8 +7,8 @@ import { backendUrl } from '../../../shared/api/serverEnvironment';
  * but on the SSR process: it asks the backend which auth stack is mounted
  * (`/session-mode`) and then forwards the request's `Cookie` header to that
  * stack's session endpoint (`/api/auth/get-session` for Better Auth and Neon,
- * `/api/auth/dev-session` for the interim dev mode). Neon is checked through
- * the frontend's same-origin proxy so its cookie reaches the managed service.
+ * `/api/auth/dev-session` for the interim dev mode). Neon is checked directly
+ * against NEON_AUTH_BASE_URL so the Worker never re-enters its public proxy.
  *
  * The check fails closed: no cookie, unreachable backend, unexpected payload —
  * every case answers «no session», so an anonymous visitor is redirected to
@@ -54,7 +54,7 @@ async function readAuthMode(): Promise<AuthMode> {
  * browser cookie is forwarded verbatim so the backend validates the same
  * signed value it issued.
  */
-export async function hasAdminSession(cookieHeader: string | null, requestOrigin: string): Promise<boolean> {
+export async function hasAdminSession(cookieHeader: string | null): Promise<boolean> {
 	if (!cookieHeader) {
 		return false;
 	}
@@ -64,7 +64,7 @@ export async function hasAdminSession(cookieHeader: string | null, requestOrigin
 		mode === 'dev'
 			? `${backendUrl}/api/auth/dev-session`
 			: mode === 'neon'
-				? `${requestOrigin}/api/auth/get-session`
+				? `${neonAuthUrl}/get-session`
 				: `${backendUrl}/api/auth/get-session`;
 
 	try {

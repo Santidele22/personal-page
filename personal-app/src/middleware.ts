@@ -55,7 +55,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 	let response: Response;
 
 	if (isProtectedAdminRoute(context.url.pathname)) {
-		const session = await hasAdminSession(context.request.headers.get('cookie'), context.url.origin);
+		const session = await hasAdminSession(context.request.headers.get('cookie'));
 
 		if (!session) {
 			// Same contract the client-side SessionGuard uses: carry the route
