@@ -10,6 +10,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "test": "vitest run",
     "deploy": "astro build && wrangler deploy",
     "deploy:dry-run": "astro build && wrangler deploy --dry-run",
     "cf:types": "wrangler types"
@@ -35,6 +36,7 @@
     "@types/sanitize-html": "^2.16.2",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
+    "vitest": "^5.0.5",
     "wrangler": "^4.152.0"
   }
 }
