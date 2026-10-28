@@ -58,6 +58,7 @@ Reglas de dependencias:
 
 - La URL pública base se configura con `PUBLIC_API_BASE_URL`; el valor predeterminado y recomendado es `/api` (same-origin mediante el proxy de desarrollo o el Worker). Si se usa una URL absoluta (`https://<api>.onrender.com/api`), su origen se agrega a la directiva CSP `connect-src` en build y debe permitirse en CORS.
 - En producción, `NEON_AUTH_BASE_URL` permite que `/api/auth/*` sea un proxy same-origin hacia Managed Better Auth; `BACKEND_URL` dirige el resto del proxy a Render. Ambas se leen desde `cloudflare:workers` y se declaran en `wrangler.jsonc`. Las escrituras admin usan `shared/api/authorizedHttp.ts`, que obtiene un JWT con el cliente de Neon y lo envía como Bearer. No volver a cookies de terceros ni exponer `NEON_AUTH_JWKS_URL` en el frontend.
+- El proxy es el único dueño de la política CORS: jamás reenvía los headers CORS del upstream y solo emite los suyos en `/api/auth/*`, reflejando credenciales para el origen de la petición y para `https://santi.dev` y `https://personal-page.ezedelebecq22.workers.dev`. Las mutaciones auth con `Origin` externo se rechazan con 403 antes de tocar el upstream.
 - Nunca guardar secretos, tokens de LinkedIn ni credenciales en variables `PUBLIC_*`, en el frontend o en Git.
 - La comunicación HTTP se aísla en `shared/api` y en la carpeta `api` de cada feature.
 - No simular respuestas exitosas del backend. La UI debe reflejar estados de carga, éxito y error reales.

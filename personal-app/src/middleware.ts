@@ -15,7 +15,8 @@ import { LOGIN_PATH } from './features/auth/paths';
  * session expiry mid-navigation).
  *
  * Security headers: applied to every response the app produces, including the
- * redirect above and the `/api/*` proxy responses.
+ * redirect above and the `/api/*` proxy responses. HSTS joins them on HTTPS
+ * responses only.
  *
  * CSP ownership (issue 41): Astro's native `security.csp` renders the full
  * policy, with hashes for every inline script/style it generates, as a
@@ -39,10 +40,15 @@ function isProtectedAdminRoute(pathname: string): boolean {
 	return isAdmin && !PUBLIC_ADMIN_ROUTES.has(pathname);
 }
 
-function applySecurityHeaders(headers: Headers): void {
+function applySecurityHeaders(headers: Headers, isHttps: boolean): void {
 	headers.set('X-Content-Type-Options', 'nosniff');
 	headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 	headers.append('Content-Security-Policy', "frame-ancestors 'none'");
+	// HSTS only makes sense (and only sticks) on HTTPS responses; the dev
+	// server serves plain HTTP and must not pin localhost.
+	if (isHttps) {
+		headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+	}
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
@@ -69,7 +75,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 		response = await next();
 	}
 
-	applySecurityHeaders(response.headers);
+	applySecurityHeaders(response.headers, context.url.protocol === 'https:');
 
 	return response;
 });
