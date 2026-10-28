@@ -12,11 +12,9 @@ const GENERIC_ERROR = 'El servidor no pudo completar la solicitud.';
 /** Extra options for the read helpers. */
 export type RequestOptions = {
 	/**
-	 * Absolute origin used to resolve a relative `PUBLIC_API_BASE_URL` (the
-	 * default `/api`) when the request runs outside the browser: server-side
-	 * rendering has no `window.location` to resolve `/api` against. Callers
-	 * pass `Astro.url.origin`, so the Astro dev server answers the call and its
-	 * `/api` proxy forwards it to the backend. The browser ignores it.
+	 * Fallback origin for non-Workers SSR. On Cloudflare, server reads go
+	 * directly to BACKEND_URL so they do not re-enter the public Worker; the
+	 * browser keeps using the same-origin `/api` proxy.
 	 */
 	serverOrigin?: string;
 	/** JWT for cross-origin API calls when Managed Neon Auth is active. */
@@ -42,7 +40,12 @@ async function request(path: string, init: RequestInit, options: RequestOptions 
 	try {
 		const headers = new Headers(init.headers);
 		if (options.bearerToken) headers.set('Authorization', `Bearer ${options.bearerToken}`);
-		response = await fetch(resolveUrl(path, options.serverOrigin), {
+		let url = resolveUrl(path, options.serverOrigin);
+		if (import.meta.env.SSR && !ABSOLUTE_URL.test(baseUrl)) {
+			const { backendUrl } = await import('./serverEnvironment');
+			url = `${backendUrl}${path}`;
+		}
+		response = await fetch(url, {
 			credentials: 'include',
 			...init,
 			headers,
