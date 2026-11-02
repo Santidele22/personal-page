@@ -38,3 +38,15 @@ export async function fetchProfile(serverOrigin?: string): Promise<Profile | nul
 export function updateProfile(body: UpdateProfile): Promise<void> {
 	return putJson('/profile', body);
 }
+
+export function changedProfileFields(previous: Profile, current: Profile): UpdateProfile {
+	const changed: UpdateProfile = {};
+
+	for (const key of Object.keys(current) as (keyof Profile)[]) {
+		if (JSON.stringify(previous[key]) !== JSON.stringify(current[key])) {
+			Object.assign(changed, { [key]: current[key] });
+		}
+	}
+
+	return changed;
+}

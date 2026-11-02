@@ -1,12 +1,12 @@
 import { createSignal, Index, onMount, Show } from 'solid-js';
-import { fetchProfile, updateProfile } from './api/profile';
+import { changedProfileFields, fetchProfile, updateProfile } from './api/profile';
 import type { Profile, ProfileCommitment } from './types';
 
 /**
  * Admin editor for the singleton site profile. It reads `GET /profile`, keeps
  * bio as one paragraph per line and values as `title`/`description` rows, then
- * writes the whole editable shape back with `PUT /profile`; the backend merges
- * it into the stored row, so sending every field is safe. The session gate
+ * sends only the fields changed since the last load or save through
+ * `PUT /profile`; the backend merges them into the stored row. The session gate
  * lives in the admin shell (`AdminTopBar` mounts `SessionGuard`), like the
  * other panels.
  */
@@ -124,6 +124,30 @@ function fromValuePairs(values: ProfileValue[]): string[] {
 		.map((item) => (item.description ? `${item.title}: ${item.description}` : item.title));
 }
 
+function toProfile(form: FormState): Profile {
+	return {
+		name: form.name,
+		role: form.role,
+		eyebrow: form.eyebrow,
+		heroTitle: form.heroTitle,
+		heroIntro: form.heroIntro,
+		bioParagraphs: toLines(form.bioParagraphs),
+		values: fromValuePairs(form.values),
+		commitments: form.commitments
+			.map((item) => ({ value: item.value.trim(), label: item.label.trim() }))
+			.filter((item) => item.value || item.label),
+		siteName: form.siteName,
+		siteTitle: form.siteTitle,
+		siteDescription: form.siteDescription,
+		siteAuthor: form.siteAuthor,
+		githubUrl: form.githubUrl,
+		linkedinUrl: form.linkedinUrl,
+		contactIntro: form.contactIntro,
+		footerBlurb: form.footerBlurb,
+		footerCopyright: form.footerCopyright,
+	};
+}
+
 const labelClass = 'block text-[11px] font-medium tracking-[0.2em] text-muted-foreground';
 const inputClass =
 	'w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-aka focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring';
@@ -177,6 +201,7 @@ function Field(props: FieldProps) {
 export default function ProfileEditorPanel() {
 	const [status, setStatus] = createSignal<Status>('loading');
 	const [form, setForm] = createSignal<FormState>(EMPTY_FORM);
+	const [savedForm, setSavedForm] = createSignal<FormState>(EMPTY_FORM);
 	const [saving, setSaving] = createSignal(false);
 	const [feedback, setFeedback] = createSignal<Feedback>('idle');
 
@@ -191,7 +216,9 @@ export default function ProfileEditorPanel() {
 			return;
 		}
 
-		setForm(toForm(profile));
+		const nextForm = toForm(profile);
+		setForm(nextForm);
+		setSavedForm(nextForm);
 		setStatus('ready');
 	}
 
@@ -261,32 +288,20 @@ export default function ProfileEditorPanel() {
 
 		if (saving()) return;
 
-		const current = form();
-		setSaving(true);
+		const current = toProfile(form());
+		const changes = changedProfileFields(toProfile(savedForm()), current);
 		setFeedback('idle');
 
+		if (Object.keys(changes).length === 0) {
+			setFeedback('saved');
+			return;
+		}
+
+		setSaving(true);
+
 		try {
-			await updateProfile({
-				name: current.name,
-				role: current.role,
-				eyebrow: current.eyebrow,
-				heroTitle: current.heroTitle,
-				heroIntro: current.heroIntro,
-				bioParagraphs: toLines(current.bioParagraphs),
-				values: fromValuePairs(current.values),
-				commitments: current.commitments
-					.map((item) => ({ value: item.value.trim(), label: item.label.trim() }))
-					.filter((item) => item.value || item.label),
-				siteName: current.siteName,
-				siteTitle: current.siteTitle,
-				siteDescription: current.siteDescription,
-				siteAuthor: current.siteAuthor,
-				githubUrl: current.githubUrl,
-				linkedinUrl: current.linkedinUrl,
-				contactIntro: current.contactIntro,
-				footerBlurb: current.footerBlurb,
-				footerCopyright: current.footerCopyright,
-			});
+			await updateProfile(changes);
+			setSavedForm(toForm(current));
 			setFeedback('saved');
 		} catch {
 			// The API may answer with a raw English message (`Unauthorized`); the
