@@ -1,0 +1,88 @@
+---
+import { certificatesFallback, fetchCertificates, formatCertificateDate } from '../../features/certificate/api/certificates';
+import EmptyState from '../../shared/ui/EmptyState.astro';
+import Icon from '../../shared/ui/Icon.astro';
+import Reveal from '../../shared/ui/Reveal.astro';
+
+/* The certificates are read while the server renders the page, in the order
+   the API answers them (newest first, S3). The fallback below is the sample
+   this section shipped with before the certificates entity was consumed by
+   the landing; a reachable but empty collection renders the empty state. */
+const serverOrigin = Astro.url.origin;
+const certificates = (await fetchCertificates(serverOrigin)) ?? certificatesFallback;
+---
+
+<section id="certificados" class="scroll-mt-20" aria-labelledby="certificados-title">
+	<div class="mx-auto max-w-6xl px-5 py-16 sm:px-8 lg:py-24">
+		<Reveal>
+			<div class="max-w-xl">
+				<p class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
+					<Icon name="graduation-cap" class="size-4 text-aka" />
+					CERTIFICADOS
+				</p>
+				<h2 id="certificados-title" class="mt-3 font-mincho text-3xl font-semibold tracking-tight sm:text-4xl">Lo que fui certificando</h2>
+				<p class="mt-4 text-[15px] leading-relaxed text-muted-foreground">Los certificados que fui sacando, con la plataforma o institución que los emitió y el enlace para verlos.</p>
+			</div>
+		</Reveal>
+		{/* An empty list renders the section without cards instead of falling
+		    back to the shipped copy: the backend is the only source of truth. */}
+		{certificates.length === 0 && (
+			<Reveal delay={0.1} class="mt-10">
+				<EmptyState
+					icon="graduation-cap"
+					title="Todavía no hay certificados"
+					description="Cuando haya certificados cargados, acá vas a ver la imagen, la descripción, la fecha y el enlace a la institución que los emitió."
+				/>
+			</Reveal>
+		)}
+		{certificates.length > 0 && (
+			<div class="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+				{certificates.map((certificate, index) => (
+					<Reveal delay={0.1 * index} class="h-full">
+						<article class="group relative flex h-full flex-col overflow-hidden border border-border bg-card transition-colors hover:border-aka/60">
+							{/* S6: the image block only exists when the row has an image the
+							    browser can load, so a certificate without one keeps its card
+							    intact and never shows a broken-image placeholder. */}
+							{certificate.image && (
+								<div class="relative overflow-hidden border-b border-border bg-secondary">
+									<img
+										src={certificate.image}
+										alt={`Certificado: ${certificate.title}`}
+										loading="lazy"
+										decoding="async"
+										class="h-44 w-full object-cover"
+									/>
+								</div>
+							)}
+							<div class="flex flex-1 flex-col p-7">
+								<div class="flex items-start justify-between gap-4">
+									<span aria-hidden="true" class="flex size-11 shrink-0 items-center justify-center border border-aka/40 text-aka">
+										<Icon name="graduation-cap" class="size-5" strokeWidth={1.5} />
+									</span>
+									<span class="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+										{formatCertificateDate(certificate.date)}
+									</span>
+								</div>
+								<h3 class="mt-5 font-mincho text-xl font-semibold tracking-tight">{certificate.title}</h3>
+								<p class="mt-3 text-sm leading-relaxed text-muted-foreground">{certificate.description}</p>
+								{certificate.issuerLink && (
+									<p class="mt-auto border-t border-border pt-4">
+										<a
+											href={certificate.issuerLink}
+											target="_blank"
+											rel="noreferrer"
+											class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline"
+										>
+											<Icon name="external-link" class="size-4" />
+											Ver certificado
+										</a>
+									</p>
+								)}
+							</div>
+						</article>
+					</Reveal>
+				))}
+			</div>
+		)}
+	</div>
+</section>

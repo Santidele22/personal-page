@@ -5,6 +5,7 @@ export type AdminSection =
 	| 'proyectos'
 	| 'libros'
 	| 'herramientas'
+	| 'certificados'
 	| 'publicidad'
 	| 'menu'
 	| 'perfil';
