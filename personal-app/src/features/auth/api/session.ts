@@ -4,6 +4,7 @@ import { getAuthClient } from './authClient';
 import { getManagedAuthClient } from '../../../shared/api/managedAuthClient';
 import { readDevSession, signOutWithDev } from './devAuth';
 import { getAuthMode } from './sessionMode';
+import { isAdminSession } from './adminSession';
 
 /**
  * Session store shared by every admin island. The islands that make up the
@@ -85,8 +86,9 @@ async function readSession(): Promise<void> {
 		next = null;
 	}
 
-	setSession(next);
-	setStatus(next ? 'authenticated' : 'anonymous');
+	const adminSession = next && isAdminSession(next) ? next : null;
+	setSession(adminSession);
+	setStatus(adminSession ? 'authenticated' : 'anonymous');
 }
 
 async function readBetterAuthSession(

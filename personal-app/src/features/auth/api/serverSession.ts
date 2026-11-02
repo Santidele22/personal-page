@@ -1,4 +1,5 @@
 import type { AuthMode } from '../types';
+import { isAdminSession } from './adminSession';
 import { backendUrl, neonAuthUrl } from '../../../shared/api/serverEnvironment';
 
 /**
@@ -77,10 +78,10 @@ export async function hasAdminSession(cookieHeader: string | null): Promise<bool
 		}
 
 		// Better Auth answers `null` without a session; the dev stack answers
-		// `401`. Any authenticated variant carries a `user` object.
+		// `401`. A valid non-admin session must not enter the panel either.
 		const data: unknown = await response.json().catch(() => null);
 
-		return typeof data === 'object' && data !== null && 'user' in data;
+		return isAdminSession(data);
 	} catch {
 		return false;
 	}
