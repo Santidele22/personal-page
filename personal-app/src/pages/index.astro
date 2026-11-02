@@ -7,6 +7,7 @@ import { composeAdBands } from '../features/ad-slot/api/carrusel';
 import Reveal from '../shared/ui/Reveal.astro';
 import About from '../widgets/about/About.astro';
 import Blog from '../widgets/blog/Blog.astro';
+import Certificates from '../widgets/certificates/Certificates.astro';
 import Contact from '../widgets/contact/Contact.astro';
 import Hero from '../widgets/hero/Hero.astro';
 import Projects from '../widgets/projects/Projects.astro';
@@ -35,6 +36,7 @@ const bands = composeAdBands({ plans, brands, now: new Date() });
 	<About />
 	<Projects />
 	<Reading />
+	<Certificates />
 	{showServicesOnLanding && <Services />}
 	<Contact />
 </BaseLayout>

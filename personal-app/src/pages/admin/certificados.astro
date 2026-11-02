@@ -1,0 +1,15 @@
+---
+import AdminLayout from '../../app/layouts/AdminLayout.astro';
+import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
+import CertificadosEditorPanel from '../../features/certificate/CertificadosEditorPanel';
+---
+
+<AdminLayout active="certificados" title="Panel · Certificados — devlog">
+	<AdminPageHeader
+		eyebrow="PANEL · CERTIFICADOS"
+		title="Lo que fui certificando"
+		description="Los certificados de la sección pública: cada fila guarda su título, descripción, fecha, link de la plataforma que lo emitió y, si hace falta, una imagen. Se lee y se edita contra el backend, y la web lo refleja al recargar."
+	/>
+
+	<CertificadosEditorPanel client:load />
+</AdminLayout>

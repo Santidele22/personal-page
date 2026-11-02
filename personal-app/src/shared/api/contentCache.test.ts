@@ -129,6 +129,7 @@ describe('cacheablePath — public read whitelist (spec S7)', () => {
     ['/brands', true],
     ['/brands/7', true],
     ['/projects', true],
+    ['/certificates', true],
     ['/blogs/drafts', false],
     ['/session-mode', false],
     ['/auth/get-session', false],

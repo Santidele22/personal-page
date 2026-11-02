@@ -39,6 +39,7 @@ const CACHEABLE_PATHS = new Set([
 	'/advertising-plans',
 	'/brands',
 	'/projects',
+	'/certificates',
 ]);
 
 /** Sub-paths that stay cacheable (the item lookups the public site uses). */
