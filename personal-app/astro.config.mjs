@@ -13,7 +13,7 @@ const apiBaseUrl = process.env.PUBLIC_API_BASE_URL?.replace(/\/+$/, '') ?? '';
 const apiOrigin = /^https?:\/\//i.test(apiBaseUrl) ? new URL(apiBaseUrl).origin : '';
 
 export default defineConfig({
-	site: 'https://santi.dev',
+	site: 'https://personal-page.ezedelebecq22.workers.dev',
 	integrations: [mdx(), sitemap(), solidJs()],
 	// Server rendering everywhere: the base layout (menu links, pie seal) and
 	// the landing read the backend on every request instead of baking a build

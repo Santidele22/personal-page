@@ -34,9 +34,9 @@ describe('fetchCertificates — public mapping', () => {
 			row({ id: 4, title: 'Antiguo', date: '2022-01-10' }),
 		]);
 
-		const certificates = await fetchCertificates('https://santi.dev');
+		const certificates = await fetchCertificates('https://personal-page.ezedelebecq22.workers.dev');
 
-		expect(getJsonMock).toHaveBeenCalledWith('/certificates', { serverOrigin: 'https://santi.dev' });
+		expect(getJsonMock).toHaveBeenCalledWith('/certificates', { serverOrigin: 'https://personal-page.ezedelebecq22.workers.dev' });
 		expect(certificates?.map((certificate) => certificate.id)).toEqual([9, 4]);
 		expect(certificates?.[0]).toEqual({
 			id: 9,

@@ -31,7 +31,6 @@ const BETTER_AUTH_PREFIX = '/api/auth';
  * The request's own origin is always accepted on top of this list.
  */
 const ALLOWED_CROSS_ORIGINS: readonly string[] = [
-	'https://santi.dev',
 	'https://personal-page.ezedelebecq22.workers.dev',
 ];
 
