@@ -25,9 +25,12 @@ import { setWaitUntil } from './shared/api/contentCache';
  * appends the one directive Astro deliberately leaves out: `frame-ancestors`
  * (clickjacking), because browsers ignore it inside a `<meta>` element. It is
  * appended as a second policy rather than overwritten, so both stay in force;
- * multiple policies intersect only on directives they both define. Never add
- * `script-src`/`style-src` here: those would intersect with Astro's hashes and
- * block the framework's own inline code.
+ * multiple policies intersect only on directives they both define. Never append
+ * another `script-src`/`style-src` here: those would intersect with Astro's
+ * hashes and block the framework's own inline code. Admin is the one exception
+ * that edits Astro's existing `script-src` in place: Better Auth compiles its
+ * schemas with `new Function`, so the login and panel need `'unsafe-eval'`.
+ * Keeping that exception on `/admin` leaves the public site's policy unchanged.
  */
 
 const ADMIN_PREFIX = '/admin';
@@ -41,9 +44,15 @@ function isProtectedAdminRoute(pathname: string): boolean {
 	return isAdmin && !PUBLIC_ADMIN_ROUTES.has(pathname);
 }
 
-function applySecurityHeaders(headers: Headers, isHttps: boolean): void {
+function applySecurityHeaders(headers: Headers, isHttps: boolean, isAdmin: boolean): void {
 	headers.set('X-Content-Type-Options', 'nosniff');
 	headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+	if (isAdmin) {
+		const csp = headers.get('Content-Security-Policy');
+		if (csp) headers.set('Content-Security-Policy', csp.replaceAll('script-src ', "script-src 'unsafe-eval' "));
+	}
+
 	headers.append('Content-Security-Policy', "frame-ancestors 'none'");
 	// HSTS only makes sense (and only sticks) on HTTPS responses; the dev
 	// server serves plain HTTP and must not pin localhost.
@@ -93,7 +102,8 @@ const waitUntil = runtime.cfContext?.waitUntil ?? runtime.runtime?.ctx?.waitUnti
 		response = await next();
 	}
 
-	applySecurityHeaders(response.headers, context.url.protocol === 'https:');
+	const isAdmin = context.url.pathname === ADMIN_PREFIX || context.url.pathname.startsWith(`${ADMIN_PREFIX}/`);
+	applySecurityHeaders(response.headers, context.url.protocol === 'https:', isAdmin);
 
 	return response;
 });

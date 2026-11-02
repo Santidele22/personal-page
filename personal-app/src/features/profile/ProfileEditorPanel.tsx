@@ -1,4 +1,4 @@
-import { createSignal, For, onMount, Show } from 'solid-js';
+import { createSignal, Index, onMount, Show } from 'solid-js';
 import { fetchProfile, updateProfile } from './api/profile';
 import type { Profile, ProfileCommitment } from './types';
 
@@ -396,31 +396,31 @@ export default function ProfileEditorPanel() {
 							fallback={<p class="mt-5 text-sm text-muted-foreground">Sin valores: la web no muestra la lista.</p>}
 						>
 							<ul class="mt-4 flex flex-col gap-3">
-								<For each={form().values}>
+								<Index each={form().values}>
 									{(value, index) => (
 										<li class="grid items-end gap-3 sm:grid-cols-[1fr_2fr_auto]">
 											<Field
-												id={`profile-value-title-${index()}`}
+												id={`profile-value-title-${index}`}
 												label="VALOR"
-												value={value.title}
-												onInput={(input) => updateValue(index(), 'title', input)}
+												value={value().title}
+												onInput={(input) => updateValue(index, 'title', input)}
 											/>
 											<Field
-												id={`profile-value-description-${index()}`}
+												id={`profile-value-description-${index}`}
 												label="EXPLICACIÓN"
-												value={value.description}
-												onInput={(input) => updateValue(index(), 'description', input)}
+												value={value().description}
+												onInput={(input) => updateValue(index, 'description', input)}
 											/>
 											<button
 												type="button"
-												onClick={() => removeValue(index())}
+												onClick={() => removeValue(index)}
 												class="mb-0.5 inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive"
 											>
 												Quitar
 											</button>
 										</li>
 									)}
-								</For>
+								</Index>
 							</ul>
 						</Show>
 					</section>
@@ -444,31 +444,31 @@ export default function ProfileEditorPanel() {
 							fallback={<p class="mt-5 text-sm text-muted-foreground">Sin compromisos: el hero no muestra la fila de datos.</p>}
 						>
 							<ul class="mt-4 flex flex-col gap-3">
-								<For each={form().commitments}>
+								<Index each={form().commitments}>
 									{(commitment, index) => (
 										<li class="grid items-end gap-3 sm:grid-cols-[1fr_2fr_auto]">
 											<Field
-												id={`profile-commitment-value-${index()}`}
+												id={`profile-commitment-value-${index}`}
 												label="DATO"
-												value={commitment.value}
-												onInput={(value) => updateCommitment(index(), 'value', value)}
+												value={commitment().value}
+												onInput={(value) => updateCommitment(index, 'value', value)}
 											/>
 											<Field
-												id={`profile-commitment-label-${index()}`}
+												id={`profile-commitment-label-${index}`}
 												label="DESCRIPCIÓN"
-												value={commitment.label}
-												onInput={(value) => updateCommitment(index(), 'label', value)}
+												value={commitment().label}
+												onInput={(value) => updateCommitment(index, 'label', value)}
 											/>
 											<button
 												type="button"
-												onClick={() => removeCommitment(index())}
+												onClick={() => removeCommitment(index)}
 												class="mb-0.5 inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive"
 											>
 												Quitar
 											</button>
 										</li>
 									)}
-								</For>
+								</Index>
 							</ul>
 						</Show>
 					</section>
