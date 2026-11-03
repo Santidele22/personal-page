@@ -13,6 +13,7 @@ export const projects: Project[] = [
 		repoUrl: 'https://github.com/Santidele22/orvel',
 		demoUrl: 'https://orvel.pro',
 		featured: true,
+		forSale: true,
 	},
 	{
 		name: 'Whiskito',

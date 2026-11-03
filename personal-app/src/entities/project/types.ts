@@ -13,4 +13,5 @@ export type Project = {
 	repoUrl: string;
 	demoUrl?: string;
 	featured?: boolean;
+	forSale?: boolean;
 };

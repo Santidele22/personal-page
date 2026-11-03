@@ -22,6 +22,7 @@ const row = (overrides: Record<string, unknown> = {}) => ({
 	tagline: null,
 	status: null,
 	featured: false,
+	forSale: false,
 	...overrides,
 });
 
@@ -53,6 +54,7 @@ describe('fetchProjectsPage — paginated envelope', () => {
 			repoUrl: 'https://github.com/example/app',
 			demoUrl: 'https://github.com/example/app',
 			featured: false,
+			forSale: false,
 		});
 	});
 

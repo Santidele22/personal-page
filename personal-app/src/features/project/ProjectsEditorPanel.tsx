@@ -44,6 +44,7 @@ type FormState = {
 	/** Status key, empty when the card has no state. */
 	status: string;
 	featured: boolean;
+	forSale: boolean;
 };
 
 const EMPTY_FORM: FormState = {
@@ -56,6 +57,7 @@ const EMPTY_FORM: FormState = {
 	tagline: '',
 	status: '',
 	featured: false,
+	forSale: false,
 };
 
 const ICON_OPTIONS: { value: ProjectIcon; label: string }[] = [
@@ -91,6 +93,7 @@ function toForm(row: AdminProjectRow): FormState {
 		tagline: row.tagline ?? '',
 		status: row.status ?? '',
 		featured: row.featured === true,
+		forSale: row.forSale === true,
 	};
 }
 
@@ -124,6 +127,7 @@ function toBody(form: FormState): ProjectWriteBody {
 		tagline: form.tagline.trim() || null,
 		status: STATUS_KEYS.includes(form.status) ? (form.status as ProjectStatus) : null,
 		featured: form.featured,
+		forSale: form.forSale,
 	};
 }
 
@@ -381,17 +385,31 @@ function ProjectFields(props: {
 					onInput={(value) => props.onInput('status', value)}
 				/>
 			</div>
-			<div>
-				<label class="flex w-fit items-center gap-3">
-					<input
-						type="checkbox"
-						checked={props.form.featured}
-						onChange={(event) => props.onInput('featured', event.currentTarget.checked)}
-						class="size-4 rounded-sm border border-border bg-background accent-aka"
-					/>
-					<span class="text-[11px] font-medium tracking-[0.2em] text-muted-foreground">DESTACADO</span>
-				</label>
-				<p class={hintClass}>La tarjeta grande de la grilla; solo una debería estar marcada.</p>
+			<div class="grid gap-5 sm:grid-cols-2">
+				<div>
+					<label class="flex w-fit items-center gap-3">
+						<input
+							type="checkbox"
+							checked={props.form.featured}
+							onChange={(event) => props.onInput('featured', event.currentTarget.checked)}
+							class="size-4 rounded-sm border border-border bg-background accent-aka"
+						/>
+						<span class="text-[11px] font-medium tracking-[0.2em] text-muted-foreground">DESTACADO</span>
+					</label>
+					<p class={hintClass}>La tarjeta grande de la grilla; solo una debería estar marcada.</p>
+				</div>
+				<div>
+					<label class="flex w-fit items-center gap-3">
+						<input
+							type="checkbox"
+							checked={props.form.forSale}
+							onChange={(event) => props.onInput('forSale', event.currentTarget.checked)}
+							class="size-4 rounded-sm border border-border bg-background accent-aka"
+						/>
+						<span class="text-[11px] font-medium tracking-[0.2em] text-muted-foreground">A LA VENTA</span>
+					</label>
+					<p class={hintClass}>Muestra Comprar y abre el contacto por email.</p>
+				</div>
 			</div>
 		</>
 	);

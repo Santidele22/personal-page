@@ -2,6 +2,7 @@
 import type { Project } from './types';
 import Icon from '../../shared/ui/Icon.astro';
 import { transitionNameSlug } from '../../shared/lib/slug';
+import ProjectPurchaseDialog from '../../features/project/ProjectPurchaseDialog';
 
 interface Props {
 	project: Project;
@@ -40,5 +41,6 @@ const transitionName = `project-card-${transitionNameSlug(project.name)}`;
 				<Icon name="arrow-up-right" class="size-4" />
 			</a>
 		)}
+		{project.forSale && <ProjectPurchaseDialog projectName={project.name} client:load />}
 	</p>
 </article>

@@ -6,6 +6,7 @@ import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
 import SeigaihaBand from '../../shared/ui/SeigaihaBand.astro';
 import { transitionNameSlug } from '../../shared/lib/slug';
+import ProjectPurchaseDialog from '../../features/project/ProjectPurchaseDialog';
 import ToolsBlock from '../blog/ToolsBlock.astro';
 
 /* The landing only reads the first page of projects (`limit=4`, issue 47
@@ -84,6 +85,7 @@ const rest = projectCards.filter((project) => project !== featured);
 								<Icon name="arrow-up-right" class="size-4" />
 							</a>
 						)}
+						{featured.forSale && <ProjectPurchaseDialog projectName={featured.name} client:load />}
 					</p>
 				</div>
 			</article>

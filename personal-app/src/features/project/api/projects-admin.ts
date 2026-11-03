@@ -26,6 +26,7 @@ export type AdminProjectRow = {
 	tagline?: string | null;
 	status?: string | null;
 	featured?: boolean | null;
+	forSale: boolean;
 };
 
 /**
@@ -45,6 +46,7 @@ export type ProjectWriteBody = {
 	tagline: string | null;
 	status: ProjectStatus | null;
 	featured: boolean;
+	forSale: boolean;
 };
 
 /** Stored projects in storage order; throws so the panel can offer a retry. */

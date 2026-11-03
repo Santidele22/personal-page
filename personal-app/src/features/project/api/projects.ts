@@ -30,6 +30,7 @@ type ApiProjectCard = {
 	tagline?: string | null;
 	status?: string | null;
 	featured?: boolean | null;
+	forSale?: boolean | null;
 };
 
 /**
@@ -66,6 +67,7 @@ function mapProjectCard(project: ApiProjectCard): Project {
 		repoUrl: repo,
 		demoUrl: safeHref(demo),
 		featured: project.featured === true,
+		forSale: project.forSale === true,
 	};
 }
 
