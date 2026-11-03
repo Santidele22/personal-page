@@ -1,26 +1,38 @@
 ---
-import { fetchServices, servicesFallback } from '../../features/service/api/services';
+import ServiceCard from '../../entities/service/ServiceCard.astro';
+import { fetchServicesPage, servicesFallback } from '../../features/service/api/services';
 import EmptyState from '../../shared/ui/EmptyState.astro';
 import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
 
-/* The service cards are read while the server renders the page; the fallback
-   below is the copy this section shipped with before the services entity
-   was consumed by the landing. */
+/* The landing only reads the first page of services (`limit=4`, issue 47
+   S8); `total` decides whether the «Ver todos» link has more to point at. The
+   fallback below is the copy this section shipped with before the services
+   entity was consumed by the landing, capped to the same four cards. */
 const serverOrigin = Astro.url.origin;
-const serviceCards = (await fetchServices(serverOrigin)) ?? servicesFallback;
+const page = await fetchServicesPage(serverOrigin, 0, 4);
+const serviceCards = page?.items ?? servicesFallback.slice(0, 4);
+const showAllLink = page !== null && page.total > page.items.length;
 ---
 
 <section id="servicios" class="scroll-mt-20" aria-labelledby="servicios-title">
 	<div class="mx-auto max-w-6xl px-5 py-16 sm:px-8 lg:py-24">
 		<Reveal>
-			<div class="max-w-xl">
-				<p class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
-					<Icon name="code-2" class="size-4 text-aka" />
-					SERVICIOS
-				</p>
-				<h2 id="servicios-title" class="mt-3 font-mincho text-3xl font-semibold tracking-tight sm:text-4xl">Maneras de trabajar juntos</h2>
-				<p class="mt-4 text-[15px] leading-relaxed text-muted-foreground">Pocas colaboraciones, bien elegidas. Si tu proyecto encaja con el tono del diario, estas son las puertas de entrada.</p>
+			<div class="flex flex-wrap items-end justify-between gap-4">
+				<div class="max-w-xl">
+					<p class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
+						<Icon name="code-2" class="size-4 text-aka" />
+						SERVICIOS
+					</p>
+					<h2 id="servicios-title" class="mt-3 font-mincho text-3xl font-semibold tracking-tight sm:text-4xl">Maneras de trabajar juntos</h2>
+					<p class="mt-4 text-[15px] leading-relaxed text-muted-foreground">Pocas colaboraciones, bien elegidas. Si tu proyecto encaja con el tono del diario, estas son las puertas de entrada.</p>
+				</div>
+				{showAllLink && (
+					<a href="/servicios/" class="group inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-aka">
+						Ver todos los servicios
+						<Icon name="arrow-up-right" class="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+					</a>
+				)}
 			</div>
 		</Reveal>
 		<div class="mt-12 grid gap-6 md:grid-cols-3">
@@ -34,28 +46,7 @@ const serviceCards = (await fetchServices(serverOrigin)) ?? servicesFallback;
 			) : (
 				serviceCards.map((service, index) => (
 				<Reveal delay={0.1 * index} class="h-full">
-					<article class="group flex h-full flex-col border border-border bg-card p-7 transition-colors hover:border-aka/60">
-						<div class="flex items-center justify-between">
-							<span aria-hidden="true" class="flex size-11 items-center justify-center border border-aka/40 text-aka">
-								<Icon name={service.icon} class="size-5" strokeWidth={1.5} />
-							</span>
-							<span class="text-[11px] tracking-[0.2em] text-muted-foreground">{service.num}</span>
-						</div>
-						<h3 class="mt-5 font-mincho text-xl font-semibold tracking-tight">{service.title}</h3>
-						<p class="mt-3 text-sm leading-relaxed text-muted-foreground">{service.description}</p>
-						<ul class="mt-5 flex-1 space-y-2.5 border-t border-border pt-5">
-							{service.items.map((item) => (
-								<li class="flex items-start gap-2.5 text-sm">
-									<Icon name="check" class="mt-0.5 size-4 shrink-0 text-aka" />
-									<span class="text-muted-foreground">{item}</span>
-								</li>
-							))}
-						</ul>
-						<p class="mt-6 flex items-baseline justify-between border-t border-border pt-4">
-							<span class="text-[12px] tracking-wider text-muted-foreground">TARIFA</span>
-							<span class="font-mincho text-lg font-semibold">{service.price}</span>
-						</p>
-					</article>
+					<ServiceCard service={service} />
 				</Reveal>
 			))
 			)}

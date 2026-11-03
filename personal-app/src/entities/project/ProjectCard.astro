@@ -1,0 +1,44 @@
+---
+import type { Project } from './types';
+import Icon from '../../shared/ui/Icon.astro';
+import { transitionNameSlug } from '../../shared/lib/slug';
+
+interface Props {
+	project: Project;
+}
+
+/* Standard card of the projects grid: the landing section and the dedicated
+   `/proyectos` archive render the same piece (the headline featured card is a
+   landing-only concept and stays in the widget). The view-transition name
+   follows the card across both pages (issue 47 S11): the slug keeps the
+   free-form project name a valid CSS identifier. */
+const { project } = Astro.props;
+const transitionName = `project-card-${transitionNameSlug(project.name)}`;
+---
+
+<article transition:name={transitionName} class="group flex h-full flex-col border border-border bg-card p-7 transition-colors hover:border-aka/60">
+	<div class="flex items-center justify-between">
+		<span aria-hidden="true" class="flex size-11 items-center justify-center border border-aka/40 text-aka">
+			<Icon name={project.icon} class="size-5" strokeWidth={1.5} />
+		</span>
+		<span class="rounded-sm bg-secondary px-2 py-0.5 text-[11px] font-medium tracking-wide text-foreground/80">{project.statusLabel}</span>
+	</div>
+	<h3 class="mt-5 font-mincho text-xl font-semibold tracking-tight">{project.name}</h3>
+	<p class="mt-1 text-sm font-medium text-aka">{project.tagline}</p>
+	<p class="mt-3 text-sm leading-relaxed text-muted-foreground">{project.description}</p>
+	<ul class="mt-5 flex flex-wrap gap-1.5">
+		{project.stack.map((tech) => <li class="rounded-sm bg-secondary px-2 py-0.5 text-[11px] font-medium tracking-wide text-foreground/80">{tech}</li>)}
+	</ul>
+	<p class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-4">
+		<a href={project.repoUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
+			<Icon name="github" class="size-4" />
+			Código
+		</a>
+		{project.demoUrl && (
+			<a href={project.demoUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
+				Demo
+				<Icon name="arrow-up-right" class="size-4" />
+			</a>
+		)}
+	</p>
+</article>

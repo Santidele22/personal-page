@@ -1,0 +1,64 @@
+---
+import { offsetForPage, paginationWindow } from '../api/pagination';
+import Icon from './Icon.astro';
+
+interface Props {
+	/** Base path of the archive page, e.g. `/certificados/`. */
+	basePath: string;
+	total: number;
+	offset: number;
+	limit: number;
+}
+
+/* URL-driven pagination for the dedicated archive pages (issue 47 S9): every
+   control is a plain anchor the server already rendered, so the navigation
+   works without JavaScript and the current page is announced with
+   `aria-current`. Nothing renders when the collection fits one page. */
+const { basePath, total, offset, limit } = Astro.props;
+const pages = paginationWindow(total, offset, limit);
+const pageCount = Math.ceil(total / limit);
+const current = Math.min(Math.floor(offset / limit) + 1, pageCount);
+const href = (page: number) => `${basePath}?offset=${offsetForPage(page, limit)}`;
+---
+
+{pages.length > 0 && (
+	<nav class="mt-12 flex flex-wrap items-center justify-center gap-2" aria-label="Paginación">
+		{current > 1 ? (
+			<a href={href(current - 1)} class="inline-flex items-center gap-1.5 border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-aka/40 hover:text-aka">
+				<Icon name="arrow-left" class="size-4" strokeWidth={2} />
+				Anterior
+			</a>
+		) : (
+			<span aria-hidden="true" class="inline-flex items-center gap-1.5 border border-border px-3 py-2 text-sm font-medium text-muted-foreground opacity-40">
+				<Icon name="arrow-left" class="size-4" strokeWidth={2} />
+				Anterior
+			</span>
+		)}
+		<ul class="flex items-center gap-1">
+			{pages.map((page) => (
+				<li>
+					{page.current ? (
+						<span aria-current="page" class="inline-flex min-w-9 items-center justify-center border border-aka/60 bg-card px-3 py-2 text-sm font-medium text-aka">
+							{page.number}
+						</span>
+					) : (
+						<a href={href(page.number)} aria-label={`Ir a la página ${page.number}`} class="inline-flex min-w-9 items-center justify-center border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-aka/40 hover:text-aka">
+							{page.number}
+						</a>
+					)}
+				</li>
+			))}
+		</ul>
+		{current < pageCount ? (
+			<a href={href(current + 1)} class="inline-flex items-center gap-1.5 border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-aka/40 hover:text-aka">
+				Siguiente
+				<Icon name="arrow-right" class="size-4" strokeWidth={2} />
+			</a>
+		) : (
+			<span aria-hidden="true" class="inline-flex items-center gap-1.5 border border-border px-3 py-2 text-sm font-medium text-muted-foreground opacity-40">
+				Siguiente
+				<Icon name="arrow-right" class="size-4" strokeWidth={2} />
+			</span>
+		)}
+	</nav>
+)}

@@ -1,4 +1,5 @@
 import { getJson } from '../../../shared/api/http';
+import { pageQuery, type Paged } from '../../../shared/api/pagination';
 import type { Post, PostIcon } from '../../../entities/post/types';
 
 /**
@@ -65,6 +66,24 @@ export function sortPosts(posts: ApiBlog[]): ApiBlog[] {
 /** Card rows in portada order (featured first, then newest first). */
 export async function fetchBlogRows(serverOrigin?: string): Promise<ApiBlog[]> {
 	return sortPosts(await getJson<ApiBlog[]>('/blogs', { serverOrigin }));
+}
+
+/**
+ * Paginated archive read (issue 47 S9): the backend owns the order now
+ * (newest `pubDate` first, S6), so the answer is rendered as it arrives and
+ * never re-sorted client-side — a within-page sort would scramble the
+ * cross-page order. `null` only means the request itself failed.
+ */
+export async function fetchBlogPage(
+	serverOrigin: string | undefined,
+	offset: number | undefined,
+	limit: number,
+): Promise<Paged<ApiBlog> | null> {
+	try {
+		return await getJson<Paged<ApiBlog>>(`/blogs${pageQuery(offset, limit)}`, { serverOrigin });
+	} catch {
+		return null;
+	}
 }
 
 /** One entry with its markdown body, looked up by the public slug. */

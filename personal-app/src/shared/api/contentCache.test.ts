@@ -138,6 +138,24 @@ describe('cacheablePath — public read whitelist (spec S7)', () => {
   ])('%s → cacheable=%j', (path, expected) => {
     expect(cacheablePath(path)).toBe(expected);
   });
+
+  it.each([
+    ['/certificates?limit=4', true],
+    ['/books?limit=4&published=true', true],
+    ['/projects?limit=4', true],
+    ['/services?limit=4', true],
+  ])('fixed landing read %s → cacheable=%j (issue 47 S12)', (path, expected) => {
+    expect(cacheablePath(path)).toBe(expected);
+  });
+
+  it.each([
+    ['/certificates?offset=9', false],
+    ['/certificates?limit=8', false],
+    ['/books?limit=4', false],
+    ['/projects?limit=4&offset=8', false],
+  ])('dynamic archive read %s → cacheable=%j (dedicated pages stay live)', (path, expected) => {
+    expect(cacheablePath(path)).toBe(expected);
+  });
 });
 
 function parse(raw: string): Promise<unknown> {

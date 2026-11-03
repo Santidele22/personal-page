@@ -1,6 +1,7 @@
 import type { Project, ProjectIcon, ProjectStatus } from '../../../entities/project/types';
 import { projects } from '../../../entities/project/data';
 import { getJson } from '../../../shared/api/http';
+import { pageQuery, type Paged } from '../../../shared/api/pagination';
 import { safeHref } from '../../../shared/api/url';
 
 const PROJECT_ICONS: ProjectIcon[] = ['sprout', 'feather', 'blocks', 'wrench'];
@@ -39,38 +40,54 @@ type ApiProjectCard = {
  * only source of truth, so the section renders without cards until the admin
  * publishes one.
  */
+function mapProjectCard(project: ApiProjectCard): Project {
+	const status = PROJECT_STATUSES.includes(project.status as ProjectStatus)
+		? (project.status as ProjectStatus)
+		: 'en-construccion';
+
+	// Esquemas http/https/mailto únicamente (issue 38): una URL
+	// administrable con otro esquema queda vacía y la tarjeta omite
+	// ese enlace en vez de renderizarlo.
+	const repo = safeHref(project.githubUrl ?? project.url) ?? '';
+	// A demo row that holed at the repo URL is not a demo; the card then
+	// renders only the repository link instead of a lying Demo anchor.
+	const demo = project.url === project.githubUrl ? undefined : project.url;
+
+	return {
+		name: project.name,
+		icon: PROJECT_ICONS.includes(project.icon as ProjectIcon)
+			? (project.icon as ProjectIcon)
+			: 'wrench',
+		tagline: project.tagline ?? '',
+		description: project.description,
+		stack: project.technologies,
+		status,
+		statusLabel: STATUS_LABELS[status],
+		repoUrl: repo,
+		demoUrl: safeHref(demo),
+		featured: project.featured === true,
+	};
+}
+
 export async function fetchProjects(serverOrigin?: string): Promise<Project[] | null> {
 	try {
 		const rows = await getJson<ApiProjectCard[]>('/projects', { serverOrigin });
 
-		return rows.map((project) => {
-			const status = PROJECT_STATUSES.includes(project.status as ProjectStatus)
-				? (project.status as ProjectStatus)
-				: 'en-construccion';
+		return rows.map(mapProjectCard);
+	} catch {
+		return null;
+	}
+}
 
-			// Esquemas http/https/mailto únicamente (issue 38): una URL
-			// administrable con otro esquema queda vacía y la tarjeta omite
-			// ese enlace en vez de renderizarlo.
-			const repo = safeHref(project.githubUrl ?? project.url) ?? '';
-			// A demo row that holed at the repo URL is not a demo; the card then
-			// renders only the repository link instead of a lying Demo anchor.
-			const demo = project.url === project.githubUrl ? undefined : project.url;
-
-			return {
-				name: project.name,
-				icon: PROJECT_ICONS.includes(project.icon as ProjectIcon)
-					? (project.icon as ProjectIcon)
-					: 'wrench',
-				tagline: project.tagline ?? '',
-				description: project.description,
-				stack: project.technologies,
-				status,
-				statusLabel: STATUS_LABELS[status],
-				repoUrl: repo,
-				demoUrl: safeHref(demo),
-				featured: project.featured === true,
-			};
-		});
+/** Paginated read of the same cards (issue 47 S3/S8): envelope + `total` for the landing cap and «Ver todos». */
+export async function fetchProjectsPage(
+	serverOrigin: string | undefined,
+	offset: number | undefined,
+	limit: number,
+): Promise<Paged<Project> | null> {
+	try {
+		const page = await getJson<Paged<ApiProjectCard>>(`/projects${pageQuery(offset, limit)}`, { serverOrigin });
+		return { ...page, items: page.items.map(mapProjectCard) };
 	} catch {
 		return null;
 	}

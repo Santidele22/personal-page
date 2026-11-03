@@ -42,6 +42,19 @@ const CACHEABLE_PATHS = new Set([
 	'/certificates',
 ]);
 
+/**
+ * Fixed landing reads with pagination params (issue 47 S12): the same public
+ * collections as above, capped to the first page server-side. Only the exact
+ * queries the landing issues are listed; dedicated-page reads with a dynamic
+ * `?offset=N` stay uncached, the same as any other unknown path.
+ */
+const CACHEABLE_QUERIED_PATHS = new Set([
+	'/certificates?limit=4',
+	'/books?limit=4&published=true',
+	'/projects?limit=4',
+	'/services?limit=4',
+]);
+
 /** Sub-paths that stay cacheable (the item lookups the public site uses). */
 const CACHEABLE_PREFIXES = ['blogs/slug/', 'books/', 'brands/'];
 
@@ -83,7 +96,7 @@ export function cachedEntryCount(): number {
 export function cacheablePath(path: string): boolean {
 	const clean = path.replace(/\/+$/, '');
 	if (NEVER_CACHED.has(clean)) return false;
-	if (CACHEABLE_PATHS.has(clean)) return true;
+	if (CACHEABLE_PATHS.has(clean) || CACHEABLE_QUERIED_PATHS.has(clean)) return true;
 
 	return CACHEABLE_PREFIXES.some((prefix) => clean.startsWith(`/${prefix}`));
 }

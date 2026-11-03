@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getJson } from '../../../shared/api/http';
-import { fetchCertificates, formatCertificateDate } from './certificates';
+import { fetchCertificates, fetchCertificatesPage, formatCertificateDate } from './certificates';
 
 /**
  * The landing loader (specs S3/S5/S6): it keeps the order the API answers,
@@ -84,6 +84,45 @@ describe('fetchCertificates — public mapping', () => {
 		getJsonMock.mockRejectedValue(new Error('No se pudo conectar con el servidor.'));
 
 		await expect(fetchCertificates()).resolves.toBeNull();
+	});
+});
+
+describe('fetchCertificatesPage — paginated envelope (issue 47 S3/S8)', () => {
+	it('requests the offset/limit window and maps the envelope items', async () => {
+		getJsonMock.mockResolvedValue({
+			items: [row({ id: 9 }), row({ id: 4 })],
+			total: 6,
+			offset: 0,
+			limit: 4,
+		});
+
+		const page = await fetchCertificatesPage('https://example.test', 0, 4);
+
+		expect(getJsonMock).toHaveBeenCalledWith('/certificates?offset=0&limit=4', { serverOrigin: 'https://example.test' });
+		expect(page).toEqual({
+			items: [
+				expect.objectContaining({ id: 9 }),
+				expect.objectContaining({ id: 4 }),
+			],
+			total: 6,
+			offset: 0,
+			limit: 4,
+		});
+	});
+
+	it('exposes total so the landing can hide «Ver todos» when nothing is left', async () => {
+		getJsonMock.mockResolvedValue({ items: [row()], total: 1, offset: 0, limit: 4 });
+
+		const page = await fetchCertificatesPage(undefined, 0, 4);
+
+		expect(page?.total).toBe(1);
+		expect(page?.items).toHaveLength(1);
+	});
+
+	it('answers null when the read itself fails, the same contract as the array loader', async () => {
+		getJsonMock.mockRejectedValue(new Error('No se pudo conectar con el servidor.'));
+
+		await expect(fetchCertificatesPage(undefined, 0, 4)).resolves.toBeNull();
 	});
 });
 

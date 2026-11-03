@@ -1,0 +1,57 @@
+---
+import type { Certificate } from './types';
+import { formatCertificateDate } from './format';
+import Icon from '../../shared/ui/Icon.astro';
+
+interface Props {
+	certificate: Certificate;
+}
+
+/* Card of one certificate: the landing section and the dedicated
+   `/certificados` archive render the same piece, so the markup lives here
+   (the entity owns its UI). The view-transition name follows the card across
+   both pages (issue 47 S11). */
+const { certificate } = Astro.props;
+---
+
+<article transition:name={`cert-card-${certificate.id}`} class="group relative flex h-full flex-col overflow-hidden border border-border bg-card transition-colors hover:border-aka/60">
+	{/* S6: the image block only exists when the row has an image the
+	    browser can load, so a certificate without one keeps its card
+	    intact and never shows a broken-image placeholder. */}
+	{certificate.image && (
+		<div class="relative overflow-hidden border-b border-border bg-secondary">
+			<img
+				src={certificate.image}
+				alt={`Certificado: ${certificate.title}`}
+				loading="lazy"
+				decoding="async"
+				class="h-44 w-full object-cover"
+			/>
+		</div>
+	)}
+	<div class="flex flex-1 flex-col p-7">
+		<div class="flex items-start justify-between gap-4">
+			<span aria-hidden="true" class="flex size-11 shrink-0 items-center justify-center border border-aka/40 text-aka">
+				<Icon name="graduation-cap" class="size-5" strokeWidth={1.5} />
+			</span>
+			<span class="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+				{formatCertificateDate(certificate.date)}
+			</span>
+		</div>
+		<h3 class="mt-5 font-mincho text-xl font-semibold tracking-tight">{certificate.title}</h3>
+		<p class="mt-3 text-sm leading-relaxed text-muted-foreground">{certificate.description}</p>
+		{certificate.issuerLink && (
+			<p class="mt-auto border-t border-border pt-4">
+				<a
+					href={certificate.issuerLink}
+					target="_blank"
+					rel="noreferrer"
+					class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline"
+				>
+					<Icon name="external-link" class="size-4" />
+					Ver certificado
+				</a>
+			</p>
+		)}
+	</div>
+</article>

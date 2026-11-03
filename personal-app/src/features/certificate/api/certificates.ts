@@ -1,6 +1,8 @@
 import type { Certificate } from "../../../entities/certificate/types";
 import { certificates } from "../../../entities/certificate/data";
+import { formatCertificateDate } from "../../../entities/certificate/format";
 import { getJson } from "../../../shared/api/http";
+import { pageQuery, type Paged } from "../../../shared/api/pagination";
 import { safeHref } from "../../../shared/api/url";
 
 /**
@@ -59,34 +61,10 @@ export function certificateImage(
   return undefined;
 }
 
-const MONTHS = [
-  "enero",
-  "febrero",
-  "marzo",
-  "abril",
-  "mayo",
-  "junio",
-  "julio",
-  "agosto",
-  "septiembre",
-  "octubre",
-  "noviembre",
-  "diciembre",
-];
-
-/**
- * The date line of a card: the stored `YYYY-MM-DD` becomes «marzo de 2024».
- * Anything that is not a real calendar shape (a timestamp with an unexpected
- * offset, a corrupted value) renders as it arrives instead of an invented
- * date.
- */
-export function formatCertificateDate(value: string | null | undefined): string {
-  const raw = value?.trim() ?? "";
-  const match = /^(\d{4})-(\d{2})/.exec(raw);
-  const month = match ? MONTHS[Number(match[2]) - 1] : undefined;
-
-  return match && month ? `${month} de ${match[1]}` : raw;
-}
+/* The date helper moved to the entity (`entities/certificate/format.ts`, the
+   entity owns its card UI); this re-export keeps the existing import paths
+   working for the widgets and the specs. */
+export { formatCertificateDate };
 
 /**
  * The landing section (`widgets/certificates/Certificates.astro`). `null` only
@@ -96,6 +74,20 @@ export function formatCertificateDate(value: string | null | undefined): string 
  * shows its empty state instead of pinning the old copy. Rows keep the API
  * order, which is already newest first (S3).
  */
+function mapCertificate(row: ApiCertificate): Certificate {
+	return {
+		id: row.id,
+		image: certificateImage(row.image, row.id),
+		title: row.title,
+		description: row.description,
+		// http/https/mailto only (shared/api/url.ts), so a stored `javascript:`
+		// value can never reach an `href`; `''` means "sin link" and the card
+		// renders the issuer as plain text.
+		issuerLink: safeHref(row.issuerLink) ?? "",
+		date: row.date,
+	};
+}
+
 export async function fetchCertificates(
   serverOrigin?: string,
 ): Promise<Certificate[] | null> {
@@ -104,20 +96,30 @@ export async function fetchCertificates(
       serverOrigin,
     });
 
-    return rows.map((row) => ({
-      id: row.id,
-      image: certificateImage(row.image, row.id),
-      title: row.title,
-      description: row.description,
-      // http/https/mailto only (shared/api/url.ts), so a stored `javascript:`
-      // value can never reach an `href`; `''` means "sin link" and the card
-      // renders the issuer as plain text.
-      issuerLink: safeHref(row.issuerLink) ?? "",
-      date: row.date,
-    }));
+		return rows.map(mapCertificate);
   } catch {
     return null;
   }
+}
+
+/**
+ * Paginated read of the same collection (issue 47 S3): the backend answers
+ * `{ items, total, offset, limit }` because `offset`/`limit` are present. The
+ * landing caps itself to the first page (`limit=4`, S8) and reads `total` to
+ * decide whether the «Ver todos» link has anything to point at. `null` keeps
+ * the loader contract: only the request itself failing lands there.
+ */
+export async function fetchCertificatesPage(
+	serverOrigin: string | undefined,
+	offset: number | undefined,
+	limit: number,
+): Promise<Paged<Certificate> | null> {
+	try {
+		const page = await getJson<Paged<ApiCertificate>>(`/certificates${pageQuery(offset, limit)}`, { serverOrigin });
+		return { ...page, items: page.items.map(mapCertificate) };
+	} catch {
+		return null;
+	}
 }
 
 export { certificates as certificatesFallback };

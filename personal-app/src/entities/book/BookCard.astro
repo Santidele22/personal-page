@@ -1,0 +1,45 @@
+---
+import type { Book } from './types';
+import Icon from '../../shared/ui/Icon.astro';
+import SeigaihaBand from '../../shared/ui/SeigaihaBand.astro';
+
+interface Props {
+	book: Book;
+	/** Absolute URL of the rate-limited PDF download endpoint. */
+	downloadUrl?: string;
+	/** Heading level: the landing nests the title under its shelf `h3`, the
+	    dedicated archive renders it as `h3` directly. */
+	headingLevel?: 'h3' | 'h4';
+}
+
+/* Card of one book: the landing shelves and the dedicated `/lecturas`
+   archive render the same piece (the shelf filter is a landing-only
+   behaviour). The view-transition name follows the card across both pages
+   (issue 47 S11). */
+const { book, downloadUrl, headingLevel = 'h4' } = Astro.props;
+const Title = headingLevel;
+---
+
+<article transition:name={`book-card-${book.id}`} class="group relative flex h-full flex-col overflow-hidden border border-border bg-card p-7 transition-colors hover:border-aka/60">
+	<SeigaihaBand class="pointer-events-none absolute inset-x-0 top-0 h-16 text-foreground opacity-[0.08]" rows={2} />
+	<div class="relative flex items-start justify-between gap-4">
+		<span aria-hidden="true" class="flex size-11 shrink-0 items-center justify-center border border-aka/40 text-aka">
+			<Icon name="book-open" class="size-5" strokeWidth={1.5} />
+		</span>
+		<span class="rounded-sm bg-secondary px-2 py-0.5 text-[11px] font-medium tracking-wide text-foreground/80">{book.statusLabel}</span>
+	</div>
+	<Title class="relative mt-5 font-mincho text-xl font-semibold tracking-tight">{book.title}</Title>
+	<p class="relative mt-1 text-sm font-medium text-aka">{book.author}</p>
+	<p class="relative mt-3 text-sm leading-relaxed text-muted-foreground">{book.description}</p>
+	{book.review && (
+		<blockquote class="relative mt-4 border-l-2 border-aka/40 pl-4 text-sm italic leading-relaxed text-muted-foreground">{book.review}</blockquote>
+	)}
+	{book.published && downloadUrl && (
+		<p class="relative mt-6 border-t border-border pt-4">
+			<a href={downloadUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
+				<Icon name="download" class="size-4" />
+				Descargar PDF
+			</a>
+		</p>
+	)}
+</article>

@@ -1,0 +1,39 @@
+---
+import type { Service } from './types';
+import Icon from '../../shared/ui/Icon.astro';
+import { transitionNameSlug } from '../../shared/lib/slug';
+
+interface Props {
+	service: Service;
+}
+
+/* Card of one service: the landing section and the dedicated `/servicios`
+   archive render the same piece. The view-transition name follows the card
+   across both pages (issue 47 S11): the slug keeps the free-form service
+   title a valid CSS identifier. */
+const { service } = Astro.props;
+const transitionName = `service-card-${transitionNameSlug(service.title)}`;
+---
+
+<article transition:name={transitionName} class="group flex h-full flex-col border border-border bg-card p-7 transition-colors hover:border-aka/60">
+	<div class="flex items-center justify-between">
+		<span aria-hidden="true" class="flex size-11 items-center justify-center border border-aka/40 text-aka">
+			<Icon name={service.icon} class="size-5" strokeWidth={1.5} />
+		</span>
+		<span class="text-[11px] tracking-[0.2em] text-muted-foreground">{service.num}</span>
+	</div>
+	<h3 class="mt-5 font-mincho text-xl font-semibold tracking-tight">{service.title}</h3>
+	<p class="mt-3 text-sm leading-relaxed text-muted-foreground">{service.description}</p>
+	<ul class="mt-5 flex-1 space-y-2.5 border-t border-border pt-5">
+		{service.items.map((item) => (
+			<li class="flex items-start gap-2.5 text-sm">
+				<Icon name="check" class="mt-0.5 size-4 shrink-0 text-aka" />
+				<span class="text-muted-foreground">{item}</span>
+			</li>
+		))}
+	</ul>
+	<p class="mt-6 flex items-baseline justify-between border-t border-border pt-4">
+		<span class="text-[12px] tracking-wider text-muted-foreground">TARIFA</span>
+		<span class="font-mincho text-lg font-semibold">{service.price}</span>
+	</p>
+</article>

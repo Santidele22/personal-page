@@ -1,20 +1,29 @@
 ---
-// The archive is read from the backend on every request (issue 28): the
-// admin panel publishes entries that must appear without a rebuild.
+// The archive is read from the backend on every request (issue 28) and
+// paginated by URL (issue 47 S9): the admin panel publishes entries that must
+// appear without a rebuild, and the newest page is server-rendered.
 import BaseLayout from '../../app/layouts/BaseLayout.astro';
 import { SITE_NAME } from '../../app/config/site';
 import FormattedDate from '../../shared/ui/FormattedDate.astro';
 import Icon from '../../shared/ui/Icon.astro';
-import { fetchBlogRows, toPost } from '../../features/blog/api/blogs';
+import PaginationControls from '../../shared/ui/PaginationControls.astro';
+import EmptyState from '../../shared/ui/EmptyState.astro';
+import { fetchBlogPage, toPost } from '../../features/blog/api/blogs';
+import { parseOffset } from '../../shared/api/pagination';
 
-const rows = await fetchBlogRows(Astro.url.origin);
-const posts = rows.map((row) => toPost(row));
+const PAGE_SIZE = 10;
+const offset = parseOffset(Astro.url.searchParams.get('offset'));
+const page = await fetchBlogPage(Astro.url.origin, offset, PAGE_SIZE);
+const posts = (page?.items ?? []).map((row) => toPost(row));
+
+const title = `Archivo del diario · ${SITE_NAME}`;
+const description = 'Todas las entradas del diario de Santi sobre backend, blockchain e ingeniería de software.';
 ---
 
-<BaseLayout title={`Archivo del diario · ${SITE_NAME}`} description="Todas las entradas del diario de Santi sobre backend, blockchain e ingeniería de software.">
+<BaseLayout title={title} description={description}>
 	<section class="mx-auto max-w-6xl px-5 py-14 sm:px-8 lg:py-20" aria-labelledby="archive-title">
 		<a
-			href="/"
+			href="/#diario"
 			class="group inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-aka"
 		>
 			<Icon name="arrow-left" class="size-4" strokeWidth={2} />
@@ -26,22 +35,49 @@ const posts = rows.map((row) => toPost(row));
 		</p>
 		<h1 id="archive-title" class="mt-3 font-mincho text-4xl font-semibold tracking-tight sm:text-5xl">Archivo de entradas</h1>
 		<p class="mt-4 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">Backend, blockchain e ingeniería de software, escritos despacio y en público.</p>
-		<div class="mt-10 grid gap-6 md:grid-cols-2">
-			{posts.map((post, index) => (
-				<article class:list={['group border border-border bg-card transition-colors hover:border-aka/60', index === 0 && 'md:col-span-2']}>
-					<a href={`/blog/${post.slug}/`} class="flex h-full flex-col">
-						<div class="flex flex-1 flex-col p-6 sm:p-8">
-							<p class="text-xs tracking-wider text-muted-foreground"><FormattedDate date={new Date(post.date.replaceAll('.', '-'))} /></p>
-							<h2 transition:name={`blog-title-${post.slug}`} class="mt-3 text-balance font-mincho text-2xl font-semibold leading-snug tracking-tight">{post.title}</h2>
-							<p class="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">{post.excerpt}</p>
-							<p class="mt-6 inline-flex items-center gap-2 text-sm font-medium text-aka">
-								Leer entrada
-								<Icon name="arrow-right" class="size-4 transition-transform group-hover:translate-x-1" />
-							</p>
-						</div>
-					</a>
-				</article>
-			))}
-		</div>
+
+		{page === null && (
+			<EmptyState
+				icon="book-open"
+				class="mt-10"
+				title="No se pudo cargar el archivo"
+				description="La API no respondió bien ahora mismo. Reintentá en unos minutos: el archivo completo vuelve enseguida."
+			/>
+		)}
+		{page !== null && page.total === 0 && (
+			<EmptyState
+				icon="book-open"
+				class="mt-10"
+				title="Todavía no hay entradas"
+				description="El archivo del diario todavía está vacío; el primer borrador se publica dentro de poco."
+			/>
+		)}
+		{page !== null && page.total > 0 && posts.length === 0 && (
+			<p class="mt-10 border border-border bg-card p-6 text-sm text-muted-foreground">
+				No hay entradas en esta página. <a href="/blog/" class="font-medium text-aka hover:underline">Volver a la primera página</a>.
+			</p>
+		)}
+		{page !== null && posts.length > 0 && (
+			<>
+				<div class="mt-10 grid gap-6 md:grid-cols-2">
+					{posts.map((post, index) => (
+						<article class:list={['group border border-border bg-card transition-colors hover:border-aka/60', index === 0 && 'md:col-span-2']}>
+							<a href={`/blog/${post.slug}/`} class="flex h-full flex-col">
+								<div class="flex flex-1 flex-col p-6 sm:p-8">
+									<p class="text-xs tracking-wider text-muted-foreground"><FormattedDate date={new Date(post.date.replaceAll('.', '-'))} /></p>
+									<h2 transition:name={`blog-title-${post.slug}`} class="mt-3 text-balance font-mincho text-2xl font-semibold leading-snug tracking-tight">{post.title}</h2>
+									<p class="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">{post.excerpt}</p>
+									<p class="mt-6 inline-flex items-center gap-2 text-sm font-medium text-aka">
+										Leer entrada
+										<Icon name="arrow-right" class="size-4 transition-transform group-hover:translate-x-1" />
+									</p>
+								</div>
+							</a>
+						</article>
+					))}
+				</div>
+				<PaginationControls basePath="/blog/" total={page.total} offset={page.offset} limit={PAGE_SIZE} />
+			</>
+		)}
 	</section>
 </BaseLayout>

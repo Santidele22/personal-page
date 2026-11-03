@@ -1,6 +1,7 @@
 import type { Service, ServiceIcon } from '../../../entities/service/types';
 import { services } from '../../../entities/service/data';
 import { getJson } from '../../../shared/api/http';
+import { pageQuery, type Paged } from '../../../shared/api/pagination';
 
 const SERVICE_ICONS: ServiceIcon[] = ['pen-line', 'handshake', 'graduation-cap'];
 
@@ -25,21 +26,39 @@ type ApiServiceCard = {
  * like the profile loader. Empty storage answers `[]`: the admin chose to show
  * no services, so the section renders without cards.
  */
+function mapServiceCard(service: ApiServiceCard, index: number): Service {
+	return {
+		// The card number is its position in the list, not a stored column.
+		num: String(index + 1).padStart(2, '0'),
+		icon: SERVICE_ICONS.includes(service.icon as ServiceIcon)
+			? (service.icon as ServiceIcon)
+			: 'pen-line',
+		title: service.name,
+		description: service.description,
+		items: service.features,
+		price: service.priceLabel ?? `USD ${service.price}`,
+	};
+}
+
 export async function fetchServices(serverOrigin?: string): Promise<Service[] | null> {
 	try {
 		const rows = await getJson<ApiServiceCard[]>('/services', { serverOrigin });
 
-		return rows.map((service, index) => ({
-			// The card number is its position in the list, not a stored column.
-			num: String(index + 1).padStart(2, '0'),
-			icon: SERVICE_ICONS.includes(service.icon as ServiceIcon)
-				? (service.icon as ServiceIcon)
-				: 'pen-line',
-			title: service.name,
-			description: service.description,
-			items: service.features,
-			price: service.priceLabel ?? `USD ${service.price}`,
-		}));
+		return rows.map(mapServiceCard);
+	} catch {
+		return null;
+	}
+}
+
+/** Paginated read of the same cards (issue 47 S3/S8): envelope + `total` for the landing cap and «Ver todos». */
+export async function fetchServicesPage(
+	serverOrigin: string | undefined,
+	offset: number | undefined,
+	limit: number,
+): Promise<Paged<Service> | null> {
+	try {
+		const page = await getJson<Paged<ApiServiceCard>>(`/services${pageQuery(offset, limit)}`, { serverOrigin });
+		return { ...page, items: page.items.map(mapServiceCard) };
 	} catch {
 		return null;
 	}

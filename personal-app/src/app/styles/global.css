@@ -164,6 +164,17 @@ body::after {
   animation-play-state: paused;
 }
 
+/*
+ * Cross-document view transitions (issue 47 S11): opt every same-origin
+ * navigation into the native animation. The shared `transition:name`
+ * elements (blog titles, section cards) interpolate between pages; the CSP
+ * stays untouched because the whole mechanism is declarative — one meta tag
+ * in the layout plus this rule.
+ */
+@view-transition {
+  navigation: auto;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -195,5 +206,13 @@ body::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* The view-transition snapshots are not matched by `*` (they live in the
+     transition tree, not the document): without this the cross-document
+     animation would still run for reduced-motion users. */
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }

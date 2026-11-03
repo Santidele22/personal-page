@@ -76,8 +76,11 @@ const runtime = (
 
 // The Cloudflare adapter exposes the worker context as `cfContext` (Astro 7);
 // `runtime.ctx` was the pre-v6 shape and is kept as fallback for older adapters.
-const waitUntil = runtime.cfContext?.waitUntil ?? runtime.runtime?.ctx?.waitUntil;
-	setWaitUntil(waitUntil ? (promise) => waitUntil(promise) : undefined);
+// The method is invoked with its owner as `this`: both the Workers runtime and
+// the local polyfill throw «Illegal invocation» on a detached waitUntil, which
+// would turn every stale revalidation into a 500.
+const waitUntilOwner = runtime.cfContext?.waitUntil ? runtime.cfContext : runtime.runtime?.ctx?.waitUntil ? runtime.runtime.ctx : undefined;
+	setWaitUntil(waitUntilOwner?.waitUntil ? (promise) => waitUntilOwner.waitUntil!(promise) : undefined);
 
 	let response: Response;
 

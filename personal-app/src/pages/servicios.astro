@@ -1,0 +1,70 @@
+---
+import BaseLayout from '../app/layouts/BaseLayout.astro';
+import { SITE_NAME } from '../app/config/site';
+import ServiceCard from '../entities/service/ServiceCard.astro';
+import { fetchServicesPage } from '../features/service/api/services';
+import EmptyState from '../shared/ui/EmptyState.astro';
+import Icon from '../shared/ui/Icon.astro';
+import PaginationControls from '../shared/ui/PaginationControls.astro';
+import { parseOffset } from '../shared/api/pagination';
+
+/* Dedicated, paginated archive of services (issue 47 S9). The landing
+   section stays behind its composition flag; this page is always available
+   for the «Ver todos» link. */
+const PAGE_SIZE = 9;
+const offset = parseOffset(Astro.url.searchParams.get('offset'));
+const page = await fetchServicesPage(Astro.url.origin, offset, PAGE_SIZE);
+
+const title = `Servicios — ${SITE_NAME}`;
+const description = 'Todas las maneras de trabajar juntos: pocas colaboraciones, bien elegidas, con tarifa y alcance de cada una.';
+---
+
+<BaseLayout title={title} description={description}>
+	<section class="mx-auto max-w-6xl px-5 py-14 sm:px-8 lg:py-20" aria-labelledby="servicios-archive-title">
+		<a
+			href="/#servicios"
+			class="group inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-aka"
+		>
+			<Icon name="arrow-left" class="size-4" strokeWidth={2} />
+			Volver al inicio
+		</a>
+		<p class="mt-6 flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
+			<Icon name="code-2" class="size-4 text-aka" />
+			SERVICIOS
+		</p>
+		<h1 id="servicios-archive-title" class="mt-3 font-mincho text-4xl font-semibold tracking-tight sm:text-5xl">Todas las maneras de trabajar juntos</h1>
+		<p class="mt-4 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">El listado completo de puertas de entrada: qué incluye cada una y cuál es su tarifa.</p>
+
+		{page === null && (
+			<EmptyState
+				icon="code-2"
+				class="mt-10"
+				title="No se pudieron cargar los servicios"
+				description="La API no respondió bien ahora mismo. Reintentá en unos minutos: el listado completo vuelve enseguida."
+			/>
+		)}
+		{page !== null && page.total === 0 && (
+			<EmptyState
+				icon="code-2"
+				class="mt-10"
+				title="Todavía no hay servicios"
+				description="Las maneras de trabajar juntos se publican acá, pocas y bien elegidas. Volvé en unos días: las puertas de entrada van a estar listas."
+			/>
+		)}
+		{page !== null && page.total > 0 && page.items.length === 0 && (
+			<p class="mt-10 border border-border bg-card p-6 text-sm text-muted-foreground">
+				No hay servicios en esta página. <a href="/servicios/" class="font-medium text-aka hover:underline">Volver a la primera página</a>.
+			</p>
+		)}
+		{page !== null && page.items.length > 0 && (
+			<>
+				<div class="mt-10 grid gap-6 md:grid-cols-3">
+					{page.items.map((service) => (
+						<ServiceCard service={service} />
+					))}
+				</div>
+				<PaginationControls basePath="/servicios/" total={page.total} offset={page.offset} limit={PAGE_SIZE} />
+			</>
+		)}
+	</section>
+</BaseLayout>
