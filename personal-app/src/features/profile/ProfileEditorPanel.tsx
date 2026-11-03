@@ -1,12 +1,25 @@
 import { createSignal, Index, onMount, Show } from 'solid-js';
-import { changedProfileFields, fetchProfile, updateProfile } from './api/profile';
+import {
+	changedProfileFields,
+	discardProfileDraft,
+	fetchProfile,
+	fetchProfileDraft,
+	publishProfileChanges,
+	saveProfileDraft,
+} from './api/profile';
+import { safeHref } from '../../shared/api/url';
 import type { Profile, ProfileCommitment } from './types';
 
 /**
- * Admin editor for the singleton site profile. It reads `GET /profile`, keeps
- * bio as one paragraph per line and values as `title`/`description` rows, then
- * sends only the fields changed since the last load or save through
- * `PUT /profile`; the backend merges them into the stored row. The session gate
+ * Admin editor for the singleton site profile. It reads `GET /profile` (plus
+ * the admin-only draft) and keeps bio as one paragraph per line and values as
+ * `title`/`description` rows. Saving matches the diario editor (issue 29)
+ * for the profile panel (feature doc `odd/tasks/profile-draft.md`):
+ * «Guardar borrador» stores only the fields changed since the last load or
+ * save through `PUT /profile/draft` without touching the landing, and
+ * «Publicar» sends the changed fields against the published state through
+ * `POST /profile/publish`, which clears the stored draft in the same call.
+ * The backend merges any partial body into the stored row. The session gate
  * lives in the admin shell (`AdminTopBar` mounts `SessionGuard`), like the
  * other panels.
  */
@@ -40,7 +53,8 @@ type FormState = {
 };
 
 type Status = 'loading' | 'ready' | 'error';
-type Feedback = 'idle' | 'saved' | 'error';
+type Pending = null | 'draft' | 'publish' | 'discard';
+type Feedback = 'idle' | 'draftSaved' | 'published' | 'discarded' | 'error';
 
 const EMPTY_FORM: FormState = {
 	name: '',
@@ -202,23 +216,36 @@ export default function ProfileEditorPanel() {
 	const [status, setStatus] = createSignal<Status>('loading');
 	const [form, setForm] = createSignal<FormState>(EMPTY_FORM);
 	const [savedForm, setSavedForm] = createSignal<FormState>(EMPTY_FORM);
-	const [saving, setSaving] = createSignal(false);
+	const [publishedForm, setPublishedForm] = createSignal<FormState>(EMPTY_FORM);
+	const [hasDraft, setHasDraft] = createSignal(false);
+	const [pending, setPending] = createSignal<Pending>(null);
 	const [feedback, setFeedback] = createSignal<Feedback>('idle');
+	const [confirmingDiscard, setConfirmingDiscard] = createSignal(false);
 
 	async function load() {
 		setStatus('loading');
 		setFeedback('idle');
 
-		const profile = await fetchProfile();
+		// The published row always loads; the draft read only answers with the
+		// admin session in place, and the panel mounts behind `SessionGuard`.
+		const [profile, draft] = await Promise.all([fetchProfile(), fetchProfileDraft().catch(() => null)]);
 
 		if (!profile) {
 			setStatus('error');
 			return;
 		}
 
-		const nextForm = toForm(profile);
+		// `fetchProfile` already runs its URLs through `safeHref`; the raw draft
+		// read needs the same pass so a foreign scheme never reaches the form.
+		const draftNormalized = draft
+			? { ...draft, githubUrl: safeHref(draft.githubUrl) ?? '', linkedinUrl: safeHref(draft.linkedinUrl) ?? '' }
+			: null;
+
+		const nextForm = toForm(draftNormalized ?? profile);
 		setForm(nextForm);
 		setSavedForm(nextForm);
+		setPublishedForm(toForm(profile));
+		setHasDraft(draftNormalized !== null);
 		setStatus('ready');
 	}
 
@@ -283,32 +310,94 @@ export default function ProfileEditorPanel() {
 		setFeedback('idle');
 	}
 
-	async function handleSubmit(event: SubmitEvent) {
+	/** The editor state differences against the last saved snapshot (draft or published). */
+	const changed = () =>
+		Object.keys(changedProfileFields(toProfile(savedForm()), toProfile(form()))).length > 0;
+
+	/** Publishing compares against the published state, so a stored draft that is untouched still publishes. */
+	const changedAgainstPublished = () =>
+		Object.keys(changedProfileFields(toProfile(publishedForm()), toProfile(form()))).length > 0;
+
+	const canSaveDraft = () => pending() === null && changed();
+	const canPublish = () => pending() === null && changedAgainstPublished();
+
+	async function saveDraft(event: MouseEvent) {
 		event.preventDefault();
 
-		if (saving()) return;
+		if (!canSaveDraft()) return;
 
 		const current = toProfile(form());
 		const changes = changedProfileFields(toProfile(savedForm()), current);
 		setFeedback('idle');
-
-		if (Object.keys(changes).length === 0) {
-			setFeedback('saved');
-			return;
-		}
-
-		setSaving(true);
+		setPending('draft');
 
 		try {
-			await updateProfile(changes);
-			setSavedForm(toForm(current));
-			setFeedback('saved');
+			const savedDraft = await saveProfileDraft(changes);
+
+			if (savedDraft) {
+				setSavedForm(toForm(savedDraft));
+				setHasDraft(true);
+				setFeedback('draftSaved');
+			} else {
+				// The merge ended up equal to the published profile, so the
+				// backend cleared the draft; the form returns to that state.
+				setForm(publishedForm());
+				setSavedForm(publishedForm());
+				setHasDraft(false);
+				setFeedback('discarded');
+			}
 		} catch {
 			// The API may answer with a raw English message (`Unauthorized`); the
 			// panel always answers in Spanish, like the subscribers view.
 			setFeedback('error');
 		} finally {
-			setSaving(false);
+			setPending(null);
+		}
+	}
+
+	async function handleSubmit(event: SubmitEvent) {
+		event.preventDefault();
+
+		if (!canPublish()) return;
+
+		const current = toProfile(form());
+		const changes = changedProfileFields(toProfile(publishedForm()), current);
+		setFeedback('idle');
+		setPending('publish');
+
+		try {
+			await publishProfileChanges(changes);
+			setForm(toForm(current));
+			setSavedForm(toForm(current));
+			setPublishedForm(toForm(current));
+			setHasDraft(false);
+			setFeedback('published');
+		} catch {
+			// The API may answer with a raw English message (`Unauthorized`); the
+			// panel always answers in Spanish, like the subscribers view.
+			setFeedback('error');
+		} finally {
+			setPending(null);
+		}
+	}
+
+	async function confirmDiscard() {
+		if (pending() !== null) return;
+
+		setPending('discard');
+		setFeedback('idle');
+
+		try {
+			await discardProfileDraft();
+			setForm(publishedForm());
+			setSavedForm(publishedForm());
+			setHasDraft(false);
+			setConfirmingDiscard(false);
+			setFeedback('discarded');
+		} catch {
+			setFeedback('error');
+		} finally {
+			setPending(null);
 		}
 	}
 
@@ -333,9 +422,29 @@ export default function ProfileEditorPanel() {
 				</div>
 			</Show>
 
-			<Show when={status() === 'ready'}>
-				<form onSubmit={handleSubmit} class="flex flex-col gap-8">
-					<section aria-labelledby="perfil-identidad" class="border border-border bg-card p-6">
+		<Show when={status() === 'ready'}>
+			<form onSubmit={handleSubmit} class="flex flex-col gap-8">
+				<Show when={hasDraft()}>
+					<div
+						role="note"
+						class="flex flex-wrap items-center gap-4 border border-border bg-card px-6 py-4"
+					>
+						<p class="flex items-center gap-2 text-sm text-foreground">
+							<span class="size-1.5 rounded-full bg-aka" aria-hidden="true" />
+							Tenés un borrador sin publicar. La web sigue mostrando el perfil publicado.
+						</p>
+						<button
+							type="button"
+							disabled={pending() !== null}
+							onClick={() => setConfirmingDiscard(true)}
+							class="ml-auto inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-3 text-[12px] font-medium text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60"
+						>
+							Descartar borrador
+						</button>
+					</div>
+				</Show>
+
+				<section aria-labelledby="perfil-identidad" class="border border-border bg-card p-6">
 						<h2 id="perfil-identidad" class="text-[11px] font-medium tracking-[0.25em] text-muted-foreground">
 							IDENTIDAD
 						</h2>
@@ -553,27 +662,98 @@ export default function ProfileEditorPanel() {
 						</div>
 					</section>
 
-					<div class="flex flex-wrap items-center gap-4 border-t border-border pt-6">
-						<button
-							type="submit"
-							disabled={saving()}
-							class="inline-flex h-11 items-center justify-center rounded-md bg-foreground px-6 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-[#fdf8ee] disabled:cursor-not-allowed disabled:opacity-60"
-						>
-							{saving() ? 'Guardando…' : 'Guardar cambios'}
-						</button>
-						<Show when={feedback() === 'saved'}>
-							<p role="status" class="flex items-center gap-2 text-sm text-foreground">
-								<span class="size-1.5 rounded-full bg-aka" aria-hidden="true" />
-								Perfil guardado. La web ya muestra los cambios.
-							</p>
-						</Show>
-						<Show when={feedback() === 'error'}>
-							<p role="alert" class="text-sm text-destructive">
-								No pudimos guardar el perfil. Inténtalo de nuevo en unos minutos.
-							</p>
-						</Show>
-					</div>
+				<div class="flex flex-wrap items-center gap-4 border-t border-border pt-6">
+					<button
+						type="button"
+						disabled={!canSaveDraft()}
+						onClick={(event) => void saveDraft(event)}
+						class="inline-flex h-11 items-center justify-center rounded-md border border-border bg-card px-6 text-sm font-medium transition-colors hover:border-aka hover:text-aka disabled:cursor-not-allowed disabled:opacity-60"
+					>
+						{pending() === 'draft' ? 'Guardando el borrador…' : 'Guardar borrador'}
+					</button>
+					<button
+						type="submit"
+						disabled={!canPublish()}
+						class="inline-flex h-11 items-center justify-center rounded-md bg-foreground px-6 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-[#fdf8ee] disabled:cursor-not-allowed disabled:opacity-60"
+					>
+						{pending() === 'publish' ? 'Publicando…' : 'Publicar'}
+					</button>
+					<Show when={feedback() === 'draftSaved'}>
+						<p role="status" class="flex items-center gap-2 text-sm text-foreground">
+							<span class="size-1.5 rounded-full bg-aka" aria-hidden="true" />
+							Borrador guardado. La web sigue mostrando el perfil publicado.
+						</p>
+					</Show>
+					<Show when={feedback() === 'published'}>
+						<p role="status" class="flex items-center gap-2 text-sm text-foreground">
+							<span class="size-1.5 rounded-full bg-aka" aria-hidden="true" />
+							Perfil publicado. La web ya muestra los cambios.
+						</p>
+					</Show>
+					<Show when={feedback() === 'discarded'}>
+						<p role="status" class="flex items-center gap-2 text-sm text-foreground">
+							<span class="size-1.5 rounded-full bg-muted-foreground" aria-hidden="true" />
+							Borrador descartado. El formulario volvió al perfil publicado.
+						</p>
+					</Show>
+					<Show when={feedback() === 'error'}>
+						<p role="alert" class="text-sm text-destructive">
+							No pudimos guardar el perfil. Inténtalo de nuevo en unos minutos.
+						</p>
+					</Show>
+				</div>
 				</form>
+			</Show>
+
+			{/*
+				The discard dialog stays mounted (hidden while closed) so the markup
+				is stable; it opens only from the banner's «Descartar borrador» and
+				never from a stray click.
+			*/}
+			<Show when={confirmingDiscard()}>
+				<div
+					class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
+					role="presentation"
+					onClick={(event) => {
+						if (event.target === event.currentTarget) setConfirmingDiscard(false);
+					}}
+				>
+					<div
+						role="alertdialog"
+						aria-modal="true"
+						aria-labelledby="perfil-discard-title"
+						aria-describedby="perfil-discard-description"
+						class="w-full max-w-md border border-border bg-card p-6 shadow-xl"
+					>
+						<p class="text-[11px] font-medium tracking-[0.3em] text-destructive">DESCARTAR BORRADOR</p>
+						<h2 id="perfil-discard-title" class="mt-2 font-mincho text-2xl font-semibold tracking-tight">
+							¿Descartar el borrador?
+						</h2>
+						<p id="perfil-discard-description" class="mt-3 text-sm leading-relaxed text-muted-foreground">
+							Los cambios guardados en el borrador se pierden por completo, la web sigue mostrando el
+							perfil publicado y la acción no se puede deshacer.
+						</p>
+
+						<div class="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
+							<button
+								type="button"
+								disabled={pending() === 'discard'}
+								onClick={() => void confirmDiscard()}
+								class="inline-flex h-10 items-center justify-center rounded-md border border-destructive/50 bg-destructive/10 px-5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:cursor-not-allowed disabled:opacity-60"
+							>
+								{pending() === 'discard' ? 'Descartando…' : 'Descartar'}
+							</button>
+							<button
+								type="button"
+								disabled={pending() === 'discard'}
+								onClick={() => setConfirmingDiscard(false)}
+								class="ml-auto inline-flex h-10 items-center justify-center rounded-md border border-border bg-card px-5 text-sm font-medium transition-colors hover:border-aka hover:text-aka disabled:cursor-not-allowed disabled:opacity-60"
+							>
+								Cancelar
+							</button>
+						</div>
+					</div>
+				</div>
 			</Show>
 		</div>
 	);

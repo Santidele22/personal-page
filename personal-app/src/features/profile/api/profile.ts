@@ -1,5 +1,10 @@
-import { getJson } from '../../../shared/api/http';
-import { putJson } from '../../../shared/api/authorizedHttp';
+import {
+	deleteJson,
+	getJson,
+	postJson,
+	putJson,
+} from '../../../shared/api/authorizedHttp';
+import { getJson as publicGetJson } from '../../../shared/api/http';
 import { safeHref } from '../../../shared/api/url';
 import type { Profile, UpdateProfile } from '../types';
 
@@ -17,7 +22,7 @@ import type { Profile, UpdateProfile } from '../types';
  */
 export async function fetchProfile(serverOrigin?: string): Promise<Profile | null> {
 	try {
-		const profile = await getJson<Profile>('/profile', { serverOrigin });
+		const profile = await publicGetJson<Profile>('/profile', { serverOrigin });
 
 		return {
 			...profile,
@@ -37,6 +42,38 @@ export async function fetchProfile(serverOrigin?: string): Promise<Profile | nul
  */
 export function updateProfile(body: UpdateProfile): Promise<void> {
 	return putJson('/profile', body);
+}
+
+/** The saved draft of the panel editor, `null` when there is none. */
+export function fetchProfileDraft(): Promise<Profile | null> {
+	return getJson<Profile | null>('/profile/draft');
+}
+
+/**
+ * Saves the changed fields as a draft: the backend merges them over the
+ * stored draft (or the published profile). The mutation helper answers
+ * nothing, so the caller refreshes the draft read again to get the merged
+ * snapshot — `null` means the merge ended up equal to the published profile
+ * and the draft was cleared. Errors surface through the shared helper.
+ */
+export async function saveProfileDraft(body: UpdateProfile): Promise<Profile | null> {
+	await putJson('/profile/draft', body);
+
+	return fetchProfileDraft();
+}
+
+/**
+ * Publishes the changed fields to the singleton (`POST /profile/publish`)
+ * and clears the stored draft in the same call. The public read never serves
+ * the draft, so nothing becomes visible until this call succeeds.
+ */
+export function publishProfileChanges(body: UpdateProfile): Promise<void> {
+	return postJson('/profile/publish', body);
+}
+
+/** Discards the stored draft; the published profile stays untouched. */
+export function discardProfileDraft(): Promise<void> {
+	return deleteJson('/profile/draft');
 }
 
 export function changedProfileFields(previous: Profile, current: Profile): UpdateProfile {
