@@ -44,7 +44,7 @@ export default function ProjectPurchaseDialog(props: { projectName: string }) {
 						</div>
 						<button type="button" onClick={() => dialog?.close()} aria-label="Cerrar" class="text-xl text-muted-foreground hover:text-aka">×</button>
 					</div>
-					<p class="mt-4 text-sm leading-relaxed text-muted-foreground">Contame qué necesitás. Al continuar se abrirá tu aplicación de correo con el mensaje preparado.</p>
+					<p class="mt-4 text-sm leading-relaxed text-muted-foreground">Me encanta que te interese comprar este proyecto. Dejame tu mensaje y te respondo por email.</p>
 					<div class="mt-5 grid gap-4">
 						<label class="text-[11px] font-medium tracking-[0.2em] text-muted-foreground">
 							NOMBRE
