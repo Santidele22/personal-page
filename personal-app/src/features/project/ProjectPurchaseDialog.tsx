@@ -26,7 +26,7 @@ export default function ProjectPurchaseDialog(props: { projectName: string }) {
 			<button
 				type="button"
 				onClick={() => dialog?.showModal()}
-				class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline"
+				class="inline-flex cursor-pointer items-center gap-1.5 rounded-sm border border-aka/40 px-3 py-1.5 text-sm font-medium text-aka transition-colors hover:bg-aka hover:text-[#fdf8ee]"
 			>
 				Comprar
 			</button>

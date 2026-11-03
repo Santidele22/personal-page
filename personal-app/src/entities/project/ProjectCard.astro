@@ -30,7 +30,7 @@ const transitionName = `project-card-${transitionNameSlug(project.name)}`;
 	<ul class="mt-5 flex flex-wrap gap-1.5">
 		{project.stack.map((tech) => <li class="rounded-sm bg-secondary px-2 py-0.5 text-[11px] font-medium tracking-wide text-foreground/80">{tech}</li>)}
 	</ul>
-	<p class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-4">
+	<div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-4">
 		<a href={project.repoUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
 			<Icon name="github" class="size-4" />
 			Código
@@ -42,5 +42,5 @@ const transitionName = `project-card-${transitionNameSlug(project.name)}`;
 			</a>
 		)}
 		{project.forSale && <ProjectPurchaseDialog projectName={project.name} client:load />}
-	</p>
+	</div>
 </article>

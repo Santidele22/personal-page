@@ -72,7 +72,7 @@ const rest = projectCards.filter((project) => project !== featured);
 					<ul class="mt-5 flex flex-wrap gap-1.5">
 						{featured.stack.map((tech) => <li class="rounded-sm bg-secondary px-2 py-0.5 text-[11px] font-medium tracking-wide text-foreground/80">{tech}</li>)}
 					</ul>
-					<p class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-4">
+					<div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-4">
 						{featured.repoUrl && (
 							<a href={featured.repoUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
 								<Icon name="github" class="size-4" />
@@ -86,7 +86,7 @@ const rest = projectCards.filter((project) => project !== featured);
 							</a>
 						)}
 						{featured.forSale && <ProjectPurchaseDialog projectName={featured.name} client:load />}
-					</p>
+					</div>
 				</div>
 			</article>
 			</Reveal>
