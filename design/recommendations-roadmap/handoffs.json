@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "chosen": "03-network-graph.html",
+  "handoffs": {
+    "02-bento-stepper.html": {
+      "status": "in_progress",
+      "queued": false,
+      "sentAt": "2026-11-06T19:21:19.445Z",
+      "startedAt": "2026-11-06T19:35:51.680Z",
+      "implementedAt": null,
+      "note": "Implementación iniciada: widget Recommendations (bento) después de About, datos administrables con fallback."
+    },
+    "03-network-graph.html": {
+      "status": "in_progress",
+      "queued": false,
+      "sentAt": "2026-11-06T19:21:26.876Z",
+      "startedAt": "2026-11-06T19:35:51.694Z",
+      "implementedAt": null,
+      "note": "Implementación iniciada: página /roadmap con grafo SVG, datos administrables con fallback."
+    }
+  }
+}

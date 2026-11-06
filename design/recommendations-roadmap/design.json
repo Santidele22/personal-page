@@ -1,0 +1,27 @@
+{
+  "title": "Recomendaciones LinkedIn + roadmap backend/web3",
+  "brief": "Dos secciones nuevas para la home de la página personal: (1) recomendaciones traídas de LinkedIn (ejemplo real: CTO de tokenización fintech/crypto) y (2) una hoja de ruta de progreso como backend → web3 developer, con nodos y aristas visibles.",
+  "artboards": [
+    {
+      "file": "01-editorial-sumi.html",
+      "title": "Editorial sumi",
+      "tradeoff": "Citas grandes en mincho con sellos hanko y timeline vertical con arista madre; máxima legibilidad y serenidad, pero el roadmap ocupa mucho alto y no muestra bifurcaciones.",
+      "width": 1440,
+      "height": 2600
+    },
+    {
+      "file": "02-bento-stepper.html",
+      "title": "Bento (elegida: recomendaciones en home)",
+      "tradeoff": "Dirección elegida para la home: recomendación destacada en bento con dos laterales; denso y escaneable. La hoja de ruta se movió a su propia página /roadmap (artboard 03), así que el stepper horizontal salió de la home.",
+      "width": 1440,
+      "height": 1200
+    },
+    {
+      "file": "03-network-graph.html",
+      "title": "Grafo de ruta (página /roadmap)",
+      "tradeoff": "Dirección elegida para la hoja de ruta: página propia /roadmap con nav, hero, grafo SVG con ramas backend/cloud/web3 que convergen, tarjetas 'Ahora' y próximos hitos (las recomendaciones de la home están en el artboard 02). Es la visión más fiel a 'aristas y demás' y le da aire al grafo, a cambio de una página extra en el nav y el grafo más costoso de mantener y hacer responsive.",
+      "width": 1440,
+      "height": 2300
+    }
+  ]
+}

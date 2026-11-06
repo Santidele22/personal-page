@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>03 — Grafo de ruta (roadmap en página aparte)</title>
+<style>
+  :root {
+    --radius: 0.375rem;
+    --background: #f4efe4; --foreground: #23201a; --card: #fbf8f0;
+    --secondary: #ece5d4; --muted: #ebe4d2; --muted-foreground: #6f6657;
+    --accent: #e9e1cd; --border: #ddd2bc;
+    --aka: #c73e3a; --aka-deep: #a02f2b; --ink-soft: #57503f;
+  }
+  .dark {
+    --background: #14110d; --foreground: #eae3d3; --card: #1c1812;
+    --secondary: #241f17; --muted: #231e16; --muted-foreground: #a29681;
+    --accent: #2a241a; --border: #322b20;
+    --aka: #d95448; --aka-deep: #c73e3a; --ink-soft: #b3a78e;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--background); color: var(--foreground);
+    font-family: 'Zen Kaku Gothic New','Hiragino Kaku Gothic ProN','Yu Gothic',system-ui,sans-serif;
+    font-feature-settings: "palt" 1;
+  }
+  body::after {
+    content: ""; position: fixed; inset: 0; z-index: 40; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+  }
+  .mincho { font-family: 'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif; }
+  .mono { font-family: 'Geist Mono',ui-monospace,'SF Mono',monospace; }
+  .container { max-width: 1152px; margin: 0 auto; padding: 0 32px; }
+  section { padding: 96px 0; }
+  .band { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: color-mix(in oklab, var(--secondary) 40%, transparent); }
+  .aka { color: var(--aka); }
+  .eyebrow { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; letter-spacing: 0.25em; text-transform: uppercase; color: var(--muted-foreground); }
+  .eyebrow svg { width: 16px; height: 16px; color: var(--aka); }
+  h2 { margin-top: 12px; font-size: 34px; font-weight: 600; letter-spacing: -0.02em; }
+  .lede { margin-top: 16px; font-size: 15px; line-height: 1.7; color: var(--muted-foreground); max-width: 640px; }
+  .head-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+  .link-all { font-size: 14px; color: var(--muted-foreground); text-decoration: none; transition: .2s; }
+  .link-all:hover { color: var(--aka); }
+
+  /* ── Anotaciones de canvas (no son UI del sitio) ────── */
+  .page-tag {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 32px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted-foreground); border-bottom: 1px dashed var(--border);
+  }
+  .page-tag b { font-weight: 600; color: var(--aka); }
+  .page-tag .mono { letter-spacing: 0.05em; }
+
+  /* ── Nav del sitio (mock para contexto de página) ───── */
+  .sitenav { border-bottom: 1px solid var(--border); background: color-mix(in oklab, var(--background) 85%, transparent); }
+  .sitenav .container { display: flex; align-items: center; gap: 32px; height: 64px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; }
+  .hanko { display: inline-flex; align-items: center; justify-content: center; background: var(--aka); color: #fdf8ee; font-weight: 600; box-shadow: 0 1px 0 0 rgb(0 0 0 / .15) inset; }
+  .brand .hanko { width: 30px; height: 30px; font-size: 10px; }
+  .sitenav nav { display: flex; gap: 26px; margin-left: auto; }
+  .sitenav nav a { font-size: 14px; color: var(--muted-foreground); text-decoration: none; padding: 4px 0; border-bottom: 2px solid transparent; transition: .2s; }
+  .sitenav nav a:hover { color: var(--aka); }
+  .sitenav nav a.active { color: var(--foreground); border-bottom-color: var(--aka); }
+
+  /* ── Página /roadmap ─────────────────────────────────── */
+  .page-hero { padding: 80px 0 0; }
+  .page-hero h1 { margin-top: 12px; font-size: 44px; font-weight: 600; letter-spacing: -0.02em; }
+  .overall { margin-top: 36px; display: flex; align-items: center; gap: 20px; }
+  .overall .pct { font-size: 44px; font-weight: 600; letter-spacing: -0.02em; }
+  .overall .bar { flex: 1; height: 4px; background: var(--muted); position: relative; }
+  .overall .bar i { position: absolute; inset: 0; width: 54%; background: var(--aka); }
+  .overall .of { font-size: 13px; color: var(--muted-foreground); }
+
+  .graph-wrap { margin-top: 56px; border: 1px solid var(--border); background: var(--card); padding: 32px 20px 8px; }
+  .graph { width: 100%; height: auto; display: block; }
+  .edge { stroke: var(--border); stroke-width: 2; fill: none; }
+  .edge.done { stroke: var(--aka); }
+  .edge.live { stroke: var(--aka); stroke-dasharray: 10 8; animation: flow 1.2s linear infinite; }
+  .edge.future { stroke: var(--border); stroke-dasharray: 4 6; }
+  @keyframes flow { to { stroke-dashoffset: -18; } }
+  .node-ring { fill: var(--card); stroke-width: 2.5; }
+  .node-fill { fill: var(--aka); }
+  .node-pct { fill: none; stroke: var(--aka); stroke-width: 3; transform: rotate(-90deg); transform-origin: center; transform-box: fill-box; }
+  .node-label { font-family: 'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif; font-weight: 600; fill: var(--foreground); }
+  .node-sub { fill: var(--muted-foreground); font-size: 11px; }
+  .check { stroke: #fdf8ee; stroke-width: 3; fill: none; }
+
+  .legend { display: flex; gap: 28px; padding: 20px 20px 16px; font-size: 12px; color: var(--muted-foreground); flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .legend b { width: 12px; height: 12px; display: inline-block; }
+
+  .now-strip { margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .now-card { border: 1px solid var(--border); background: var(--card); padding: 20px 24px; display: flex; align-items: center; gap: 18px; transition: border-color .2s; }
+  .now-card:hover { border-color: color-mix(in oklab, var(--aka) 60%, transparent); }
+  .now-card .ring { font-size: 24px; font-weight: 600; color: var(--aka); flex: none; }
+  .now-card h3 { font-size: 16px; font-weight: 600; }
+  .now-card p { font-size: 13px; color: var(--muted-foreground); margin-top: 4px; line-height: 1.6; }
+  .now-card .pbar { flex: 1; height: 3px; background: var(--muted); position: relative; margin-top: 12px; }
+  .now-card .pbar i { position: absolute; inset: 0; background: var(--aka); }
+
+  .milestones { margin-top: 64px; }
+  .milestones h2 { font-size: 26px; }
+  .milestones ol { margin-top: 28px; list-style: none; }
+  .milestones li { display: grid; grid-template-columns: 120px 1fr auto; gap: 24px; align-items: baseline; padding: 18px 0; border-top: 1px solid var(--border); }
+  .milestones .q { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; color: var(--aka); }
+  .milestones .what { font-size: 15px; line-height: 1.6; }
+  .milestones .what small { display: block; margin-top: 4px; font-size: 13px; color: var(--muted-foreground); }
+  .milestones .st { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; border-radius: 3px; padding: 3px 8px; background: var(--secondary); color: var(--muted-foreground); }
+  .milestones .st.now { background: color-mix(in oklab, var(--aka) 12%, transparent); color: var(--aka); }
+
+  .toggle { position: fixed; top: 16px; right: 16px; z-index: 50; border: 1px solid var(--border); background: var(--card); color: var(--foreground); border-radius: 6px; padding: 8px 14px; font-size: 12px; cursor: pointer; }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+</style>
+</head>
+<body>
+<button class="toggle" onclick="document.documentElement.classList.toggle('dark')">◐ dark</button>
+
+<!-- ════════ PÁGINA PROPIA: /roadmap ════════ -->
+<p class="page-tag"><b>Página propia</b> · Ruta <span class="mono">/roadmap</span> · la hoja de ruta NO vive en la home; se entra desde el nav · las recomendaciones de la home están en el artboard 02 (bento elegido)</p>
+
+<header class="sitenav">
+  <div class="container">
+    <span class="brand"><span class="hanko mono">&lt;/&gt;</span> Santiago</span>
+    <nav aria-label="Navegación principal (mock)">
+      <a href="#">Blog</a>
+      <a href="#">Proyectos</a>
+      <a href="#" class="active" aria-current="page">Roadmap</a>
+      <a href="#">Contacto</a>
+    </nav>
+  </div>
+</header>
+
+<div class="page-hero">
+  <div class="container">
+    <p class="eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/><path d="M7 17L17 7"/></svg>Hoja de ruta</p>
+    <h1 class="mincho">Backend → Web3, en progreso<span class="aka">.</span></h1>
+    <p class="lede">Mi camino como grafo: cada nodo es una etapa y cada arista una dependencia real. El tronco backend se bifurca hacia cloud y web3, y vuelve a converger en la especialización.</p>
+    <div class="overall">
+      <span class="pct mincho">54<span class="aka">%</span></span>
+      <span class="bar" role="img" aria-label="Progreso total: 54%"><i></i></span>
+      <span class="of">2 de 7 etapas completadas · 2 en curso</span>
+    </div>
+  </div>
+</div>
+
+<section aria-label="Grafo del roadmap" style="padding-top:0">
+  <div class="container">
+    <div class="graph-wrap">
+      <svg class="graph" viewBox="0 0 1120 560" role="img" aria-label="Grafo del roadmap: Fundamentos y Backend I completados; Backend II y Web3 I en progreso; Cloud, Web3 II y Especialización pendientes.">
+        <!-- aristas -->
+        <path class="edge done"   d="M120 300 H232"/>
+        <path class="edge done"   d="M328 300 H440"/>
+        <path class="edge live"   d="M536 300 C 590 300, 590 140, 648 140"/>
+        <path class="edge live"   d="M536 300 C 590 300, 590 450, 648 450"/>
+        <path class="edge future" d="M764 450 H856"/>
+        <path class="edge future" d="M744 140 C 800 140, 820 300, 960 292"/>
+        <path class="edge future" d="M952 450 C 990 450, 980 316, 1004 308"/>
+
+        <!-- nodo: Fundamentos (done) -->
+        <g>
+          <circle class="node-fill" cx="88" cy="300" r="32"/>
+          <path class="check" d="M76 300 l8 8 l16 -16"/>
+          <text class="node-label" x="88" y="364" text-anchor="middle" font-size="16">Fundamentos</text>
+          <text class="node-sub" x="88" y="382" text-anchor="middle">TypeScript · Node · HTTP</text>
+        </g>
+        <!-- nodo: Backend I (done) -->
+        <g>
+          <circle class="node-fill" cx="280" cy="300" r="32"/>
+          <path class="check" d="M268 300 l8 8 l16 -16"/>
+          <text class="node-label" x="280" y="364" text-anchor="middle" font-size="16">Backend I</text>
+          <text class="node-sub" x="280" y="382" text-anchor="middle">NestJS · PostgreSQL · JWT</text>
+        </g>
+        <!-- nodo: Backend II (now 60%) -->
+        <g>
+          <circle class="node-ring" cx="488" cy="300" r="32" stroke="var(--aka)"/>
+          <circle class="node-pct" cx="488" cy="300" r="38" stroke-dasharray="238.8" stroke-dashoffset="95.5"/>
+          <text class="node-label" x="488" y="306" text-anchor="middle" font-size="13" fill="var(--aka)">60%</text>
+          <text class="node-label" x="488" y="364" text-anchor="middle" font-size="16">Backend II</text>
+          <text class="node-sub" x="488" y="382" text-anchor="middle">Arquitectura · Redis · CI/CD</text>
+        </g>
+        <!-- nodo: Cloud & DevOps (next) -->
+        <g>
+          <circle class="node-ring" cx="696" cy="140" r="32" stroke="var(--border)"/>
+          <text class="node-sub" x="696" y="145" text-anchor="middle" font-size="13">05</text>
+          <text class="node-label" x="696" y="76" text-anchor="middle" font-size="16">Cloud &amp; DevOps</text>
+          <text class="node-sub" x="696" y="94" text-anchor="middle">AWS · GCP · Terraform</text>
+        </g>
+        <!-- nodo: Web3 I (now 45%) -->
+        <g>
+          <circle class="node-ring" cx="696" cy="450" r="32" stroke="var(--aka)"/>
+          <circle class="node-pct" cx="696" cy="450" r="38" stroke-dasharray="238.8" stroke-dashoffset="131.3"/>
+          <text class="node-label" x="696" y="456" text-anchor="middle" font-size="13" fill="var(--aka)">45%</text>
+          <text class="node-label" x="696" y="514" text-anchor="middle" font-size="16">Web3 I</text>
+          <text class="node-sub" x="696" y="532" text-anchor="middle">Solidity · EVM · ERC-20/721</text>
+        </g>
+        <!-- nodo: Web3 II (next) -->
+        <g>
+          <circle class="node-ring" cx="904" cy="450" r="32" stroke="var(--border)"/>
+          <text class="node-sub" x="904" y="455" text-anchor="middle" font-size="13">06</text>
+          <text class="node-label" x="904" y="514" text-anchor="middle" font-size="16">Web3 II</text>
+          <text class="node-sub" x="904" y="532" text-anchor="middle">Rust · Auditorías · L2</text>
+        </g>
+        <!-- nodo: Especialización (future) -->
+        <g>
+          <circle class="node-ring" cx="1020" cy="300" r="32" stroke="var(--border)" stroke-dasharray="5 5"/>
+          <text class="node-sub" x="1020" y="305" text-anchor="middle" font-size="13">07</text>
+          <text class="node-label" x="1020" y="236" text-anchor="middle" font-size="16">Especialización</text>
+          <text class="node-sub" x="1020" y="254" text-anchor="middle">ZK · Indexadores</text>
+        </g>
+      </svg>
+
+      <div class="legend">
+        <span><b style="background:var(--aka)"></b> Completada</span>
+        <span><b style="border:2px solid var(--aka);background:transparent;border-radius:50%"></b> En progreso (el anillo marca el %)</span>
+        <span><b style="border:2px solid var(--border);background:transparent;border-radius:50%"></b> Próxima</span>
+        <span><b style="background:repeating-linear-gradient(90deg,var(--aka) 0 4px,transparent 4px 7px)"></b> Arista activa</span>
+      </div>
+    </div>
+
+    <div class="now-strip">
+      <div class="now-card">
+        <span class="ring mincho">60%</span>
+        <div style="flex:1">
+          <h3 class="mincho">Ahora: Backend II</h3>
+          <p>Arquitectura hexagonal, colas con Redis y pipelines de CI/CD.</p>
+          <span class="pbar"><i style="width:60%"></i></span>
+        </div>
+      </div>
+      <div class="now-card">
+        <span class="ring mincho">45%</span>
+        <div style="flex:1">
+          <h3 class="mincho">Ahora: Web3 I</h3>
+          <p>Emisión y gestión de activos tokenizados con Solidity y ethers.js.</p>
+          <span class="pbar"><i style="width:45%"></i></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="milestones">
+      <p class="eyebrow" style="margin-bottom:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15l4-4 4 4 8-8"/></svg>Próximos hitos</p>
+      <h2 class="mincho">Lo que sigue<span class="aka">.</span></h2>
+      <ol>
+        <li>
+          <span class="q">Q3 · 2026</span>
+          <span class="what">Cerrar Backend II<small>Proyecto propio con arquitectura hexagonal, deployado con CI/CD y tests de integración.</small></span>
+          <span class="st now">En curso</span>
+        </li>
+        <li>
+          <span class="q">Q4 · 2026</span>
+          <span class="what">Cerrar Web3 I<small>Dapp de tokenización completa: contrato ERC-20, frontend con ethers.js y backend de indexación.</small></span>
+          <span class="st now">En curso</span>
+        </li>
+        <li>
+          <span class="q">Q1 · 2027</span>
+          <span class="what">Arrancar Cloud &amp; DevOps<small>Infraestructura como código con Terraform sobre AWS y observabilidad básica.</small></span>
+          <span class="st">Planificado</span>
+        </li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

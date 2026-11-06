@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "comments": [
+    {
+      "id": "xv60vxub",
+      "file": "03-network-graph.html",
+      "selector": "body > section:nth-of-type(2)",
+      "excerpt": "HOJA DE RUTA Backend → Web3, en progreso. Mi camino como grafo: cada nodo es una etapa y cada arista una dependencia real. El tronco backend se bifurca hacia cloud y web3, y vuelve a converger en la especialización. FundamentosTypeScript · Node · HTTPBackend INestJS · PostgreSQL · JWT60%Backend IIAr",
+      "comment": "Me gusta mas este diseño, pero me gustaria que la hoja de ruta este en una pagina aparte. que no este dentro de la page principal.",
+      "createdAt": "2026-11-06T19:15:02.989Z",
+      "status": "resolved",
+      "sentAt": "2026-11-06T19:15:03.000Z",
+      "resolvedAt": "2026-11-06T19:16:51.227Z"
+    },
+    {
+      "id": "op4zwwra",
+      "file": "02-bento-stepper.html",
+      "selector": "body > section:nth-of-type(1)",
+      "excerpt": "RECOMENDACIONES Lo que dicen quienes trabajaron conmigo. Palabras de leads y colegas con los que construí producto en entornos fintech y crypto de alta exigencia. Ver perfil en LinkedIn ↗ “ Tengo la oportunidad de trabajar con Santiago como Full Stack Developer Jr. dentro del área de tokenizaciones,",
+      "comment": "Quedemosno con este bento",
+      "createdAt": "2026-11-06T19:15:18.891Z",
+      "status": "resolved",
+      "sentAt": "2026-11-06T19:15:18.894Z",
+      "resolvedAt": "2026-11-06T19:18:18.922Z"
+    }
+  ]
+}
