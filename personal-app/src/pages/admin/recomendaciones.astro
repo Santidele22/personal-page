@@ -1,0 +1,15 @@
+---
+import AdminLayout from '../../app/layouts/AdminLayout.astro';
+import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
+import RecommendationsEditorPanel from '../../features/recommendation/RecommendationsEditorPanel';
+---
+
+<AdminLayout active="recomendaciones" title="Panel · Recomendaciones — devlog">
+	<AdminPageHeader
+		eyebrow="PANEL · RECOMENDACIONES"
+		title="Lo que dicen de mi trabajo"
+		description="Las recomendaciones de LinkedIn que la home muestra después de Quién soy: cada fila guarda la cita, quién la firma, su rol, la relación, el link de LinkedIn y la posición. Se lee y se edita contra el backend, y la web lo refleja al recargar."
+	/>
+
+	<RecommendationsEditorPanel client:load />
+</AdminLayout>
