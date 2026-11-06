@@ -40,6 +40,8 @@ const CACHEABLE_PATHS = new Set([
 	'/brands',
 	'/projects',
 	'/certificates',
+	'/recommendations',
+	'/roadmap',
 ]);
 
 /**

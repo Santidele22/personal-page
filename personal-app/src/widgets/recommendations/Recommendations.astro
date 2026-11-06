@@ -1,0 +1,129 @@
+---
+import { LINKEDIN_URL } from '../../app/config/site';
+import { initialsFromName } from '../../entities/recommendation/format';
+import type { Recommendation } from '../../entities/recommendation/types';
+import { fetchRecommendations, recommendationsFallback } from '../../features/recommendation/api/recommendations';
+import { fetchProfile } from '../../features/profile/api/profile';
+import EmptyState from '../../shared/ui/EmptyState.astro';
+import Icon from '../../shared/ui/Icon.astro';
+import Reveal from '../../shared/ui/Reveal.astro';
+
+/* The recommendations are read while the server renders the page; the
+   fallback is the set this section ships with (S8). A reachable but empty
+   collection renders the empty state instead: the backend is then the only
+   source of truth. The header link follows the Contact pattern: the profile's
+   LinkedIn URL wins while the API answers, the site constant otherwise. */
+const serverOrigin = Astro.url.origin;
+const [profile, fetched] = await Promise.all([fetchProfile(serverOrigin), fetchRecommendations(serverOrigin)]);
+
+const recommendations = fetched ?? recommendationsFallback;
+const linkedinUrl = profile?.linkedinUrl || LINKEDIN_URL;
+
+/* The bento of artboard 02 (S4/S6): the first recommendation is the featured
+   card (3fr) and the rest stack in the side column (2fr); on mobile the grid
+   collapses to a single column. */
+const [featured, ...side] = recommendations;
+---
+
+<section id="recomendaciones" class="scroll-mt-20" aria-labelledby="recomendaciones-title">
+	<div class="mx-auto max-w-6xl px-5 py-16 sm:px-8 lg:py-24">
+		<Reveal>
+			<div class="flex flex-wrap items-end justify-between gap-4">
+				<div class="max-w-xl">
+					<p class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
+						<Icon name="handshake" class="size-4 text-aka" />
+						RECOMENDACIONES
+					</p>
+					<h2 id="recomendaciones-title" class="mt-3 font-mincho text-3xl font-semibold tracking-tight sm:text-4xl">Lo que dicen quienes trabajaron conmigo<span class="text-aka">.</span></h2>
+					<p class="mt-4 text-[15px] leading-relaxed text-muted-foreground">Palabras de leads y colegas con los que construí producto en entornos fintech y crypto de alta exigencia.</p>
+				</div>
+				<a
+					href={linkedinUrl}
+					target="_blank"
+					rel="noreferrer"
+					class="group inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-aka"
+				>
+					Ver perfil en LinkedIn
+					<Icon name="arrow-up-right" class="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+				</a>
+			</div>
+		</Reveal>
+		{/* An empty list renders the section without cards instead of falling
+		    back to the shipped copy: the backend is the only source of truth. */}
+		{recommendations.length === 0 && (
+			<Reveal delay={0.1} class="mt-10">
+				<EmptyState
+					icon="handshake"
+					title="Todavía no hay recomendaciones"
+					description="Cuando haya recomendaciones cargadas desde LinkedIn, acá vas a leer las palabras de quienes trabajaron conmigo."
+				/>
+			</Reveal>
+		)}
+		{featured && (
+			<div class="mt-10 grid gap-4 lg:grid-cols-[3fr_2fr]">
+				<Reveal class="h-full">
+					<article class="flex h-full flex-col border border-border bg-card p-7 transition-colors hover:border-aka/60 sm:p-8">
+						<span aria-hidden="true" class="font-mincho text-[56px] font-semibold leading-[0.6] text-aka">“</span>
+						<blockquote class="mt-5 flex-1 font-mincho text-[15px] leading-[1.75] text-ink-soft sm:text-[19px]">{featured.quote}</blockquote>
+						<footer class="mt-6 flex items-center gap-3 border-t border-border pt-4">
+							<span aria-hidden="true" class="hanko size-10 shrink-0 font-mincho text-[13px] font-semibold">{initialsFromName(featured.authorName)}</span>
+							<div class="min-w-0">
+								<p class="text-sm font-medium">{featured.authorName}</p>
+								<p class="text-xs text-muted-foreground">{featured.authorRole}</p>
+								{featured.relationship && (
+									<span class="mt-1.5 inline-block rounded-[3px] bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">{featured.relationship}</span>
+								)}
+							</div>
+							{featured.linkedinUrl && (
+								<a
+									href={featured.linkedinUrl}
+									target="_blank"
+									rel="noreferrer"
+									aria-label={`Ver la recomendación de ${featured.authorName} en LinkedIn`}
+									class="ml-auto inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-aka"
+								>
+									in
+									<Icon name="arrow-up-right" class="size-3.5" />
+								</a>
+							)}
+						</footer>
+					</article>
+				</Reveal>
+				{side.length > 0 && (
+					<div class="grid gap-4">
+						{side.map((recommendation: Recommendation, index: number) => (
+							<Reveal delay={0.1 * (index + 1)} class="h-full">
+								<article class="flex h-full flex-col border border-border bg-card p-7 transition-colors hover:border-aka/60">
+									<span aria-hidden="true" class="font-mincho text-[56px] font-semibold leading-[0.6] text-aka">“</span>
+									<blockquote class="mt-5 flex-1 font-mincho text-[15px] leading-[1.75] text-ink-soft">{recommendation.quote}</blockquote>
+									<footer class="mt-6 flex items-center gap-3 border-t border-border pt-4">
+										<span aria-hidden="true" class="hanko size-10 shrink-0 font-mincho text-[13px] font-semibold">{initialsFromName(recommendation.authorName)}</span>
+										<div class="min-w-0">
+											<p class="text-sm font-medium">{recommendation.authorName}</p>
+											<p class="text-xs text-muted-foreground">{recommendation.authorRole}</p>
+											{recommendation.relationship && (
+												<span class="mt-1.5 inline-block rounded-[3px] bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">{recommendation.relationship}</span>
+											)}
+										</div>
+										{recommendation.linkedinUrl && (
+											<a
+												href={recommendation.linkedinUrl}
+												target="_blank"
+												rel="noreferrer"
+												aria-label={`Ver la recomendación de ${recommendation.authorName} en LinkedIn`}
+												class="ml-auto inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-aka"
+											>
+												in
+												<Icon name="arrow-up-right" class="size-3.5" />
+											</a>
+										)}
+									</footer>
+								</article>
+							</Reveal>
+						))}
+					</div>
+				)}
+			</div>
+		)}
+	</div>
+</section>

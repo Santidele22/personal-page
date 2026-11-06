@@ -12,6 +12,7 @@ import Contact from '../widgets/contact/Contact.astro';
 import Hero from '../widgets/hero/Hero.astro';
 import Projects from '../widgets/projects/Projects.astro';
 import Reading from '../widgets/reading/Reading.astro';
+import Recommendations from '../widgets/recommendations/Recommendations.astro';
 import Services from '../widgets/services/Services.astro';
 
 /* The hero advertising band is composed while the server renders the page.
@@ -34,6 +35,7 @@ const bands = composeAdBands({ plans, brands, now: new Date() });
 	</Reveal>
 	<Blog />
 	<About />
+	<Recommendations />
 	<Projects />
 	<Reading />
 	<Certificates />
