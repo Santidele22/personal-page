@@ -18,6 +18,7 @@ export const NAV_LINKS: NavLink[] = [
 	{ href: '/#diario', label: 'Diario' },
 	{ href: '/#quien-soy', label: 'Quién soy' },
 	{ href: '/#proyectos', label: 'Proyectos' },
+	{ href: '/roadmap', label: 'Roadmap' },
 	{ href: '/#servicios', label: 'Servicios' },
 	{ href: '/marcas', label: 'Marcas' },
 ];
