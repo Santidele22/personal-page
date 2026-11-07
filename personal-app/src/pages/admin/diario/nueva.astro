@@ -1,0 +1,12 @@
+---
+import EditorLayout from '../../../app/layouts/EditorLayout.astro';
+import DiarioEditorPage from '../../../widgets/diario-editor/DiarioEditorPage';
+
+/* Full-page diario editor, create mode (design artboard 02). The island
+   loads nothing on the server render: drafts need the browser admin session,
+   and the middleware already answered the auth gate before this page. */
+---
+
+<EditorLayout title="Panel · Diario — Nueva entrada">
+	<DiarioEditorPage client:load />
+</EditorLayout>

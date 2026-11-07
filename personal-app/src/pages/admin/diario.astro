@@ -29,15 +29,15 @@ if (serverOrigin) {
 		title="Entradas"
 		description="El archivo del diario, leído del backend: lo publicado y cómo lo lee la gente. Escribir despacio también es decidir qué no se publica."
 	>
-		<button
-			type="button"
+		<a
 			slot="action"
 			id="nueva-entrada"
+			href="/admin/diario/nueva"
 			class="inline-flex items-center gap-2 rounded-md bg-foreground px-5 py-3 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-[#fdf8ee]"
 		>
 			<Icon name="plus" class="size-4" strokeWidth={2} />
 			Nueva entrada
-		</button>
+		</a>
 	</AdminPageHeader>
 
 	{/*

@@ -1,0 +1,38 @@
+---
+import { Font } from 'astro:assets';
+import ThemeScript from '../../shared/ui/ThemeScript.astro';
+import '../styles/global.css';
+
+/**
+ * Chrome-less full-bleed layout for the dedicated diario editor routes
+ * (design artboard 02: the editor lives outside the AdminLayout sidebar and
+ * its `max-w-6xl`, at 100% of the viewport). Same head contract as the admin
+ * pages — admin fonts, theme script and noindex.
+ */
+
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="robots" content="noindex" />
+		<title>{title}</title>
+		<Font cssVariable="--font-shippori" preload />
+		<Font cssVariable="--font-zen" preload />
+		<Font cssVariable="--font-geist-mono" />
+		<ThemeScript />
+	</head>
+	<body class="bg-background font-sans text-foreground antialiased">
+		<slot />
+	</body>
+</html>

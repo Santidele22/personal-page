@@ -1,23 +1,25 @@
 import { createSignal, For, onCleanup, onMount, Show } from 'solid-js';
 import { toDiarioPosts } from '../../entities/admin/adapter';
 import type { AdminSummaryStat, ApiBlog } from '../../entities/admin/types';
-import { fetchBlogs } from '../../features/admin/api/collections';
-import { createBlogEntry, deleteBlogEntry, updateBlogEntry } from '../../features/admin/api/diario';
+import { deleteBlogEntry, updateBlogEntry } from '../../features/admin/api/diario';
 import { loadDiarioPanel } from '../../features/admin/api/dashboards';
 
 /**
- * Diario panel island (issue 29). The published table stays server-rendered in
- * the page; this island owns everything the server render cannot know because
- * it needs the browser admin credential: the drafts read, the live summary with
- * the real draft count, and the writing modal.
+ * Diario panel island (issue 29). The published table stays server-rendered
+ * in the page; this island owns everything the server render cannot know
+ * because it needs the browser admin credential: the drafts read and the live
+ * summary with the real draft count.
  *
- * The page's "+ Nueva entrada" button lives in the server-rendered header, so
- * the island binds to it on mount. Every mutation reloads the page, which keeps
- * the server table and this island honest with storage on the same pass.
+ * Writing moved to dedicated full-page routes (design artboard 02):
+ * «+ Nueva entrada» and every row «Editar» navigate to
+ * `/admin/diario/nueva` / `/admin/diario/<id>`; this island keeps the drafts
+ * table, the row «Publicar» shortcut and the delete confirm dialog. Every
+ * mutation reloads the page, which keeps the server table and this island
+ * honest with storage on the same pass.
  */
 
 type Status = 'loading' | 'ready' | 'error';
-type ModalMode = 'create' | 'edit';
+/** `null` = no mutation in flight; the drafts row and the confirm dialog share it. */
 type Pending = 'draft' | 'publish' | 'row' | null;
 
 /** The entry waiting on the confirm dialog; `id` is the only mandatory handle. */
@@ -27,47 +29,12 @@ type DeleteTarget = {
 	isPublished: boolean;
 };
 
-type FormState = {
-	title: string;
-	description: string;
-	content: string;
-	/** `yyyy-mm-dd`; empty means "save as draft". */
-	pubDate: string;
-};
-
-const EMPTY_FORM: FormState = { title: '', description: '', content: '', pubDate: '' };
-
-/** Server-rendered button in `pages/admin/diario.astro`. */
-const TRIGGER_ID = 'nueva-entrada';
-
-/**
- * Document event the server-rendered published table publishes from its «Editar»
- * action (`widgets/admin/AdminPostTable.astro`). It lets that button reach this
- * island's modal without the table importing the island; the payload is the row
- * id, the only handle the server render carries.
- */
-const OPEN_EDITOR_EVENT = 'diario:open-editor';
-
-/**
- * Document event the server-rendered published table publishes from its
- * «Eliminar» action. Deleting is irreversible, so the island takes the request
- * and requires an explicit confirmation dialog before it calls the API; the
- * table itself never deletes anything.
- */
-const REQUEST_DELETE_EVENT = 'diario:request-delete';
-
 const DOT_CLASS: Record<AdminSummaryStat['dot'], string> = {
 	neutral: 'bg-foreground/60',
 	hollow: 'border border-muted-foreground',
 	aka: 'bg-aka',
 };
 
-const labelClass = 'block text-[11px] font-medium tracking-[0.2em] text-muted-foreground';
-const inputClass =
-	'w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-aka focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring';
-const hintClass = 'mt-1.5 text-[11px] leading-relaxed text-muted-foreground';
-const primaryButtonClass =
-	'inline-flex h-10 items-center justify-center rounded-md bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-[#fdf8ee] disabled:cursor-not-allowed disabled:opacity-60';
 const secondaryButtonClass =
 	'inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-3 text-[12px] font-medium transition-colors hover:border-aka hover:text-aka disabled:cursor-not-allowed disabled:opacity-60';
 const badgeClass =
@@ -82,59 +49,9 @@ function todayIso(): string {
 	return new Date().toISOString().slice(0, 10);
 }
 
-function sameForm(a: FormState, b: FormState): boolean {
-	return a.title === b.title && a.description === b.description && a.content === b.content && a.pubDate === b.pubDate;
-}
-
-/** The API message when there is one; the modal would rather show it raw. */
+/** The API message when there is one; the panel would rather show it raw. */
 function messageFrom(cause: unknown): string {
 	return cause instanceof Error && cause.message ? cause.message : '';
-}
-
-type FieldProps = {
-	id: string;
-	label: string;
-	value: string;
-	hint?: string;
-	placeholder?: string;
-	multiline?: boolean;
-	rows?: number;
-	type?: 'text' | 'date';
-	onInput: (value: string) => void;
-};
-
-/** One labelled input/textarea, shared by the modal fields. */
-function Field(props: FieldProps) {
-	return (
-		<div>
-			<label for={props.id} class={labelClass}>
-				{props.label}
-			</label>
-			<Show
-				when={props.multiline}
-				fallback={
-					<input
-						id={props.id}
-						type={props.type ?? 'text'}
-						value={props.value}
-						placeholder={props.placeholder}
-						onInput={(event) => props.onInput(event.currentTarget.value)}
-						class={`${inputClass} mt-2`}
-					/>
-				}
-			>
-				<textarea
-					id={props.id}
-					rows={props.rows ?? 4}
-					value={props.value}
-					placeholder={props.placeholder}
-					onInput={(event) => props.onInput(event.currentTarget.value)}
-					class={`${inputClass} mt-2 resize-y leading-relaxed`}
-				/>
-			</Show>
-			{props.hint && <p class={hintClass}>{props.hint}</p>}
-		</div>
-	);
 }
 
 export default function DiarioEditorPanel() {
@@ -144,13 +61,7 @@ export default function DiarioEditorPanel() {
 	const [loadDetail, setLoadDetail] = createSignal('');
 	const [actionError, setActionError] = createSignal('');
 
-	const [open, setOpen] = createSignal(false);
-	const [mode, setMode] = createSignal<ModalMode>('create');
-	const [editingId, setEditingId] = createSignal<number | null>(null);
-	const [baseline, setBaseline] = createSignal<FormState>(EMPTY_FORM);
-	const [form, setForm] = createSignal<FormState>(EMPTY_FORM);
 	const [pending, setPending] = createSignal<Pending>(null);
-	const [modalError, setModalError] = createSignal('');
 	const [deleteTarget, setDeleteTarget] = createSignal<DeleteTarget | null>(null);
 	const [deleting, setDeleting] = createSignal(false);
 	const [deleteError, setDeleteError] = createSignal('');
@@ -177,30 +88,15 @@ export default function DiarioEditorPanel() {
 	onMount(() => {
 		void load();
 
-		const trigger = document.getElementById(TRIGGER_ID);
-		const onTrigger = () => openCreate();
-		trigger?.addEventListener('click', onTrigger);
-
 		const onKey = (event: KeyboardEvent) => {
 			if (event.key !== 'Escape') return;
 
 			if (deleting()) return;
 			if (deleteTarget() !== null) {
 				closeDelete();
-				return;
 			}
-			if (open() && pending() === null) closeModal();
 		};
 		document.addEventListener('keydown', onKey);
-
-		// Bridge for the published table's «Editar»: the row id arrives in the
-		// event detail and the full entry is read before opening the modal.
-		const onOpenEditor = (event: Event) => {
-			const id = (event as CustomEvent<{ id?: string }>).detail?.id;
-
-			if (id) void openPublished(id);
-		};
-		document.addEventListener(OPEN_EDITOR_EVENT, onOpenEditor);
 
 		// Bridge for the published table's «Eliminar»: the row id and title
 		// arrive in the event detail and the confirm dialog takes over.
@@ -220,114 +116,13 @@ export default function DiarioEditorPanel() {
 				});
 			}
 		};
-		document.addEventListener(REQUEST_DELETE_EVENT, onRequestDelete);
+		document.addEventListener('diario:request-delete', onRequestDelete);
 
 		onCleanup(() => {
-			trigger?.removeEventListener('click', onTrigger);
 			document.removeEventListener('keydown', onKey);
-			document.removeEventListener(OPEN_EDITOR_EVENT, onOpenEditor);
-			document.removeEventListener(REQUEST_DELETE_EVENT, onRequestDelete);
+			document.removeEventListener('diario:request-delete', onRequestDelete);
 		});
 	});
-
-	function openCreate() {
-		setMode('create');
-		setEditingId(null);
-		setBaseline(EMPTY_FORM);
-		setForm(EMPTY_FORM);
-		setModalError('');
-		setOpen(true);
-	}
-
-	function openEdit(draft: ApiBlog) {
-		const next: FormState = {
-			title: draft.title,
-			description: draft.description,
-			content: draft.content,
-			pubDate: '',
-		};
-
-		setMode('edit');
-		setEditingId(draft.id);
-		setBaseline(next);
-		setForm(next);
-		setModalError('');
-		setOpen(true);
-	}
-
-	function closeModal() {
-		if (pending() !== null) return;
-		setOpen(false);
-	}
-
-	/**
-	 * Opens the modal for a published entry. The published table carries only the
-	 * row id, so the full entry is read from the public list first and then handed
-	 * to `openEdit`, the exact path the drafts table already uses.
-	 */
-	async function openPublished(id: string) {
-		setActionError('');
-
-		try {
-			const blogs = await fetchBlogs();
-			const blog = blogs.find((entry) => String(entry.id) === id);
-
-			if (blog) openEdit(blog);
-			else setActionError('No se encontró la entrada para editar.');
-		} catch (cause) {
-			setActionError(messageFrom(cause) || 'No se pudo abrir la entrada para editar.');
-		}
-	}
-
-	function update<K extends keyof FormState>(key: K, value: FormState[K]) {
-		setForm((current) => ({ ...current, [key]: value }));
-	}
-
-	const requiredReady = () => {
-		const current = form();
-
-		return Boolean(current.title.trim() && current.description.trim() && current.content.trim());
-	};
-
-	const changed = () => !sameForm(form(), baseline());
-	const canSaveDraft = () => pending() === null && requiredReady() && changed();
-	/** Publishing needs the date that makes the entry visible on the landing. */
-	const canPublish = () => canSaveDraft() && form().pubDate !== '';
-
-	function body(includeDate: boolean) {
-		const current = form();
-
-		return {
-			title: current.title.trim(),
-			description: current.description.trim(),
-			content: current.content,
-			...(includeDate ? { pubDate: current.pubDate } : {}),
-		};
-	}
-
-	async function submit(asPublish: boolean) {
-		if (asPublish ? !canPublish() : !canSaveDraft()) return;
-
-		setPending(asPublish ? 'publish' : 'draft');
-		setModalError('');
-
-		try {
-			const id = editingId();
-
-			if (id === null) {
-				await createBlogEntry(body(asPublish));
-			} else {
-				await updateBlogEntry(id, body(asPublish));
-			}
-
-			// Honest refresh: the server table (published) and this island
-			// (drafts + summary) both re-read storage on the same reload.
-			window.location.reload();
-		} catch (cause) {
-			setModalError(messageFrom(cause) || 'No se pudo guardar la entrada. Inténtalo de nuevo.');
-			setPending(null);
-		}
-	}
 
 	async function publishDraft(draft: ApiBlog) {
 		if (pending() !== null) return;
@@ -346,8 +141,8 @@ export default function DiarioEditorPanel() {
 
 	/** Opens the confirm dialog for a draft row action. */
 	function requestDelete(draft: ApiBlog) {
-		// One crew at a time: while the modal submits, deleting is paused so a
-		// reload can never race the still-in-flight save.
+		// One crew at a time: while another mutation submits, deleting is
+		// paused so a reload can never race a still-in-flight save.
 		if (deleting() || pending() !== null) return;
 
 		setDeleteError('');
@@ -486,13 +281,9 @@ export default function DiarioEditorPanel() {
 													</td>
 													<td class={`${cellClass} px-6 text-right`}>
 														<span class="inline-flex flex-wrap items-center justify-end gap-2">
-															<button
-																type="button"
-																onClick={() => draft && openEdit(draft)}
-																class={secondaryButtonClass}
-															>
+															<a href={`/admin/diario/${post.id}`} class={secondaryButtonClass}>
 																Editar
-															</button>
+															</a>
 															<button
 																type="button"
 																disabled={pending() !== null}
@@ -523,174 +314,54 @@ export default function DiarioEditorPanel() {
 			</Show>
 
 			{/*
-				The dialog stays mounted (hidden while closed) so the markup is
-				part of the server render and a first paint can verify it; the
-				trigger only flips its visibility.
+				Delete confirmation. Both entry kinds land here — the drafts
+				table through `requestDelete` and the server-rendered
+				published table through the document event bridge — so the
+				call to `DELETE /blogs/:id` happens behind an explicit
+				"Eliminar" and never from a stray click.
 			*/}
-			<div
-				class={
-					open()
-						? 'fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-sm sm:p-8'
-						: 'hidden'
-				}
-				aria-hidden={open() ? undefined : 'true'}
-				onClick={(event) => {
-					if (event.target === event.currentTarget) closeModal();
-				}}
-			>
+			<Show when={deleteTarget() !== null}>
+				<div
+					class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
+					role="presentation"
+					onClick={(event) => {
+						if (event.target === event.currentTarget) closeDelete();
+					}}
+				>
 					<div
-						role="dialog"
+						role="alertdialog"
 						aria-modal="true"
-						aria-labelledby="diario-modal-title"
-						class="my-auto w-full max-w-2xl border border-border bg-card p-6 shadow-xl"
+						aria-labelledby="diario-delete-title"
+						aria-describedby="diario-delete-description"
+						class="w-full max-w-md border border-border bg-card p-6 shadow-xl"
 					>
-						<div class="flex items-start justify-between gap-4">
-							<div>
-								<p class="text-[11px] font-medium tracking-[0.3em] text-muted-foreground">
-									{mode() === 'create' ? 'NUEVA ENTRADA' : 'EDITAR BORRADOR'}
-								</p>
-								<h2 id="diario-modal-title" class="mt-2 font-mincho text-2xl font-semibold tracking-tight">
-									{mode() === 'create' ? 'Escribir en el diario' : 'Editar el borrador'}
-								</h2>
-							</div>
-							<button
-								type="button"
-								disabled={pending() !== null}
-								onClick={closeModal}
-								aria-label="Cerrar"
-								class={`${secondaryButtonClass} size-9 shrink-0 p-0 text-base`}
-							>
-								×
+						<p class="text-[11px] font-medium tracking-[0.3em] text-destructive">ELIMINAR ENTRADA</p>
+						<h2 id="diario-delete-title" class="mt-2 font-mincho text-2xl font-semibold tracking-tight">
+							¿Eliminar esta entrada?
+						</h2>
+						<p id="diario-delete-description" class="mt-3 text-sm leading-relaxed text-muted-foreground">
+							«{deleteTarget()?.title}»
+							{deleteTarget()?.isPublished ? ' está publicada. ' : ' es un borrador abierto. '}
+							La entrada se borra del diario por completo y la acción no se puede deshacer.
+						</p>
+
+						<Show when={deleteError()}>
+							<p role="alert" class="mt-3 border border-destructive/40 bg-destructive/10 px-4 py-3 font-mono text-[11px] leading-relaxed text-destructive">
+								{deleteError()}
+							</p>
+						</Show>
+
+						<div class="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
+							<button type="button" disabled={deleting()} onClick={() => void confirmDelete()} class={dangerButtonClass}>
+								{deleting() ? 'Eliminando…' : 'Eliminar'}
+							</button>
+							<button type="button" disabled={deleting()} onClick={closeDelete} class={`${secondaryButtonClass} ml-auto`}>
+								Cancelar
 							</button>
 						</div>
-
-						<form
-							class="mt-5 grid gap-5"
-							onSubmit={(event) => {
-								event.preventDefault();
-								void submit(false);
-							}}
-						>
-							<Field
-								id="diario-title"
-								label="TÍTULO"
-								value={form().title}
-								placeholder="De qué trata la entrada"
-								hint="El título también deriva la URL pública de la entrada."
-								onInput={(value) => update('title', value)}
-							/>
-
-							<Field
-								id="diario-pubdate"
-								type="date"
-								label="FECHA DE PUBLICACIÓN"
-								value={form().pubDate}
-								hint="Vacía = se guarda como borrador. Con fecha, «Publicar» la muestra en la landing al recargar."
-								onInput={(value) => update('pubDate', value)}
-							/>
-
-							<Field
-								id="diario-description"
-								label="DESCRIPCIÓN"
-								value={form().description}
-								multiline
-								rows={3}
-								placeholder="El resumen corto que aparece en la portada"
-								onInput={(value) => update('description', value)}
-							/>
-
-							<Field
-								id="diario-content"
-								label="CONTENIDO (MARKDOWN)"
-								value={form().content}
-								multiline
-								rows={11}
-								placeholder={'Escribí acá la entrada.\n\n## Un subtítulo\n\nPárrafos, listas y bloques de código en markdown.'}
-								onInput={(value) => update('content', value)}
-							/>
-
-							<Show when={modalError()}>
-								<p role="alert" class="border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-									{modalError()}
-								</p>
-							</Show>
-
-							<div class="flex flex-wrap items-center gap-3 border-t border-border pt-5">
-								<button type="submit" disabled={!canSaveDraft()} class={secondaryButtonClass}>
-									{pending() === 'draft' ? 'Guardando…' : 'Guardar borrador'}
-								</button>
-								<button
-									type="button"
-									disabled={!canPublish()}
-									onClick={() => void submit(true)}
-									class={primaryButtonClass}
-								>
-									{pending() === 'publish' ? 'Publicando…' : 'Publicar'}
-								</button>
-								<button
-									type="button"
-									disabled={pending() !== null}
-									onClick={closeModal}
-									class={`${secondaryButtonClass} ml-auto`}
-								>
-									Cancelar
-								</button>
-							</div>
-						</form>
 					</div>
 				</div>
-
-				{/*
-					Delete confirmation. Both entry kinds land here — the drafts
-					table through `requestDelete` and the server-rendered
-					published table through the document event bridge — so the
-					call to `DELETE /blogs/:id` happens behind an explicit
-					"Eliminar" and never from a stray click.
-				*/}
-				<Show when={deleteTarget() !== null}>
-					<div
-						class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
-						role="presentation"
-						onClick={(event) => {
-							if (event.target === event.currentTarget) closeDelete();
-						}}
-					>
-						<div
-							role="alertdialog"
-							aria-modal="true"
-							aria-labelledby="diario-delete-title"
-							aria-describedby="diario-delete-description"
-							class="w-full max-w-md border border-border bg-card p-6 shadow-xl"
-						>
-							<p class="text-[11px] font-medium tracking-[0.3em] text-destructive">ELIMINAR ENTRADA</p>
-							<h2 id="diario-delete-title" class="mt-2 font-mincho text-2xl font-semibold tracking-tight">
-								¿Eliminar esta entrada?
-							</h2>
-							<p id="diario-delete-description" class="mt-3 text-sm leading-relaxed text-muted-foreground">
-								«{deleteTarget()?.title}»
-								{deleteTarget()?.isPublished
-									? ' está publicada. '
-									: ' es un borrador abierto. '}
-								La entrada se borra del diario por completo y la acción no se puede deshacer.
-							</p>
-
-							<Show when={deleteError()}>
-								<p role="alert" class="mt-3 border border-destructive/40 bg-destructive/10 px-4 py-3 font-mono text-[11px] leading-relaxed text-destructive">
-									{deleteError()}
-								</p>
-							</Show>
-
-							<div class="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
-								<button type="button" disabled={deleting()} onClick={() => void confirmDelete()} class={dangerButtonClass}>
-									{deleting() ? 'Eliminando…' : 'Eliminar'}
-								</button>
-								<button type="button" disabled={deleting()} onClick={closeDelete} class={`${secondaryButtonClass} ml-auto`}>
-									Cancelar
-								</button>
-							</div>
-						</div>
-					</div>
-				</Show>
-			</div>
+			</Show>
+		</div>
 	);
 }

@@ -91,9 +91,9 @@ const columns = [
 											</button>
 										)
 									}
-									<button type="button" data-editor-id={post.id} aria-label={`Editar ${post.title}`} class={actionLive}>
+									<a href={`/admin/diario/${post.id}`} aria-label={`Editar ${post.title}`} class={actionLive}>
 										<Icon name="pen-line" class="size-4" strokeWidth={1.5} />
-									</button>
+									</a>
 									<button
 										type="button"
 										data-delete-id={post.id}
@@ -115,26 +115,16 @@ const columns = [
 
 <script>
 	/*
-	 * «Editar» puente: la tabla se renderiza en servidor y el modal vive en la
-	 * isla Solid `DiarioEditorPanel`. En vez de importar la isla desde acá, el
-	 * botón delega en un evento de documento que la isla escucha y abre el modal
-	 * igual que con su propio botón «+ Nueva entrada».
-	 *
-	 * «Eliminar» sigue el mismo puente: la isla abre el diálogo de confirmación,
-	 * así que esta tabla nunca llama a la API ni decide el borrado por sí sola.
+	 * «Eliminar» puente: la tabla se renderiza en servidor y el confirm dialog
+	 * vive en la isla Solid `DiarioEditorPanel`. La tabla nunca decide el
+	 * borrado: el botón delega en un evento de documento que la isla escucha
+	 * y transforma en la llamada a la API detrás del diálogo. («Editar» ya no
+	 * pasa por event bridge: navega directo a /admin/diario/<id>.)
 	 */
-	const OPEN_EDITOR_EVENT = 'diario:open-editor';
 	const REQUEST_DELETE_EVENT = 'diario:request-delete';
 
 	document.addEventListener('click', (event) => {
 		if (!(event.target instanceof Element)) return;
-
-		const editTrigger = event.target.closest('[data-editor-id]');
-		const editId = editTrigger?.getAttribute('data-editor-id');
-		if (editId) {
-			document.dispatchEvent(new CustomEvent(OPEN_EDITOR_EVENT, { detail: { id: editId } }));
-			return;
-		}
 
 		const deleteTrigger = event.target.closest('[data-delete-id]');
 		const deleteId = deleteTrigger?.getAttribute('data-delete-id');

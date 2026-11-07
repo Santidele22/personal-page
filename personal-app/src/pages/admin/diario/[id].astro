@@ -1,0 +1,17 @@
+---
+import EditorLayout from '../../../app/layouts/EditorLayout.astro';
+import DiarioEditorPage from '../../../widgets/diario-editor/DiarioEditorPage';
+
+/* Full-page diario editor, edit mode (design artboard 02). The island reads
+   the entry in the browser (drafts need the admin session cookie); the url
+   id becomes the island prop and invalid ids go back to the list. */
+const blogId = Number(Astro.params.id);
+
+if (!Number.isInteger(blogId) || blogId <= 0) {
+	return Astro.redirect('/admin/diario');
+}
+---
+
+<EditorLayout title={`Panel · Diario — Entrada ${blogId}`}>
+	<DiarioEditorPage client:load blogId={blogId} />
+</EditorLayout>
