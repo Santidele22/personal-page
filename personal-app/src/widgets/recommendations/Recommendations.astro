@@ -20,9 +20,11 @@ const recommendations = fetched ?? recommendationsFallback;
 const linkedinUrl = profile?.linkedinUrl || LINKEDIN_URL;
 
 /* The bento of artboard 02 (S4/S6): the first recommendation is the featured
-   card (3fr) and the rest stack in the side column (2fr); on mobile the grid
-   collapses to a single column. */
+   card and the rest stack in the side column (3fr/2fr); with a single real
+   recommendation the section renders one centered card instead of an empty
+   half-bento, and on mobile the grid collapses to a single column. */
 const [featured, ...side] = recommendations;
+const gridClass = side.length > 0 ? 'mt-10 grid gap-4 lg:grid-cols-[3fr_2fr]' : 'mx-auto mt-10 max-w-3xl';
 ---
 
 <section id="recomendaciones" class="scroll-mt-20" aria-labelledby="recomendaciones-title">
@@ -60,13 +62,13 @@ const [featured, ...side] = recommendations;
 			</Reveal>
 		)}
 		{featured && (
-			<div class="mt-10 grid gap-4 lg:grid-cols-[3fr_2fr]">
+			<div class={gridClass}>
 				<Reveal class="h-full">
-					<article class="flex h-full flex-col border border-border bg-card p-7 transition-colors hover:border-aka/60 sm:p-8">
-						<span aria-hidden="true" class="font-mincho text-[56px] font-semibold leading-[0.6] text-aka">“</span>
-						<blockquote class="mt-5 flex-1 font-mincho text-[15px] leading-[1.75] text-ink-soft sm:text-[19px]">{featured.quote}</blockquote>
-						<footer class="mt-6 flex items-center gap-3 border-t border-border pt-4">
-							<span aria-hidden="true" class="hanko size-10 shrink-0 font-mincho text-[13px] font-semibold">{initialsFromName(featured.authorName)}</span>
+					<article class="flex h-full flex-col border border-border bg-card p-6 transition-colors hover:border-aka/60 sm:p-7">
+						<span aria-hidden="true" class="font-mincho text-[40px] font-semibold leading-[0.6] text-aka">“</span>
+						<blockquote class="mt-4 flex-1 font-mincho text-[14px] leading-[1.7] text-ink-soft sm:text-[16px]">{featured.quote}</blockquote>
+						<footer class="mt-5 flex items-center gap-3 border-t border-border pt-4">
+							<span aria-hidden="true" class="hanko size-9 shrink-0 font-mincho text-[12px] font-semibold">{initialsFromName(featured.authorName)}</span>
 							<div class="min-w-0">
 								<p class="text-sm font-medium">{featured.authorName}</p>
 								<p class="text-xs text-muted-foreground">{featured.authorRole}</p>
@@ -93,11 +95,11 @@ const [featured, ...side] = recommendations;
 					<div class="grid gap-4">
 						{side.map((recommendation: Recommendation, index: number) => (
 							<Reveal delay={0.1 * (index + 1)} class="h-full">
-								<article class="flex h-full flex-col border border-border bg-card p-7 transition-colors hover:border-aka/60">
-									<span aria-hidden="true" class="font-mincho text-[56px] font-semibold leading-[0.6] text-aka">“</span>
-									<blockquote class="mt-5 flex-1 font-mincho text-[15px] leading-[1.75] text-ink-soft">{recommendation.quote}</blockquote>
-									<footer class="mt-6 flex items-center gap-3 border-t border-border pt-4">
-										<span aria-hidden="true" class="hanko size-10 shrink-0 font-mincho text-[13px] font-semibold">{initialsFromName(recommendation.authorName)}</span>
+								<article class="flex h-full flex-col border border-border bg-card p-6 transition-colors hover:border-aka/60">
+									<span aria-hidden="true" class="font-mincho text-[40px] font-semibold leading-[0.6] text-aka">“</span>
+									<blockquote class="mt-4 flex-1 font-mincho text-[14px] leading-[1.7] text-ink-soft">{recommendation.quote}</blockquote>
+									<footer class="mt-5 flex items-center gap-3 border-t border-border pt-4">
+										<span aria-hidden="true" class="hanko size-9 shrink-0 font-mincho text-[12px] font-semibold">{initialsFromName(recommendation.authorName)}</span>
 										<div class="min-w-0">
 											<p class="text-sm font-medium">{recommendation.authorName}</p>
 											<p class="text-xs text-muted-foreground">{recommendation.authorRole}</p>
@@ -125,5 +127,16 @@ const [featured, ...side] = recommendations;
 				)}
 			</div>
 		)}
+		<Reveal delay={0.15} class="mt-8">
+			<p class="text-center">
+				<a
+					href="/roadmap"
+					class="group inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-aka"
+				>
+					Seguí mi camino de backend a web3 en la hoja de ruta
+					<Icon name="arrow-up-right" class="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+				</a>
+			</p>
+		</Reveal>
 	</div>
 </section>

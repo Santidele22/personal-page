@@ -1,64 +1,77 @@
 import type { Roadmap } from './types';
 
-/* The roadmap the /roadmap page ships with (S8): it renders when
-   `GET /roadmap` is unreachable, exactly like the other landing fallbacks; a
-   reachable backend replaces it as the only source of truth. Stages carry the
-   chip labels of artboard 03 and the milestones its «Próximos hitos» list. */
+/* The roadmap the /roadmap page ships with (S8, refreshed with real data in
+   L6): it renders when `GET /roadmap` is unreachable, exactly like the other
+   landing fallbacks; a reachable backend replaces it as the only source of
+   truth. The Web3 stages mirror the Cyfrin Updraft path (Blockchain Basics,
+   Solidity 101 and Foundry Fundamentals done; Smart Contract Security in
+   progress; Advanced Foundry and Assembly/Formal Verification next) and the
+   backend trunk mirrors roadmap.sh; milestones are the «Próximos hitos» list.
+   Stage order matters: the graph walks the leading done run as its trunk, so
+   done stages always come first. */
 export const roadmap: Roadmap = {
 	stages: [
 		{
 			id: 1,
 			title: 'Fundamentos',
-			summary: 'La base sobre la que se construye todo lo demás.',
-			techs: ['TypeScript', 'Node', 'HTTP'],
+			summary: 'Internet, redes, Git y Linux: la base sobre la que se apoya todo lo demás.',
+			techs: ['Internet', 'Git', 'Linux'],
 			state: 'done',
 			progress: 100,
 		},
 		{
 			id: 2,
 			title: 'Backend I',
-			summary: 'APIs reales con persistencia y autenticación.',
-			techs: ['NestJS', 'PostgreSQL', 'JWT'],
+			summary: 'APIs reales con Node.js y TypeScript.',
+			techs: ['Node.js', 'TypeScript', 'REST'],
 			state: 'done',
 			progress: 100,
 		},
 		{
 			id: 3,
 			title: 'Backend II',
-			summary: 'Arquitectura hexagonal, colas con Redis y pipelines de CI/CD.',
-			techs: ['Arquitectura', 'Redis', 'CI/CD'],
-			state: 'now',
-			progress: 60,
+			summary: 'Persistencia SQL y NoSQL, autenticación y testing.',
+			techs: ['PostgreSQL', 'Auth', 'Testing'],
+			state: 'done',
+			progress: 100,
 		},
 		{
 			id: 4,
 			title: 'Web3 I',
-			summary: 'Emisión y gestión de activos tokenizados con Solidity y ethers.js.',
-			techs: ['Solidity', 'EVM', 'ERC-20/721'],
-			state: 'now',
-			progress: 45,
+			summary: 'Blockchain Basics y Solidity 101 de Cyfrin Updraft: EVM, wallets y los primeros contratos.',
+			techs: ['Solidity', 'EVM', 'Cyfrin'],
+			state: 'done',
+			progress: 100,
 		},
 		{
 			id: 5,
-			title: 'Cloud & DevOps',
-			summary: 'Infraestructura como código y despliegues serenos.',
-			techs: ['AWS', 'GCP', 'Terraform'],
-			state: 'next',
-			progress: 0,
+			title: 'Web3 II',
+			summary: 'Foundry Fundamentals de Cyfrin: tests, scripts y deploys reproducibles.',
+			techs: ['Foundry', 'Tests', 'Deploy'],
+			state: 'done',
+			progress: 100,
 		},
 		{
 			id: 6,
-			title: 'Web3 II',
-			summary: 'Contratos auditados, rendimiento y segunda capa.',
-			techs: ['Rust', 'Auditorías', 'L2'],
+			title: 'Seguridad',
+			summary: 'Seguridad y Auditoría de Contratos Inteligentes (Cyfrin, en curso): vectores de ataque, DeFi y reportes.',
+			techs: ['Auditoría', 'DeFi', 'Seguridad'],
+			state: 'now',
+			progress: 35,
+		},
+		{
+			id: 7,
+			title: 'Cloud & DevOps',
+			summary: 'Docker, CI/CD y despliegues serenos en la nube.',
+			techs: ['Docker', 'CI/CD', 'AWS'],
 			state: 'next',
 			progress: 0,
 		},
 		{
-			id: 7,
+			id: 8,
 			title: 'Especialización',
-			summary: 'La convergencia: profundidad donde el camino lo pida.',
-			techs: ['ZK', 'Indexadores'],
+			summary: 'Advanced Foundry, Assembly/EVM y Formal Verification de Cyfrin, y las primeras auditorías competitivas.',
+			techs: ['Advanced Foundry', 'Assembly', 'CodeHawks'],
 			state: 'next',
 			progress: 0,
 		},
@@ -66,23 +79,23 @@ export const roadmap: Roadmap = {
 	milestones: [
 		{
 			id: 1,
-			quarter: 'Q3 · 2026',
-			title: 'Cerrar Backend II',
-			summary: 'Proyecto propio con arquitectura hexagonal, deployado con CI/CD y tests de integración.',
+			quarter: 'Q4 · 2026',
+			title: 'Terminar Seguridad de Contratos Inteligentes',
+			summary: 'Cerrar el curso de auditoría de Cyfrin con un reporte propio sobre un codebase real.',
 			status: 'now',
 		},
 		{
 			id: 2,
-			quarter: 'Q4 · 2026',
-			title: 'Cerrar Web3 I',
-			summary: 'Dapp de tokenización completa: contrato ERC-20, frontend con ethers.js y backend de indexación.',
-			status: 'now',
+			quarter: 'Q1 · 2027',
+			title: 'Advanced Foundry',
+			summary: 'El curso avanzado de Cyfrin: DeFi, oráculos, upgrades y tooling profesional.',
+			status: 'planned',
 		},
 		{
 			id: 3,
-			quarter: 'Q1 · 2027',
-			title: 'Arrancar Cloud & DevOps',
-			summary: 'Infraestructura como código con Terraform sobre AWS y observabilidad básica.',
+			quarter: 'Q2 · 2027',
+			title: 'Assembly, EVM y Formal Verification',
+			summary: 'El último tramo de Cyfrin Updraft y las primeras auditorías competitivas en CodeHawks.',
 			status: 'planned',
 		},
 	],
