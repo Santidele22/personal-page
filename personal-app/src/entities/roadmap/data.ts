@@ -1,14 +1,15 @@
 import type { Roadmap } from './types';
 
 /* The roadmap the /roadmap page ships with (S8, refreshed with real data in
-   L6): it renders when `GET /roadmap` is unreachable, exactly like the other
-   landing fallbacks; a reachable backend replaces it as the only source of
-   truth. The Web3 stages mirror the Cyfrin Updraft path (Blockchain Basics,
-   Solidity 101 and Foundry Fundamentals done; Smart Contract Security in
-   progress; Advanced Foundry and Assembly/Formal Verification next) and the
-   backend trunk mirrors roadmap.sh; milestones are the «Próximos hitos» list.
-   Stage order matters: the graph walks the leading done run as its trunk, so
-   done stages always come first. */
+   L6/L7): it renders when `GET /roadmap` is unreachable, exactly like the
+   other landing fallbacks; a reachable backend replaces it as the only source
+   of truth. The trunk mirrors the user's roadmap.sh backend progress
+   (language + APIs + relational databases done; advanced backend next) and
+   the Web3 stages their roadmap.sh blockchain progress (23%) and Cyfrin
+   Updraft path: Blockchain Basics, Solidity 101 and Foundry Fundamentals
+   done, Smart Contract Security in progress, Advanced Foundry and
+   Assembly/Formal Verification next. Stage order matters: the graph walks
+   the leading done run as its trunk, so done stages always come first. */
 export const roadmap: Roadmap = {
 	stages: [
 		{
@@ -22,7 +23,7 @@ export const roadmap: Roadmap = {
 		{
 			id: 2,
 			title: 'Backend I',
-			summary: 'APIs reales con Node.js y TypeScript.',
+			summary: 'Un lenguaje a fondo y APIs reales: Node.js, TypeScript y REST.',
 			techs: ['Node.js', 'TypeScript', 'REST'],
 			state: 'done',
 			progress: 100,
@@ -30,24 +31,24 @@ export const roadmap: Roadmap = {
 		{
 			id: 3,
 			title: 'Backend II',
-			summary: 'Persistencia SQL y NoSQL, autenticación y testing.',
-			techs: ['PostgreSQL', 'Auth', 'Testing'],
+			summary: 'Bases de datos relacionales y persistencia: PostgreSQL, SQL y ORMs.',
+			techs: ['PostgreSQL', 'SQL', 'TypeORM'],
 			state: 'done',
 			progress: 100,
 		},
 		{
 			id: 4,
 			title: 'Web3 I',
-			summary: 'Blockchain Basics y Solidity 101 de Cyfrin Updraft: EVM, wallets y los primeros contratos.',
-			techs: ['Solidity', 'EVM', 'Cyfrin'],
+			summary: 'Blockchain Basics (Cyfrin) y el mapa de chains: EVM, UTXO y capas 2.',
+			techs: ['Blockchain', 'EVM', 'L2'],
 			state: 'done',
 			progress: 100,
 		},
 		{
 			id: 5,
 			title: 'Web3 II',
-			summary: 'Foundry Fundamentals de Cyfrin: tests, scripts y deploys reproducibles.',
-			techs: ['Foundry', 'Tests', 'Deploy'],
+			summary: 'Solidity 101 y Foundry Fundamentals (Cyfrin): contratos, tests y deploys reproducibles.',
+			techs: ['Solidity', 'Foundry', 'OpenZeppelin'],
 			state: 'done',
 			progress: 100,
 		},
@@ -61,14 +62,22 @@ export const roadmap: Roadmap = {
 		},
 		{
 			id: 7,
-			title: 'Cloud & DevOps',
-			summary: 'Docker, CI/CD y despliegues serenos en la nube.',
-			techs: ['Docker', 'CI/CD', 'AWS'],
+			title: 'Backend III',
+			summary: 'El backend avanzado de roadmap.sh: testing, caching, CI/CD, contenedores y brokers de mensajes.',
+			techs: ['Testing', 'Docker', 'CI/CD'],
 			state: 'next',
 			progress: 0,
 		},
 		{
 			id: 8,
+			title: 'Cloud & DevOps',
+			summary: 'Infraestructura y despliegues serenos en la nube.',
+			techs: ['AWS', 'Kubernetes', 'IaC'],
+			state: 'next',
+			progress: 0,
+		},
+		{
+			id: 9,
 			title: 'Especialización',
 			summary: 'Advanced Foundry, Assembly/EVM y Formal Verification de Cyfrin, y las primeras auditorías competitivas.',
 			techs: ['Advanced Foundry', 'Assembly', 'CodeHawks'],
