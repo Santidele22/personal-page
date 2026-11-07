@@ -33,6 +33,19 @@ function resolveUrl(path: string, serverOrigin?: string): string {
 	return `${serverOrigin.replace(/\/+$/, '')}${baseUrl}${path}`;
 }
 
+/** Builds the final request URL for a backend path, the exact order `request`
+ * uses: absolute base or same-origin `/api` (+ SSR wiring to the backend).
+ * Exported so callers that need a raw URL (multipart XHR uploads) reuse it. */
+export async function resolveApiUrl(path: string, serverOrigin?: string): Promise<string> {
+	let url = resolveUrl(path, serverOrigin);
+	if (import.meta.env.SSR && !ABSOLUTE_URL.test(baseUrl)) {
+		const { backendUrl } = await import('./serverEnvironment');
+		url = `${backendUrl}${path}`;
+	}
+
+	return url;
+}
+
 /**
  * Runs the request and normalises the error shape the API returns. Self-hosted
  * modes use cookies; managed mode can add a bearer token through the options.
@@ -43,11 +56,7 @@ async function request(path: string, init: RequestInit, options: RequestOptions 
 	try {
 		const headers = new Headers(init.headers);
 		if (options.bearerToken) headers.set('Authorization', `Bearer ${options.bearerToken}`);
-		let url = resolveUrl(path, options.serverOrigin);
-		if (import.meta.env.SSR && !ABSOLUTE_URL.test(baseUrl)) {
-			const { backendUrl } = await import('./serverEnvironment');
-			url = `${backendUrl}${path}`;
-		}
+		const url = await resolveApiUrl(path, options.serverOrigin);
 		response = await fetch(url, {
 			credentials: 'include',
 			...init,
@@ -79,6 +88,25 @@ export async function postJson(path: string, body: unknown, options: RequestOpti
 		},
 		options,
 	);
+}
+
+/**
+ * POST that returns the created resource body: the full-page diario editor
+ * needs the new entry `id` to move to `/admin/diario/<id>` after a save; the
+ * remaining mutations stay URL-addressable and use `postJson`.
+ */
+export async function postJsonReturning<T>(path: string, body: unknown, options: RequestOptions = {}): Promise<T> {
+	const response = await request(
+		path,
+		{
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body),
+		},
+		options,
+	);
+
+	return (await response.json()) as T;
 }
 
 export async function putJson(path: string, body: unknown, options: RequestOptions = {}): Promise<void> {

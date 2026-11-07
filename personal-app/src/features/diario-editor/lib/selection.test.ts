@@ -27,9 +27,9 @@ describe('wrapSelection', () => {
 	});
 
 	it('wraps the code token pair', () => {
-		const result = wrapSelection('run `x`', 5, 6, '`', '`');
+		const result = wrapSelection('el código dice', 3, 9, '`', '`');
 
-		expect(result.text).toBe('run ``x``');
+		expect(result.text).toBe('el `código` dice');
 	});
 });
 

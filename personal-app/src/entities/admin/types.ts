@@ -127,6 +127,10 @@ export type ApiBlog = {
 	slug?: string;
 	pubDate?: string | null;
 	updatedDate?: string | null;
+	/** Optional portada card columns; absent on rows saved before them. */
+	category?: string | null;
+	featured?: boolean | null;
+	readMin?: number | null;
 };
 
 export type ApiAdvertisingPlan = {

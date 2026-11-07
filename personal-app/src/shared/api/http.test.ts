@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { invalidateContentCache } from './contentCache';
-import { getJson } from './http';
+import { getJson, postJsonReturning, resolveApiUrl } from './http';
 
 /**
  * The cache gate lives in `getJson` (issue 44, spec S7): every reachable
@@ -81,5 +81,47 @@ describe('getJson — failures keep the current fallback contract (spec S8)', ()
 		fetchStub.mockImplementationOnce(() => Promise.reject(new TypeError('render down')));
 
 		await expect(getJson('/profile')).rejects.toThrow();
+	});
+});
+
+describe('postJsonReturning — POST with a body to read back', () => {
+	it('returns the created resource body so the editor can navigate to it', async () => {
+		fetchStub.mockImplementationOnce(() =>
+			Promise.resolve(jsonResponse({ id: 42, title: 'nueva' }))
+		);
+
+		const created = await postJsonReturning<{ id: number; title: string }>('/blogs', {
+			title: 'nueva',
+			description: 'desc',
+			content: 'cuerpo',
+		});
+
+		expect(fetchStub.mock.calls[0][0]).toBe('https://render.example/blogs');
+		expect(fetchStub.mock.calls[0][1].method).toBe('POST');
+		expect(JSON.parse(fetchStub.mock.calls[0][1].body).title).toBe('nueva');
+		expect(created.id).toBe(42);
+	});
+
+	it('rethrows the API message verbatim', async () => {
+		fetchStub.mockImplementationOnce(() =>
+			Promise.resolve(
+				new Response(JSON.stringify({ message: 'Blog slug "x" is already taken' }), {
+					status: 409,
+					headers: { 'Content-Type': 'application/json' },
+				})
+			)
+		);
+
+		await expect(postJsonReturning('/blogs', {})).rejects.toThrow('Blog slug "x" is already taken');
+	});
+});
+
+describe('resolveApiUrl — the raw URL multipart callers reuse', () => {
+	it('resolves against the backend inside SSR and the same-origin proxy in the browser', async () => {
+		import.meta.env.SSR = true;
+		await expect(resolveApiUrl('/blogs/images')).resolves.toBe('https://render.example/blogs/images');
+
+		import.meta.env.SSR = false;
+		await expect(resolveApiUrl('/blogs/images')).resolves.toBe('/api/blogs/images');
 	});
 });
