@@ -4,9 +4,9 @@ import type { Post, PostIcon } from '../../../entities/post/types';
 
 /**
  * Public read of the diario API. The backend (`backend/src/blogs`) is the
- * single source of truth the admin panel edits and the landing renders, so
- * failed reads surface instead of silently falling back to the content
- * collection that used to feed these widgets (issue 28).
+ * single source of truth the admin panel edits and the landing renders. If a
+ * landing read fails, the widget renders its empty state instead of taking
+ * down the whole page.
  */
 
 /** A row as `GET /blogs` serves it — mirrors `Blog` field by field. */
@@ -65,7 +65,11 @@ export function sortPosts(posts: ApiBlog[]): ApiBlog[] {
 
 /** Card rows in portada order (featured first, then newest first). */
 export async function fetchBlogRows(serverOrigin?: string): Promise<ApiBlog[]> {
-	return sortPosts(await getJson<ApiBlog[]>('/blogs', { serverOrigin }));
+	try {
+		return sortPosts(await getJson<ApiBlog[]>('/blogs', { serverOrigin }));
+	} catch {
+		return [];
+	}
 }
 
 /**

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getJson } from '../../../shared/api/http';
-import { fetchBlogPage } from './blogs';
+import { fetchBlogPage, fetchBlogRows } from './blogs';
 
 /**
  * Paginated archive read (issue 47 S9): the backend owns the order (newest
@@ -40,5 +40,13 @@ describe('fetchBlogPage — paginated archive envelope', () => {
 		getJsonMock.mockRejectedValue(new Error('No se pudo conectar con el servidor.'));
 
 		await expect(fetchBlogPage(undefined, 0, 10)).resolves.toBeNull();
+	});
+});
+
+describe('fetchBlogRows — landing resilience', () => {
+	it('answers an empty list instead of failing the whole home render', async () => {
+		getJsonMock.mockRejectedValue(new Error('No se pudo conectar con el servidor.'));
+
+		await expect(fetchBlogRows('https://example.test')).resolves.toEqual([]);
 	});
 });

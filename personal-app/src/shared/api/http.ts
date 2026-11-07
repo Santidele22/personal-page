@@ -10,6 +10,7 @@ type ErrorPayload = {
 
 const CONNECTION_ERROR = 'No se pudo conectar con el servidor. Inténtalo de nuevo en unos minutos.';
 const GENERIC_ERROR = 'El servidor no pudo completar la solicitud.';
+const SSR_READ_TIMEOUT_MS = 8_000;
 
 /** Extra options for the read helpers. */
 export type RequestOptions = {
@@ -51,6 +52,9 @@ async function request(path: string, init: RequestInit, options: RequestOptions 
 			credentials: 'include',
 			...init,
 			headers,
+			signal:
+				init.signal ??
+				(import.meta.env.SSR && init.method === 'GET' ? AbortSignal.timeout(SSR_READ_TIMEOUT_MS) : undefined),
 		});
 	} catch {
 		throw new Error(CONNECTION_ERROR);

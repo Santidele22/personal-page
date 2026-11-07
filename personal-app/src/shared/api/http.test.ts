@@ -43,6 +43,12 @@ describe('getJson — SSR direct reads share one backend call', () => {
 
 		expect(fetchStub).toHaveBeenCalledTimes(2);
 	});
+
+	it('bounds SSR reads so a sleeping backend cannot hang the page render', async () => {
+		await getJson('/profile');
+
+		expect(fetchStub.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+	});
 });
 
 describe('getJson — reads that must never be cached (spec S7)', () => {
