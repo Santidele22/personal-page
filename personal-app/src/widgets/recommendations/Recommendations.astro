@@ -1,0 +1,350 @@
+---
+import { excerptQuote, initialsFromName } from '../../entities/recommendation/format';
+import type { Recommendation } from '../../entities/recommendation/types';
+import { fetchRecommendations, recommendationsFallback } from '../../features/recommendation/api/recommendations';
+import EmptyState from '../../shared/ui/EmptyState.astro';
+import Icon from '../../shared/ui/Icon.astro';
+import Reveal from '../../shared/ui/Reveal.astro';
+import SeigaihaTile from '../../shared/ui/SeigaihaTile.astro';
+
+/* The recommendations are read while the server renders the page; the
+   fallback is the set this section ships with (S8). A reachable but empty
+   collection renders the empty state instead: the backend is then the only
+   source of truth. */
+const fetched = await fetchRecommendations(Astro.url.origin);
+const recommendations = fetched ?? recommendationsFallback;
+const single = recommendations.length === 1 ? recommendations[0] : undefined;
+
+/* Artboard 04 (pull-quote editorial): a compact quiet strip — eyebrow, one
+   small rectangular card with the excerpt and a «Ver completo» modal with the
+   full quote. With 2+ recommendations the card becomes a traveling marquee of
+   small cards (each opens the same modal). The full-quote text travels in
+   data attributes so the single modal can be filled from any trigger. */
+const asData = (rec: Recommendation) => ({
+	'data-rec-open': rec.id,
+	'data-quote': rec.quote,
+	'data-name': rec.authorName,
+	'data-role': rec.authorRole,
+	'data-rel': rec.relationship,
+	'data-initials': initialsFromName(rec.authorName),
+});
+---
+
+<section id="recomendaciones" class="relative scroll-mt-20 overflow-hidden border-y border-border" aria-labelledby="recomendaciones-title">
+	<SeigaihaTile class="pointer-events-none absolute inset-x-0 top-0 h-[72px] w-full text-foreground opacity-[0.16]" />
+	<SeigaihaTile class="pointer-events-none absolute inset-x-0 bottom-0 h-[72px] w-full rotate-180 text-foreground opacity-10" />
+	<div aria-hidden="true" class="pointer-events-none absolute -right-20 top-5 size-80 rounded-full bg-aka opacity-[0.07]"></div>
+	<div aria-hidden="true" class="pointer-events-none absolute -bottom-14 -left-24 size-56 rounded-full bg-aka opacity-[0.05]"></div>
+	<p aria-hidden="true" class="pointer-events-none absolute right-11 top-1/2 hidden -translate-y-1/2 font-mincho text-6xl tracking-[0.12em] text-foreground opacity-[0.07] [writing-mode:vertical-rl] lg:block">推薦</p>
+
+	<div class="relative mx-auto max-w-6xl px-5 py-12 sm:px-8">
+		<Reveal>
+			<p id="recomendaciones-title" class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
+				<Icon name="handshake" class="size-4 text-aka" />
+				RECOMENDACIONES
+			</p>
+		</Reveal>
+		{/* An empty list renders the section without cards instead of falling
+		    back to the shipped copy: the backend is the only source of truth. */}
+		{recommendations.length === 0 && (
+			<Reveal delay={0.1} class="mt-8">
+				<EmptyState
+					icon="handshake"
+					title="Todavía no hay recomendaciones"
+					description="Cuando haya recomendaciones cargadas desde LinkedIn, acá vas a leer las palabras de quienes trabajaron conmigo."
+				/>
+			</Reveal>
+		)}
+		{single && (
+			<>
+				<Reveal delay={0.1}>
+					<article class="group relative mt-6 max-w-[38rem] border border-border bg-card p-5 transition-colors hover:border-aka/60">
+						<span aria-hidden="true" class="absolute -left-px -top-px size-3.5 border-l-2 border-t-2 border-aka"></span>
+						<span aria-hidden="true" class="absolute -right-px -top-px size-3.5 border-r-2 border-t-2 border-aka"></span>
+						<span aria-hidden="true" class="absolute -bottom-px -left-px size-3.5 border-b-2 border-l-2 border-aka"></span>
+						<span aria-hidden="true" class="absolute -bottom-px -right-px size-3.5 border-b-2 border-r-2 border-aka"></span>
+						<blockquote class="text-balance font-mincho text-[15px] leading-[1.75] text-ink-soft">{excerptQuote(single.quote)}</blockquote>
+						<button
+							type="button"
+							{...asData(single)}
+							aria-haspopup="dialog"
+							class="mt-2.5 cursor-pointer text-[13px] text-aka transition-colors hover:text-aka-deep hover:underline hover:underline-offset-[3px]"
+						>
+							Ver completo →
+						</button>
+					</article>
+				</Reveal>
+				<Reveal delay={0.2}>
+					<footer class="group mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-4">
+						<div class="flex items-center gap-3">
+							<span aria-hidden="true" class="hanko size-9 shrink-0 -rotate-3 font-mincho text-[12px] font-semibold transition-transform group-hover:rotate-0">{initialsFromName(single.authorName)}</span>
+							<div class="min-w-0">
+								<p class="text-sm font-medium">{single.authorName}</p>
+								<p class="text-xs text-muted-foreground">{single.authorRole}</p>
+								{single.relationship && <p class="text-[11px] text-muted-foreground">{single.relationship}</p>}
+							</div>
+						</div>
+						<a href="/roadmap" class="text-[13px] text-muted-foreground transition-colors hover:text-aka">Conocé mi hoja de ruta →</a>
+					</footer>
+				</Reveal>
+			</>
+		)}
+		{recommendations.length > 1 && (
+			<Reveal delay={0.1}>
+				<div class="marquee mt-6" aria-label="Recomendaciones en carrusel continuo">
+					<div class="marquee-track" data-marquee-track>
+						{recommendations.map((rec: Recommendation) => (
+							<button type="button" {...asData(rec)} aria-label={`Ver la recomendación completa de ${rec.authorName}`} class="mcard group">
+								<span aria-hidden="true" class="absolute -left-px -top-px size-3.5 border-l-2 border-t-2 border-aka"></span>
+								<span aria-hidden="true" class="absolute -right-px -top-px size-3.5 border-r-2 border-t-2 border-aka"></span>
+								<span aria-hidden="true" class="absolute -bottom-px -left-px size-3.5 border-b-2 border-l-2 border-aka"></span>
+								<span aria-hidden="true" class="absolute -bottom-px -right-px size-3.5 border-b-2 border-r-2 border-aka"></span>
+								<span class="mcard-quote font-mincho">{excerptQuote(rec.quote)}</span>
+								<span class="mcard-meta">
+									<span aria-hidden="true" class="hanko size-7 shrink-0 -rotate-3 font-mincho text-[10px] font-semibold transition-transform group-hover:rotate-0">{initialsFromName(rec.authorName)}</span>
+									<span class="min-w-0">
+										<span class="block truncate text-[13px] font-medium">{rec.authorName}</span>
+										<span class="block truncate text-[11px] text-muted-foreground">{rec.authorRole}</span>
+									</span>
+								</span>
+							</button>
+						))}
+					</div>
+				</div>
+			</Reveal>
+		)}
+	</div>
+
+	{/* One shared modal: every «Ver completo» trigger fills it from its data
+	    attributes (quote, name, role, relationship, hanko initials). */}
+	<div class="rec-modal-overlay" data-rec-modal>
+		<div class="rec-modal" role="dialog" aria-modal="true" aria-labelledby="rec-modal-title">
+			<button type="button" class="rec-modal-close" data-rec-close aria-label="Cerrar">✕</button>
+			<p id="rec-modal-title" class="flex items-center gap-2.5 text-[12px] font-medium tracking-[0.25em] text-muted-foreground">
+				<Icon name="handshake" class="size-[15px] text-aka" />
+				RECOMENDACIÓN
+			</p>
+			<blockquote class="rec-modal-quote font-mincho" data-rec-quote></blockquote>
+			<footer class="rec-modal-attrib">
+				<span aria-hidden="true" class="hanko size-9 shrink-0 -rotate-3 font-mincho text-[12px] font-semibold" data-rec-initials></span>
+				<div class="min-w-0">
+					<p class="text-sm font-medium" data-rec-name></p>
+					<p class="text-xs text-muted-foreground" data-rec-role></p>
+					<p class="text-[11px] text-muted-foreground" data-rec-rel></p>
+				</div>
+			</footer>
+		</div>
+	</div>
+</section>
+
+<style>
+	/* Marquee (2+ recomendaciones): cards chicas viajando en loop continuo. */
+	.marquee {
+		overflow: hidden;
+		-webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+		mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+	}
+	.marquee-track {
+		display: flex;
+		width: max-content;
+		animation: rec-travel 32s linear infinite;
+	}
+	.marquee:hover .marquee-track,
+	.marquee:focus-within .marquee-track {
+		animation-play-state: paused;
+	}
+	@keyframes rec-travel {
+		to {
+			transform: translateX(-50%);
+		}
+	}
+	.mcard {
+		position: relative;
+		flex: none;
+		width: 320px;
+		margin-right: 16px;
+		background: var(--card);
+		border: 1px solid var(--border);
+		padding: 18px 20px;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		text-align: left;
+		cursor: pointer;
+		transition: border-color 0.2s;
+	}
+	.mcard:hover {
+		border-color: color-mix(in oklab, var(--aka) 60%, transparent);
+	}
+	.mcard-quote {
+		flex: 1;
+		font-size: 13.5px;
+		line-height: 1.7;
+		color: var(--ink-soft);
+	}
+	.mcard-meta {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		border-top: 1px solid var(--border);
+		padding-top: 10px;
+	}
+
+	/* Modal «Ver completo». */
+	.rec-modal-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 60;
+		background: color-mix(in oklab, var(--foreground) 45%, transparent);
+		display: none;
+		align-items: center;
+		justify-content: center;
+		padding: 24px;
+	}
+	.rec-modal-overlay.open {
+		display: flex;
+		animation: rec-fade 0.25s ease both;
+	}
+	@keyframes rec-fade {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+	.rec-modal {
+		position: relative;
+		width: 100%;
+		max-width: 40rem;
+		max-height: 82vh;
+		overflow: auto;
+		background: var(--card);
+		border: 1px solid var(--border);
+		padding: 36px 40px 28px;
+		animation: rec-rise 0.35s ease both;
+	}
+	@keyframes rec-rise {
+		from {
+			opacity: 0;
+			transform: translateY(14px);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+	.rec-modal-quote {
+		margin-top: 20px;
+		font-size: 15px;
+		line-height: 1.8;
+		color: var(--ink-soft);
+	}
+	.rec-modal-attrib {
+		margin-top: 24px;
+		padding-top: 16px;
+		border-top: 1px solid var(--border);
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+	.rec-modal-close {
+		position: absolute;
+		top: 12px;
+		right: 12px;
+		width: 32px;
+		height: 32px;
+		border: 1px solid var(--border);
+		background: none;
+		color: var(--muted-foreground);
+		font-size: 15px;
+		cursor: pointer;
+		transition: 0.2s;
+	}
+	.rec-modal-close:hover {
+		color: var(--aka);
+		border-color: var(--aka);
+	}
+	@media (max-width: 880px) {
+		.rec-modal {
+			padding: 28px 24px 24px;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.marquee-track {
+			animation: none;
+		}
+		.marquee {
+			overflow-x: auto;
+		}
+		.mcard.dup {
+			display: none;
+		}
+		.rec-modal-overlay.open,
+		.rec-modal {
+			animation: none;
+		}
+	}
+</style>
+
+<script>
+	const section = document.getElementById('recomendaciones');
+	const overlay = section?.querySelector<HTMLElement>('[data-rec-modal]');
+	const closeBtn = section?.querySelector<HTMLButtonElement>('[data-rec-close]');
+
+	if (section && overlay && closeBtn) {
+		const fields = {
+			quote: overlay.querySelector<HTMLElement>('[data-rec-quote]')!,
+			name: overlay.querySelector<HTMLElement>('[data-rec-name]')!,
+			role: overlay.querySelector<HTMLElement>('[data-rec-role]')!,
+			rel: overlay.querySelector<HTMLElement>('[data-rec-rel]')!,
+			initials: overlay.querySelector<HTMLElement>('[data-rec-initials]')!,
+		};
+		let lastTrigger: HTMLElement | null = null;
+
+		const openModal = (trigger: HTMLElement) => {
+			lastTrigger = trigger;
+			fields.quote.textContent = trigger.dataset.quote ?? '';
+			fields.name.textContent = trigger.dataset.name ?? '';
+			fields.role.textContent = trigger.dataset.role ?? '';
+			fields.initials.textContent = trigger.dataset.initials ?? '·';
+			const rel = trigger.dataset.rel ?? '';
+			fields.rel.textContent = rel;
+			fields.rel.classList.toggle('hidden', rel === '');
+			overlay.classList.add('open');
+			document.body.style.overflow = 'hidden';
+			closeBtn.focus();
+		};
+		const closeModal = () => {
+			overlay.classList.remove('open');
+			document.body.style.overflow = '';
+			lastTrigger?.focus();
+		};
+
+		/* Delegation covers the marquee duplicates cloned after this script. */
+		section.addEventListener('click', (event) => {
+			const trigger = (event.target as HTMLElement).closest<HTMLElement>('[data-rec-open]');
+			if (trigger) openModal(trigger);
+		});
+		closeBtn.addEventListener('click', closeModal);
+		overlay.addEventListener('click', (event) => {
+			if (event.target === overlay) closeModal();
+		});
+		document.addEventListener('keydown', (event) => {
+			if (event.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+		});
+
+		/* Duplicate the marquee cards for the seamless loop; clones are
+		   inert for keyboard and screen readers. */
+		const track = section.querySelector<HTMLElement>('[data-marquee-track]');
+		if (track) {
+			Array.from(track.children).forEach((child) => {
+				const clone = child.cloneNode(true) as HTMLElement;
+				clone.classList.add('dup');
+				clone.setAttribute('aria-hidden', 'true');
+				clone.setAttribute('tabindex', '-1');
+				track.appendChild(clone);
+			});
+		}
+	}
+</script>

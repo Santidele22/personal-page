@@ -1,0 +1,38 @@
+---
+interface Props {
+	class?: string;
+	rows?: number;
+}
+
+/* Tiled variant of SeigaihaBand: the same concentric-wave circles, but drawn
+   once into a two-column <pattern> tile that repeats at natural scale across
+   the element's full width. SeigaihaBand stretches its viewBox to cover wide
+   containers (the waves end up giant and cropped); this variant is the one to
+   use for full-bleed backgrounds, exactly like artboard 04. */
+const { class: className, rows = 3 } = Astro.props;
+const radius = 32;
+const dx = 64;
+const dy = radius * 0.62;
+const columns = 2;
+const tileId = `sei-tile-${crypto.randomUUID().slice(0, 8)}`;
+const circles = Array.from({ length: rows }, (_, row) =>
+	Array.from({ length: columns + 2 }, (_, index) => index - 1).flatMap((index) => {
+		const cx = index * dx + (row % 2) * (dx / 2);
+		const cy = row * dy;
+		return [radius, radius * 0.72, radius * 0.44].map((r) => ({ cx, cy, r }));
+	}),
+).flat();
+---
+
+<svg aria-hidden="true" class={className}>
+	<defs>
+		<pattern id={tileId} width={columns * dx} height={dy * (rows - 1) + radius} patternUnits="userSpaceOnUse">
+			<g>
+				{circles.map((circle) => (
+					<circle cx={circle.cx} cy={circle.cy} r={circle.r} fill="var(--background)" stroke="currentColor" stroke-width="1.1" />
+				))}
+			</g>
+		</pattern>
+	</defs>
+	<rect width="100%" height="100%" fill={`url(#${tileId})`} />
+</svg>

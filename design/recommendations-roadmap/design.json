@@ -1,0 +1,35 @@
+{
+  "title": "Recomendaciones LinkedIn + roadmap backend/web3",
+  "brief": "Dos secciones nuevas para la home de la página personal: (1) recomendaciones traídas de LinkedIn (ejemplo real: CTO de tokenización fintech/crypto) y (2) una hoja de ruta de progreso como backend → web3 developer, con nodos y aristas visibles.",
+  "feature": "odd/tasks/recommendations-roadmap.md",
+  "artboards": [
+    {
+      "file": "01-editorial-sumi.html",
+      "title": "Editorial sumi",
+      "tradeoff": "Citas grandes en mincho con sellos hanko y timeline vertical con arista madre; máxima legibilidad y serenidad, pero el roadmap ocupa mucho alto y no muestra bifurcaciones.",
+      "width": 1440,
+      "height": 2600
+    },
+    {
+      "file": "02-bento-stepper.html",
+      "title": "Bento (elegida: recomendaciones en home)",
+      "tradeoff": "Dirección elegida para la home: recomendación destacada en bento con dos laterales; denso y escaneable. La hoja de ruta se movió a su propia página /roadmap (artboard 03), así que el stepper horizontal salió de la home.",
+      "width": 1440,
+      "height": 1200
+    },
+    {
+      "file": "03-network-graph.html",
+      "title": "Grafo de ruta (página /roadmap)",
+      "tradeoff": "Dirección elegida para la hoja de ruta: página propia /roadmap con nav, hero, grafo SVG con ramas backend/cloud/web3 que convergen, tarjetas 'Ahora' y próximos hitos (las recomendaciones de la home están en el artboard 02). Es la visión más fiel a 'aristas y demás' y le da aire al grafo, a cambio de una página extra en el nav y el grafo más costoso de mantener y hacer responsive.",
+      "width": 1440,
+      "height": 2300
+    },
+    {
+      "file": "04-pull-quote-editorial.html",
+      "title": "Pull-quote editorial (recomendaciones en home)",
+      "tradeoff": "Propuesta para reemplazar al bento de la home (02): la sección pasa de ~880px a ~400px — eyebrow + card rectangular chica (max-w-38rem, brackets aka en las esquinas) con excerpt precedido de un sello enso que se dibuja al cargar (pincelada SVG animada con la ❝ dentro), kanji vertical 推薦 como acento de margen y hanko estampado con micro-rotación que se endereza al hover, más botón «Ver completo» que abre modal centrado, sobre las figuras de la página (ondas seigaiha en bandas superior e inferior al 100% del ancho (pattern en mosaico a escala natural, .16/.10), blobs aka); el mismo artboard incluye la variante con varios mensajes como marquee: 3-4 cards chicas (320px) viajando en loop continuo con degradado en los bordes, pausa al hover y scroll manual con prefers-reduced-motion; gana proporción y escala a N citas, a cambio de esconder el texto completo tras un click.",
+      "width": 1440,
+      "height": 1500
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+---
+import AdminLayout from '../../app/layouts/AdminLayout.astro';
+import AdminPageHeader from '../../widgets/admin/AdminPageHeader.astro';
+import RoadmapEditorPanel from '../../features/roadmap/RoadmapEditorPanel';
+---
+
+<AdminLayout active="roadmap" title="Panel · Roadmap — devlog">
+	<AdminPageHeader
+		eyebrow="PANEL · ROADMAP"
+		title="Mi hoja de ruta backend → web3"
+		description="Las etapas y los hitos que la página /roadmap dibuja como grafo: cada etapa guarda su título, resumen, tecnologías, estado, progreso y posición; cada hito su trimestre, título, resumen y estado. Se lee y se edita contra el backend, y la web lo refleja al recargar."
+	/>
+
+	<RoadmapEditorPanel client:load />
+</AdminLayout>

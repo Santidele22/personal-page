@@ -6,6 +6,8 @@ export type AdminSection =
 	| 'libros'
 	| 'herramientas'
 	| 'certificados'
+	| 'recomendaciones'
+	| 'roadmap'
 	| 'publicidad'
 	| 'menu'
 	| 'perfil';
