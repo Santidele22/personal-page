@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>01 — WYSIWYG documento</title>
+<style>
+  :root {
+    --radius: 0.375rem;
+    --background: #f4efe4; --foreground: #23201a; --card: #fbf8f0;
+    --secondary: #ece5d4; --muted: #ebe4d2; --muted-foreground: #6f6657;
+    --accent: #e9e1cd; --border: #ddd2bc;
+    --aka: #c73e3a; --aka-deep: #a02f2b; --ink-soft: #57503f;
+  }
+  .dark {
+    --background: #14110d; --foreground: #eae3d3; --card: #1c1812;
+    --secondary: #241f17; --muted: #231e16; --muted-foreground: #a29681;
+    --accent: #2a241a; --border: #322b20;
+    --aka: #d95448; --aka-deep: #c73e3a; --ink-soft: #b3a78e;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--background); color: var(--foreground);
+    font-family: 'Zen Kaku Gothic New','Hiragino Kaku Gothic ProN','Yu Gothic',system-ui,sans-serif;
+    font-feature-settings: "palt" 1;
+  }
+  body::after {
+    content: ""; position: fixed; inset: 0; z-index: 40; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+  }
+  .mincho { font-family: 'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif; }
+  .mono { font-family: 'Geist Mono',ui-monospace,'SF Mono',monospace; }
+  button { font: inherit; cursor: pointer; }
+  button:focus-visible, [contenteditable]:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--aka); outline-offset: 2px; }
+
+  .page-tag { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 24px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted-foreground); border-bottom: 1px dashed var(--border); }
+  .page-tag b { font-weight: 600; color: var(--aka); }
+  .page-tag .mono { letter-spacing: 0.05em; }
+  .page-tag .chip { border: 1px solid var(--border); padding: 2px 8px; }
+
+  /* ── Chrome del editor (100% viewport) ─────────────── */
+  .chrome { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 16px; padding: 12px 24px; background: color-mix(in oklab, var(--background) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+  .back { font-size: 13px; color: var(--muted-foreground); text-decoration: none; transition: color .2s; }
+  .back:hover { color: var(--aka); }
+  .doc-state { font-size: 12px; color: var(--muted-foreground); display: flex; align-items: center; gap: 8px; }
+  .doc-state .dot { width: 7px; height: 7px; border-radius: 9999px; background: var(--aka); }
+  .chrome .spacer { flex: 1; }
+  .btn-secondary { border: 1px solid var(--border); background: none; color: var(--foreground); border-radius: 6px; padding: 8px 18px; font-size: 13px; transition: .2s; }
+  .btn-secondary:hover { border-color: var(--aka); color: var(--aka); }
+  .btn-primary { border: 0; border-radius: 6px; background: var(--foreground); color: var(--background); padding: 8px 20px; font-size: 13px; font-weight: 500; transition: .2s; }
+  .btn-primary:hover { background: var(--aka); color: #fdf8ee; }
+
+  /* ── Toolbar de bloques ────────────────────────────── */
+  .toolbar { position: sticky; top: 49px; z-index: 19; display: flex; align-items: center; gap: 4px; padding: 8px 24px; background: color-mix(in oklab, var(--background) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .tb-group { display: flex; align-items: center; gap: 2px; padding-right: 10px; margin-right: 10px; border-right: 1px solid var(--border); }
+  .tb-group:last-child { border-right: 0; margin-right: 0; padding-right: 0; }
+  .tb { min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid transparent; background: none; color: var(--ink-soft); border-radius: 6px; font-size: 13px; font-weight: 500; transition: .15s; }
+  .tb:hover { border-color: var(--border); color: var(--foreground); }
+  .tb.active { border-color: var(--aka); color: var(--aka); }
+  .tb-label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-foreground); margin-right: 6px; }
+  .swatch { width: 18px; height: 18px; border-radius: 9999px; border: 2px solid transparent; padding: 0; }
+  .swatch.active { border-color: var(--aka); box-shadow: 0 0 0 2px color-mix(in oklab, var(--aka) 35%, transparent); }
+
+  /* ── Superficie del documento ──────────────────────── */
+  .doc { max-width: 46rem; margin: 0 auto; padding: 48px 24px 160px; }
+  .meta-title { width: 100%; border: 0; background: none; font-family: 'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif; font-size: 34px; font-weight: 600; letter-spacing: -0.02em; color: var(--foreground); }
+  .meta-title::placeholder { color: color-mix(in oklab, var(--muted-foreground) 55%, transparent); }
+  .meta-row { display: flex; gap: 16px; margin-top: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .meta-row input { border: 0; background: none; font: inherit; font-size: 13px; color: var(--muted-foreground); }
+  .meta-row .grow { flex: 1; min-width: 220px; }
+  .block { position: relative; margin-top: 18px; padding: 2px 6px; border: 1px solid transparent; border-radius: 4px; transition: border-color .15s; }
+  .block.selected { border-color: color-mix(in oklab, var(--aka) 45%, transparent); }
+  .block p, .block h1, .block h2, .block h3, .block blockquote, .block li { outline: none; }
+  .block h1 { font-family: 'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif; font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
+  .block h2 { font-family: 'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .block h3 { font-family: 'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif; font-size: 18px; font-weight: 600; }
+  .block p { font-size: 15.5px; line-height: 1.85; color: var(--ink-soft); }
+  .block blockquote { border-left: 3px solid var(--aka); padding-left: 16px; font-family: 'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif; font-size: 17px; line-height: 1.7; color: var(--ink-soft); }
+  .block pre { background: var(--foreground); color: var(--background); border-radius: 6px; padding: 14px 16px; font-family: 'Geist Mono',ui-monospace,'SF Mono',monospace; font-size: 12.5px; line-height: 1.6; overflow-x: auto; }
+  .block ul { padding-left: 22px; font-size: 15.5px; line-height: 1.85; color: var(--ink-soft); }
+  .c-aka { color: var(--aka); }
+  .c-muted { color: var(--muted-foreground); }
+  mark { background: color-mix(in oklab, var(--aka) 18%, transparent); color: inherit; padding: 0 2px; }
+  .block [contenteditable]:empty::before { content: attr(data-ph); color: color-mix(in oklab, var(--muted-foreground) 55%, transparent); pointer-events: none; }
+
+  .toggle { position: fixed; bottom: 16px; right: 16px; z-index: 50; border: 1px solid var(--border); background: var(--card); color: var(--foreground); border-radius: 6px; padding: 8px 14px; font-size: 12px; cursor: pointer; }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+</style>
+</head>
+<body>
+
+<p class="page-tag"><b>Dirección 01 · WYSIWYG documento</b> <span class="mono">/</span> la superficie ES el artículo final · toolbar sticky con tipo de bloque + color · probá: seleccioná un bloque y tocá H2 / un color <span class="chip mono">100% viewport</span></p>
+
+<header class="chrome">
+  <a class="back" href="#">← Diario</a>
+  <span class="doc-state"><span class="dot"></span>Borrador · guardado hace 2 min</span>
+  <span class="spacer"></span>
+  <button class="btn-secondary">Guardar borrador</button>
+  <button class="btn-primary">Publicar</button>
+</header>
+
+<div class="toolbar" role="toolbar" aria-label="Formato">
+  <div class="tb-group">
+    <span class="tb-label">Bloque</span>
+    <button class="tb" data-block="p">Texto</button>
+    <button class="tb" data-block="h1">H1</button>
+    <button class="tb active" data-block="h2">H2</button>
+    <button class="tb" data-block="h3">H3</button>
+    <button class="tb" data-block="blockquote">❝</button>
+    <button class="tb" data-block="pre">&lt;/&gt;</button>
+    <button class="tb" data-block="ul">• Lista</button>
+  </div>
+  <div class="tb-group">
+    <button class="tb" title="Negrita"><b>B</b></button>
+    <button class="tb" title="Cursiva"><i>I</i></button>
+    <button class="tb" title="Tachado"><s>S</s></button>
+    <button class="tb" title="Código en línea" style="font-family:ui-monospace,monospace">`·`</button>
+    <button class="tb" title="Link">🔗</button>
+    <button class="tb" title="Resaltar">▨</button>
+  </div>
+  <div class="tb-group">
+    <span class="tb-label">Color</span>
+    <button class="swatch active" style="background: var(--ink-soft)" title="Tinta (default)" data-color=""></button>
+    <button class="swatch" style="background: var(--aka)" title="Aka" data-color="c-aka"></button>
+    <button class="swatch" style="background: var(--muted-foreground)" title="Muted" data-color="c-muted"></button>
+  </div>
+</div>
+
+<main class="doc">
+  <input class="meta-title" value="Tokenización de activos: lo que aprendí integrando smart contracts" aria-label="Título" />
+  <div class="meta-row">
+    <input class="grow" value="Del whitepaper al deploy: decisiones reales de un proyecto fintech en producción." aria-label="Descripción" />
+    <input type="date" aria-label="Fecha de publicación (vacío = borrador)" />
+  </div>
+
+  <div class="block">
+    <p contenteditable data-ph="Empezá a escribir…">Cuando me sumé al proyecto de tokenización pensé que la parte difícil iba a ser Solidity. Me equivoqué: la parte difícil fue entender <b>qué estaba tokenizando</b> y para quién. Este post es lo que me hubiera gustado leer antes de empezar.</p>
+  </div>
+  <div class="block selected">
+    <h2 contenteditable>El contrato no es el producto</h2>
+  </div>
+  <div class="block">
+    <p contenteditable>Un ERC-20 desplegado no es una solución: es el 10% visible. El 90% restante es <span class="c-aka">compliance, custodia y UX</span> — y ninguno de los tres se resuelve con más código de contrato.</p>
+  </div>
+  <div class="block">
+    <blockquote contenteditable>La pregunta correcta no es «¿cómo lo tokenizo?» sino «¿qué problema le resuelve la tokenización a este activo?»</blockquote>
+  </div>
+  <div class="block">
+    <ul contenteditable>
+      <li>Emisión con allowlist on-chain desde el día uno</li>
+      <li>Transferencias restringidas por rol, no por confianza</li>
+      <li><mark>Eventos indexados para auditoría en tiempo real</mark></li>
+    </ul>
+  </div>
+  <div class="block">
+    <pre contenteditable>contract AssetToken is ERC20, AccessControl {
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+}</pre>
+  </div>
+  <div class="block">
+    <p contenteditable data-ph="Y acá seguís…"></p>
+  </div>
+</main>
+
+<button class="toggle" onclick="document.documentElement.classList.toggle('dark')">◐ dark</button>
+
+<script>
+  /* Demo: la toolbar transforma el bloque seleccionado. */
+  let selected = document.querySelector('.block.selected');
+  document.querySelectorAll('.block').forEach((b) => {
+    b.addEventListener('click', () => {
+      selected?.classList.remove('selected');
+      selected = b;
+      b.classList.add('selected');
+      markActiveBlock();
+    });
+  });
+  function markActiveBlock() {
+    const tag = selected?.firstElementChild?.tagName.toLowerCase();
+    document.querySelectorAll('[data-block]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.block === (tag === 'p' ? 'p' : tag));
+    });
+  }
+  document.querySelectorAll('[data-block]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!selected) return;
+      const tag = btn.dataset.block;
+      const old = selected.firstElementChild;
+      const next = document.createElement(tag === 'ul' ? 'ul' : tag);
+      next.setAttribute('contenteditable', '');
+      next.innerHTML = old.innerHTML;
+      selected.replaceChild(next, old);
+      markActiveBlock();
+    });
+  });
+  document.querySelectorAll('.swatch').forEach((s) => {
+    s.addEventListener('click', () => {
+      document.querySelectorAll('.swatch').forEach((x) => x.classList.remove('active'));
+      s.classList.add('active');
+      if (selected) {
+        const el = selected.firstElementChild;
+        el.classList.remove('c-aka', 'c-muted');
+        if (s.dataset.color) el.classList.add(s.dataset.color);
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

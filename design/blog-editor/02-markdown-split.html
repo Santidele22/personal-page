@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>02 — Markdown split (editor + preview)</title>
+<style>
+  :root {
+    --radius: 0.375rem;
+    --background: #f4efe4; --foreground: #23201a; --card: #fbf8f0;
+    --secondary: #ece5d4; --muted: #ebe4d2; --muted-foreground: #6f6657;
+    --accent: #e9e1cd; --border: #ddd2bc;
+    --aka: #c73e3a; --aka-deep: #a02f2b; --ink-soft: #57503f;
+  }
+  .dark {
+    --background: #14110d; --foreground: #eae3d3; --card: #1c1812;
+    --secondary: #241f17; --muted: #231e16; --muted-foreground: #a29681;
+    --accent: #2a241a; --border: #322b20;
+    --aka: #d95448; --aka-deep: #c73e3a; --ink-soft: #b3a78e;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--background); color: var(--foreground);
+    font-family: 'Zen Kaku Gothic New','Hiragino Kaku Gothic ProN','Yu Gothic',system-ui,sans-serif;
+    font-feature-settings: "palt" 1;
+    display: flex; flex-direction: column;
+  }
+  .mincho { font-family: 'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif; }
+  button { font: inherit; cursor: pointer; }
+  button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--aka); outline-offset: 2px; }
+
+  .page-tag { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 24px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted-foreground); border-bottom: 1px dashed var(--border); }
+  .page-tag b { font-weight: 600; color: var(--aka); }
+  .page-tag .mono { letter-spacing: 0.05em; }
+  .page-tag .chip { border: 1px solid var(--border); padding: 2px 8px; }
+
+  .chrome { display: flex; align-items: center; gap: 16px; padding: 12px 24px; border-bottom: 1px solid var(--border); flex: none; }
+  .back { font-size: 13px; color: var(--muted-foreground); text-decoration: none; transition: color .2s; }
+  .back:hover { color: var(--aka); }
+  .doc-state { font-size: 12px; color: var(--muted-foreground); display: flex; align-items: center; gap: 8px; }
+  .doc-state .dot { width: 7px; height: 7px; border-radius: 9999px; background: var(--aka); }
+  .chrome .spacer { flex: 1; }
+  .btn-secondary { border: 1px solid var(--border); background: none; color: var(--foreground); border-radius: 6px; padding: 8px 18px; font-size: 13px; transition: .2s; }
+  .btn-secondary:hover { border-color: var(--aka); color: var(--aka); }
+  .btn-primary { border: 0; border-radius: 6px; background: var(--foreground); color: var(--background); padding: 8px 20px; font-size: 13px; font-weight: 500; transition: .2s; }
+  .btn-primary:hover { background: var(--aka); color: #fdf8ee; }
+
+  .meta-bar { display: flex; gap: 16px; padding: 10px 24px; border-bottom: 1px solid var(--border); flex: none; flex-wrap: wrap; }
+  .meta-bar input { border: 0; background: none; font: inherit; color: var(--foreground); font-size: 14px; }
+  .meta-bar .title { flex: 2; min-width: 240px; font-family: 'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif; font-weight: 600; }
+  .meta-bar .desc { flex: 2; min-width: 240px; color: var(--muted-foreground); font-size: 13px; }
+
+  .split { flex: 1; display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
+  .pane { display: flex; flex-direction: column; min-height: 0; }
+  .pane.left { border-right: 1px solid var(--border); }
+
+  .toolbar { display: flex; align-items: center; gap: 4px; padding: 8px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; flex: none; }
+  .tb { min-width: 30px; height: 30px; padding: 0 7px; border: 1px solid transparent; background: none; color: var(--ink-soft); border-radius: 6px; font-size: 12.5px; font-weight: 500; transition: .15s; }
+  .tb:hover { border-color: var(--border); color: var(--foreground); }
+  .tb-sep { width: 1px; height: 20px; background: var(--border); margin: 0 6px; }
+  .tb-label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-foreground); margin: 0 4px 0 8px; }
+  .swatch { width: 16px; height: 16px; border-radius: 9999px; border: 2px solid transparent; padding: 0; }
+
+  .editor { flex: 1; min-height: 0; border: 0; resize: none; padding: 20px 22px; background: var(--card); color: var(--foreground); font-family: 'Geist Mono',ui-monospace,'SF Mono',monospace; font-size: 13px; line-height: 1.75; }
+  .statusbar { flex: none; display: flex; gap: 16px; padding: 7px 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted-foreground); }
+  .statusbar .ok { color: var(--aka); }
+
+  .preview-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--border); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-foreground); }
+  .preview { flex: 1; min-height: 0; overflow-y: auto; padding: 24px 28px 80px; }
+  .preview h1 { font-family: 'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif; font-size: 26px; font-weight: 600; letter-spacing: -0.02em; margin: 22px 0 10px; }
+  .preview h2 { font-family: 'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif; font-size: 21px; font-weight: 600; margin: 20px 0 8px; }
+  .preview h3 { font-family: 'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif; font-size: 17px; font-weight: 600; margin: 16px 0 6px; }
+  .preview p { font-size: 15px; line-height: 1.85; color: var(--ink-soft); margin: 10px 0; }
+  .preview blockquote { border-left: 3px solid var(--aka); padding-left: 16px; margin: 14px 0; font-family: 'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif; font-size: 16px; color: var(--ink-soft); }
+  .preview ul { padding-left: 22px; margin: 10px 0; font-size: 15px; line-height: 1.85; color: var(--ink-soft); }
+  .preview pre { background: var(--foreground); color: var(--background); border-radius: 6px; padding: 14px 16px; font-family: 'Geist Mono',ui-monospace,'SF Mono',monospace; font-size: 12.5px; line-height: 1.6; overflow-x: auto; margin: 14px 0; }
+  .preview code { font-family: 'Geist Mono',ui-monospace,'SF Mono',monospace; font-size: .9em; }
+  .preview .c-aka { color: var(--aka); }
+  .preview .c-muted { color: var(--muted-foreground); }
+
+  /* ── Drawer de metadatos ───────────────────────────── */
+  .meta-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 26; width: 300px; background: var(--card); border-left: 1px solid var(--border); padding: 20px; transform: translateX(100%); transition: transform .25s ease; overflow-y: auto; }
+  .meta-drawer.open { transform: none; }
+  .meta-drawer h2 { font-size: 12px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--muted-foreground); display: flex; justify-content: space-between; align-items: center; }
+  .drawer-close { border: 0; background: none; color: var(--muted-foreground); font-size: 15px; }
+  .drawer-close:hover { color: var(--aka); }
+  .field { margin-top: 20px; }
+  .field label { display: block; font-size: 11px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-foreground); margin-bottom: 8px; }
+  .segmented { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .segmented button { flex: 1; border: 0; background: none; padding: 7px 4px; font-size: 12px; color: var(--muted-foreground); transition: .15s; }
+  .segmented button.active { background: var(--foreground); color: var(--background); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip-x { display: inline-flex; align-items: center; gap: 5px; border-radius: 3px; background: var(--secondary); padding: 3px 8px; font-size: 11px; font-weight: 500; }
+  .chip-x button { border: 0; background: none; color: var(--muted-foreground); font-size: 11px; padding: 0; }
+  .chip-x button:hover { color: var(--aka); }
+  .chip-input { border: 0; background: none; font: inherit; font-size: 12px; color: var(--foreground); min-width: 80px; }
+  .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; }
+  .switch { position: relative; width: 36px; height: 20px; border-radius: 9999px; border: 1px solid var(--border); background: var(--muted); cursor: pointer; transition: .2s; }
+  .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 9999px; background: var(--muted-foreground); transition: .2s; }
+  .switch.on { background: var(--aka); border-color: var(--aka); }
+  .switch.on::after { left: 18px; background: #fdf8ee; }
+  .auto-value { font-size: 13px; color: var(--foreground); }
+  .auto-note { font-size: 11px; color: var(--muted-foreground); margin-top: 4px; }
+  .slug-value { font-family: 'Geist Mono',ui-monospace,'SF Mono',monospace; font-size: 11.5px; color: var(--muted-foreground); word-break: break-all; }
+
+  /* ── Slash command ─────────────────────────────────── */
+  .slash-menu { position: absolute; z-index: 30; width: 230px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 16px 40px -16px rgba(0,0,0,.3); padding: 6px; display: none; }
+  .slash-menu.open { display: block; }
+  .slash-title { padding: 6px 10px 4px; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-foreground); }
+  .slash-item { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: none; padding: 7px 10px; border-radius: 6px; font-size: 13px; color: var(--foreground); text-align: left; }
+  .slash-item:hover, .slash-item.active { background: var(--secondary); }
+  .slash-item .ico { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 5px; font-size: 12px; color: var(--aka); flex: none; }
+  .slash-item small { display: block; font-size: 10.5px; color: var(--muted-foreground); }
+
+  /* ── Drag & drop imágenes ──────────────────────────── */
+  .pane.left { position: relative; }
+  .drop-overlay { position: absolute; inset: 0; z-index: 25; display: none; align-items: center; justify-content: center; background: color-mix(in oklab, var(--background) 82%, transparent); border: 2px dashed var(--aka); border-radius: 4px; font-size: 14px; color: var(--aka); pointer-events: none; }
+  .drop-overlay.show { display: flex; }
+  .upload-toast { position: absolute; left: 16px; bottom: 40px; z-index: 27; display: none; align-items: center; gap: 10px; background: var(--foreground); color: var(--background); border-radius: 8px; padding: 9px 14px; font-size: 12.5px; }
+  .upload-toast.show { display: flex; }
+  .upload-toast .bar { width: 90px; height: 4px; border-radius: 9999px; background: color-mix(in oklab, var(--background) 25%, transparent); overflow: hidden; }
+  .upload-toast .bar i { display: block; height: 100%; background: var(--aka); transition: width .3s; }
+
+  .toggle { position: fixed; bottom: 16px; right: 16px; z-index: 50; border: 1px solid var(--border); background: var(--card); color: var(--foreground); border-radius: 6px; padding: 8px 14px; font-size: 12px; cursor: pointer; }
+  @media (max-width: 900px) { .split { grid-template-columns: 1fr; } .pane.right { display: none; } }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+</style>
+</head>
+<body>
+
+<p class="page-tag"><b>Dirección 02 · Markdown split</b> <span class="mono">/</span> editor md a la izquierda, preview vivo a la derecha · la toolbar envuelve la selección (probá seleccionar texto y tocar H2 o un color) <span class="chip mono">100% viewport</span></p>
+
+<header class="chrome">
+  <a class="back" href="#">← Diario</a>
+  <span class="doc-state"><span class="dot"></span>Borrador · guardado hace 2 min</span>
+  <span class="spacer"></span>
+  <button class="btn-secondary" id="meta-toggle">⚙ Metadatos</button>
+  <button class="btn-secondary">Guardar borrador</button>
+  <button class="btn-primary">Publicar</button>
+</header>
+
+<div class="meta-bar">
+  <input class="title" value="Tokenización de activos: lo que aprendí integrando smart contracts" aria-label="Título" />
+  <input class="desc" value="Del whitepaper al deploy: decisiones reales de un proyecto fintech." aria-label="Descripción" />
+  <input type="date" aria-label="Fecha de publicación (vacío = borrador)" />
+</div>
+
+<div class="split">
+  <div class="pane left">
+    <div class="drop-overlay" id="drop-overlay">📷 Soltá la imagen: se sube y se inserta sola</div>
+    <div class="upload-toast" id="upload-toast"><span>Subiendo screenshot-arquitectura.png…</span><span class="bar"><i id="upload-bar"></i></span><span id="upload-pct">0%</span></div>
+    <div class="toolbar" role="toolbar" aria-label="Formato markdown">
+      <button class="tb" data-md="## ">H2</button>
+      <button class="tb" data-md="### ">H3</button>
+      <button class="tb" data-md="&gt; ">❝</button>
+      <button class="tb" data-md="- ">• Lista</button>
+      <span class="tb-sep"></span>
+      <button class="tb" data-wrap="**"><b>B</b></button>
+      <button class="tb" data-wrap="_"><i>I</i></button>
+      <button class="tb" data-wrap="~~"><s>S</s></button>
+      <button class="tb" data-wrap="`" style="font-family:ui-monospace,monospace">`·`</button>
+      <button class="tb" data-link>🔗</button>
+      <span class="tb-sep"></span>
+      <span class="tb-label">Color</span>
+      <button class="swatch" style="background: var(--aka)" title="Aka" data-color="aka"></button>
+      <button class="swatch" style="background: var(--muted-foreground)" title="Muted" data-color="muted"></button>
+    </div>
+    <textarea class="editor" id="editor" aria-label="Contenido markdown" spellcheck="false">Cuando me sumé al proyecto de tokenización pensé que la parte difícil iba a ser Solidity. Me equivoqué: la parte difícil fue entender **qué estaba tokenizando** y para quién.
+
+## El contrato no es el producto
+
+Un ERC-20 desplegado no es una solución: es el 10% visible. El 90% restante es &lt;span class="c-aka"&gt;compliance, custodia y UX&lt;/span&gt; — y ninguno de los tres se resuelve con más código de contrato.
+
+&gt; La pregunta correcta no es «¿cómo lo tokenizo?» sino «¿qué problema le resuelve la tokenización a este activo?»
+
+- Emisión con allowlist on-chain desde el día uno
+- Transferencias restringidas por rol, no por confianza
+- Eventos indexados para auditoría en tiempo real
+
+```
+contract AssetToken is ERC20, AccessControl {
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+}
+```</textarea>
+    <div class="statusbar">
+      <span id="words">0 palabras</span>
+      <span id="lines">0 líneas</span>
+      <span id="readmin">~1 min de lectura</span>
+      <span class="ok">markdown válido ✓</span>
+    </div>
+    <div class="slash-menu" id="slash-menu" role="menu" aria-label="Insertar bloque">
+      <p class="slash-title">Insertar bloque</p>
+      <button class="slash-item" data-insert="## "><span class="ico">H2</span><span>Título 2<small>## subtítulo de sección</small></span></button>
+      <button class="slash-item" data-insert="### "><span class="ico">H3</span><span>Título 3<small>### subtítulo menor</small></span></button>
+      <button class="slash-item" data-insert="&gt; "><span class="ico">❝</span><span>Cita<small>&gt; blockquote con borde aka</small></span></button>
+      <button class="slash-item" data-insert="- "><span class="ico">•</span><span>Lista<small>- ítems con viñeta</small></span></button>
+      <button class="slash-item" data-insert="```\n\n```"><span class="ico">&lt;/&gt;</span><span>Código<small>bloque con lenguaje</small></span></button>
+      <button class="slash-item" data-insert="![descripción](https://)"><span class="ico">📷</span><span>Imagen<small>o arrastrala al editor</small></span></button>
+      <button class="slash-item" data-insert="\n---\n"><span class="ico">—</span><span>Divisor<small>línea horizontal</small></span></button>
+    </div>
+  </div>
+  <div class="pane right">
+    <p class="preview-head">Vista previa · como se va a leer</p>
+    <article class="preview" id="preview"></article>
+  </div>
+</div>
+
+<button class="toggle" onclick="document.documentElement.classList.toggle('dark')">◐ dark</button>
+
+<aside class="meta-drawer" id="meta-drawer" aria-label="Metadatos del post">
+  <h2>Metadatos <button class="drawer-close" id="drawer-close" aria-label="Cerrar">✕</button></h2>
+  <div class="field">
+    <label>Nivel</label>
+    <div class="segmented" id="level-seg">
+      <button class="active">Básico</button>
+      <button>Intermedio</button>
+      <button>Avanzado</button>
+    </div>
+  </div>
+  <div class="field">
+    <label>Categorías</label>
+    <div class="chips">
+      <span class="chip-x">web3 <button aria-label="Quitar">✕</button></span>
+      <span class="chip-x">solidity <button aria-label="Quitar">✕</button></span>
+      <input class="chip-input" placeholder="+ agregar" />
+    </div>
+  </div>
+  <div class="field">
+    <div class="switch-row">
+      <span>Destacado en home</span>
+      <button class="switch on" id="featured-switch" role="switch" aria-checked="true" aria-label="Destacado en home"></button>
+    </div>
+  </div>
+  <div class="field">
+    <label>Tiempo de lectura</label>
+    <p class="auto-value" id="readmin-drawer">~4 min</p>
+    <p class="auto-note">Se calcula solo del conteo de palabras (~200 wpm) y viaja en <span class="slug-value">readMin</span>.</p>
+  </div>
+  <div class="field">
+    <label>Slug (auto del título)</label>
+    <p class="slug-value" id="slug-preview">/blog/tokenizacion-de-activos-lo-que-aprendi</p>
+  </div>
+  <p class="auto-note" style="margin-top:24px">Los metadatos se guardan junto con el borrador.</p>
+</aside>
+
+<script>
+  const editor = document.getElementById('editor');
+  const preview = document.getElementById('preview');
+
+  /* Mini renderer md → html, solo para la demo del canvas. */
+  function render(md) {
+    const esc = (s) => s.replace(/&amp;(?!lt;|gt;)/g, '&amp;amp;');
+    const inline = (s) => s
+      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+      .replace(/\*([^*]+)\*/g, '<i>$1</i>')
+      .replace(/~~([^~]+)~~/g, '<s>$1</s>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>');
+    const out = [];
+    let inCode = false, inList = false;
+    md.split('\n').forEach((line) => {
+      if (line.trim().startsWith('```')) { out.push(inCode ? '</pre>' : '<pre>'); inCode = !inCode; return; }
+      if (inCode) { out.push(line.replace(/</g, '&lt;') + '\n'); return; }
+      if (/^- /.test(line)) { if (!inList) { out.push('<ul>'); inList = true; } out.push('<li>' + inline(line.slice(2)) + '</li>'); return; }
+      if (inList) { out.push('</ul>'); inList = false; }
+      if (line.startsWith('### ')) return out.push('<h3>' + inline(line.slice(4)) + '</h3>');
+      if (line.startsWith('## ')) return out.push('<h2>' + inline(line.slice(3)) + '</h2>');
+      if (line.startsWith('# ')) return out.push('<h1>' + inline(line.slice(2)) + '</h1>');
+      if (line.startsWith('&gt; ')) return out.push('<blockquote>' + inline(line.slice(5)) + '</blockquote>');
+      if (line.trim() === '') return;
+      out.push('<p>' + inline(esc(line)).replace(/&lt;span class=&quot;(c-aka|c-muted)&quot;&gt;/g, '<span class="$1">').replace(/&lt;\/span&gt;/g, '</span>') + '</p>');
+    });
+    if (inList) out.push('</ul>');
+    if (inCode) out.push('</pre>');
+    return out.join('');
+  }
+
+  function sync() {
+    preview.innerHTML = render(editor.value);
+    const words = editor.value.trim().split(/\s+/).filter(Boolean).length;
+    document.getElementById('words').textContent = words + ' palabras';
+    document.getElementById('lines').textContent = editor.value.split('\n').length + ' líneas';
+    const mins = Math.max(1, Math.round(words / 200));
+    document.getElementById('readmin').textContent = '~' + mins + ' min de lectura';
+    document.getElementById('readmin-drawer').textContent = '~' + mins + ' min';
+  }
+  editor.addEventListener('input', sync);
+  sync();
+
+  /* Toolbar: envolver selección o insertar prefijo de bloque. */
+  function wrapSelection(before, after) {
+    const s = editor.selectionStart, e = editor.selectionEnd;
+    const sel = editor.value.slice(s, e) || 'texto';
+    editor.setRangeText(before + sel + (after ?? ''), s, e, 'end');
+    editor.focus(); sync();
+  }
+  document.querySelectorAll('[data-wrap]').forEach((b) => b.addEventListener('click', () => wrapSelection(b.dataset.wrap, b.dataset.wrap)));
+  document.querySelectorAll('[data-md]').forEach((b) => b.addEventListener('click', () => {
+    const s = editor.selectionStart;
+    const lineStart = editor.value.lastIndexOf('\n', s - 1) + 1;
+    editor.setRangeText(b.dataset.md, lineStart, lineStart, 'end');
+    editor.focus(); sync();
+  }));
+  document.querySelector('[data-link]').addEventListener('click', () => wrapSelection('[', '](https://)'));
+  document.querySelectorAll('[data-color]').forEach((b) => b.addEventListener('click', () => wrapSelection('<span class="c-' + b.dataset.color + '">', '</span>')));
+
+  /* ── Drawer de metadatos ── */
+  const drawer = document.getElementById('meta-drawer');
+  document.getElementById('meta-toggle').addEventListener('click', () => drawer.classList.toggle('open'));
+  document.getElementById('drawer-close').addEventListener('click', () => drawer.classList.remove('open'));
+  document.querySelectorAll('#level-seg button').forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll('#level-seg button').forEach((x) => x.classList.remove('active'));
+    b.classList.add('active');
+  }));
+  document.getElementById('featured-switch').addEventListener('click', function () {
+    this.classList.toggle('on');
+    this.setAttribute('aria-checked', this.classList.contains('on'));
+  });
+  document.querySelector('.meta-bar .title').addEventListener('input', (e) => {
+    const slug = e.target.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+    document.getElementById('slug-preview').textContent = '/blog/' + (slug || '…');
+  });
+
+  /* ── Slash command: «/» en línea vacía ── */
+  const slash = document.getElementById('slash-menu');
+  let slashLineStart = -1;
+  function closeSlash() { slash.classList.remove('open'); slashLineStart = -1; }
+  editor.addEventListener('input', () => {
+    const pos = editor.selectionStart;
+    const lineStart = editor.value.lastIndexOf('\n', pos - 1) + 1;
+    const lineText = editor.value.slice(lineStart, pos);
+    if (lineText === '/') {
+      slashLineStart = lineStart;
+      const line = editor.value.slice(0, pos).split('\n').length;
+      slash.style.left = '24px';
+      slash.style.top = Math.min(line * 23 + 96, editor.clientHeight - 240) + 'px';
+      slash.classList.add('open');
+    } else if (slashLineStart >= 0) closeSlash();
+  });
+  slash.querySelectorAll('.slash-item').forEach((item) => item.addEventListener('click', () => {
+    if (slashLineStart < 0) return;
+    editor.setRangeText(item.dataset.insert, slashLineStart, slashLineStart + 1, 'end');
+    closeSlash();
+    editor.focus(); sync();
+  }));
+  editor.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSlash(); });
+
+  /* ── Drag & drop / pegar imágenes (demo) ── */
+  const leftPane = document.querySelector('.pane.left');
+  const overlay = document.getElementById('drop-overlay');
+  const toast = document.getElementById('upload-toast');
+  function fakeUpload() {
+    const bar = document.getElementById('upload-bar');
+    const pct = document.getElementById('upload-pct');
+    toast.classList.add('show');
+    let p = 0;
+    const t = setInterval(() => {
+      p += 25;
+      bar.style.width = p + '%';
+      pct.textContent = p + '%';
+      if (p >= 100) {
+        clearInterval(t);
+        setTimeout(() => {
+          toast.classList.remove('show');
+          bar.style.width = '0%';
+          const insert = '\n![screenshot-arquitectura](https://images.tudominio.dev/blog/screenshot-arquitectura.png)\n';
+          editor.setRangeText(insert, editor.selectionStart, editor.selectionStart, 'end');
+          editor.focus(); sync();
+        }, 350);
+      }
+    }, 300);
+  }
+  leftPane.addEventListener('dragover', (e) => { e.preventDefault(); overlay.classList.add('show'); });
+  leftPane.addEventListener('dragleave', () => overlay.classList.remove('show'));
+  leftPane.addEventListener('drop', (e) => { e.preventDefault(); overlay.classList.remove('show'); fakeUpload(); });
+  editor.addEventListener('paste', (e) => {
+    if ([...(e.clipboardData?.items ?? [])].some((i) => i.type.startsWith('image/'))) {
+      e.preventDefault();
+      fakeUpload();
+    }
+  });
+</script>
+
+</body>
+</html>

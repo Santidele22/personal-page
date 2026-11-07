@@ -1,0 +1,27 @@
+{
+  "title": "Editor de blog del panel admin (full-page, WYSIWYG/markdown)",
+  "brief": "Rediseñar el editor de entradas del diario (/admin/diario): hoy es un modal chico con un textarea pelada. Debe ocupar el 100% de la página (ruta dedicada fuera del max-w-6xl del AdminLayout) y ser un editor de markdown más sofisticado: convertir a título con un click, dar color, sin tipear la sintaxis a mano. Restricciones del stack: islas Solid.js; render público con marked + sanitize-html (el color sobrevive solo como <span class>, hay que extender el allowlist); no hay dependencia WYSIWYG instalada.",
+  "artboards": [
+    {
+      "file": "01-wysiwyg-documento.html",
+      "title": "WYSIWYG documento",
+      "tradeoff": "La superficie de edición ES el artículo final (como se va a leer): toolbar sticky con tipo de bloque (Texto/H1/H2/H3/cita/código/lista), B/I/S/link/resaltado y swatches de color; un click convierte el bloque. La experiencia más cómoda y la más fiel al resultado, pero exige una dependencia real (tiptap core es framework-agnostic y funciona con Solid) y un serializador a markdown.",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "02-markdown-split.html",
+      "title": "Markdown split (editor + preview) — dirección elegida",
+      "tradeoff": "Dirección elegida: editor markdown a la izquierda con toolbar que envuelve la selección (###, **, span de color) y preview vivo a la derecha con los estilos reales del artículo; extras elegidos: drawer de metadatos (nivel, categorías, destacado, slug auto y readMin calculado del conteo de palabras), slash command («/» en línea vacía abre menú de bloques) e imágenes por drag & drop o pegar (subida simulada, inserta el markdown). Mantiene el .md como fuente de verdad y es el más barato de implementar (textarea + insert/wrap, sin dependencias), pero no es WYSIWYG: seguís viendo la sintaxis.",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "03-typewriter-inmersivo.html",
+      "title": "Typewriter inmersivo",
+      "tradeoff": "Híbrido Typora-like: escribís markdown y cada marca se transforma visualmente al tipear ('## ' se vuelve H2 al instante) manteniendo el .md puro debajo; toolbar flotante solo al seleccionar. La experiencia más elegante y zen, pero la más difícil de construir bien a mano (idealmente con milkdown/tiptap+markdown) y la más frágil en edge cases de edición.",
+      "width": 1440,
+      "height": 900
+    }
+  ]
+}
