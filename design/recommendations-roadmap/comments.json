@@ -22,6 +22,127 @@
       "status": "resolved",
       "sentAt": "2026-11-06T19:15:18.894Z",
       "resolvedAt": "2026-11-06T19:18:18.922Z"
+    },
+    {
+      "id": "347g1342",
+      "file": "04-pull-quote-editorial.html",
+      "selector": "body > section:nth-of-type(2) > div",
+      "excerpt": "RECOMENDACIONES ❝ Tengo la oportunidad de trabajar con Santiago como Full Stack Developer Jr. dentro del área de tokenizaciones, en un entorno fintech/crypto de alta exigencia, y su evolución fue realmente destacable. Participó activamente en el desarrollo de soluciones vinculadas a emisión y gestió",
+      "comment": "Un solo mensaje ocupa el 100%, nom e gusta. comprimelo y capaz la mejor opción para un mensaje largo es crear una opción de ver completo y que se habra un modal con el mensaje en el medio de la pantalla.",
+      "createdAt": "2026-11-07T15:08:28.057Z",
+      "status": "resolved",
+      "sentAt": "2026-11-07T15:08:28.066Z",
+      "resolvedAt": "2026-11-07T15:10:03.559Z"
+    },
+    {
+      "id": "h0hj5z82",
+      "file": "04-pull-quote-editorial.html",
+      "selector": "body > section:nth-of-type(2) > div > blockquote > p",
+      "excerpt": "Tengo la oportunidad de trabajar con Santiago como Full Stack Developer Jr. dentro del área de tokenizaciones, en un entorno fintech/crypto de alta exigencia, y su evolución fue realmente destacable. Participó activamente en el desarrollo de soluciones vinculadas a emisión y gestión de activos token",
+      "comment": "Agregale un contenedor mas chico y que sea rectangular el mensaje. y en el fondo agregale figuras como las que ya se ven en la pagina. dibujos.",
+      "createdAt": "2026-11-07T15:14:30.155Z",
+      "status": "resolved",
+      "sentAt": "2026-11-07T15:14:30.160Z",
+      "resolvedAt": "2026-11-07T15:16:29.203Z"
+    },
+    {
+      "id": "14a2568l",
+      "file": "04-pull-quote-editorial.html",
+      "selector": "body > section:nth-of-type(2) > div:nth-of-type(3) > div",
+      "excerpt": "❝ Tengo la oportunidad de trabajar con Santiago como Full Stack Developer Jr. dentro del área de tokenizaciones, en un entorno fintech/crypto de alta exigencia, y su evolución fue realmente destacable. Participó activamente en el desarrollo de soluciones vinculadas a emisión y gestión de activos tok",
+      "comment": "Hazlo un toque mas chico y estariamos. y despues mostrame como quedaria la ui con varios mensajes. (capaz agregando una animacion carrusel)",
+      "createdAt": "2026-11-07T15:18:01.910Z",
+      "status": "resolved",
+      "sentAt": "2026-11-07T15:18:01.917Z",
+      "resolvedAt": "2026-11-07T15:20:52.038Z"
+    },
+    {
+      "id": "tpy3eoe5",
+      "file": "04-pull-quote-editorial.html",
+      "selector": "body > section:nth-of-type(3) > div:nth-of-type(3) > div > div:nth-of-type(2)",
+      "excerpt": "← → demo: hoy solo existe la recomendación real de Carlos Fabian; las otras dos son contenido de muestra",
+      "comment": "En vez de que se muestre una sola card gigante la idea es mostrar varias (3 o 4) y que vayan pasando en tipo carrusel como pasando por el contenedor \"viajando\"",
+      "createdAt": "2026-11-07T15:22:52.738Z",
+      "status": "resolved",
+      "sentAt": "2026-11-07T15:22:52.745Z",
+      "resolvedAt": "2026-11-07T15:25:57.177Z"
+    },
+    {
+      "id": "47v3azs6",
+      "file": "04-pull-quote-editorial.html",
+      "selector": "body > section:nth-of-type(2) > div:nth-of-type(3)",
+      "excerpt": "RECOMENDACIONES ❝ Tengo la oportunidad de trabajar con Santiago como Full Stack Developer Jr. dentro del área de tokenizaciones, en un entorno fintech/crypto de alta exigencia, y su evolución fue realmente destacable. Participó activamente en el desarrollo de soluciones vinculadas a emisión y gestió",
+      "comment": "Lo unico que no me gusta es que se corta el dibujo del fondo. quiero que ocupe el 100%",
+      "createdAt": "2026-11-07T15:26:52.479Z",
+      "status": "resolved",
+      "sentAt": "2026-11-07T15:26:52.485Z",
+      "resolvedAt": "2026-11-07T15:29:00.355Z"
+    },
+    {
+      "id": "qqa48y72",
+      "file": "04-pull-quote-editorial.html",
+      "selector": "body > section:nth-of-type(2)",
+      "excerpt": "RECOMENDACIONES ❝ Tengo la oportunidad de trabajar con Santiago como Full Stack Developer Jr. dentro del área de tokenizaciones, en un entorno fintech/crypto de alta exigencia, y su evolución fue realmente destacable. Participó activamente en el desarrollo de soluciones vinculadas a emisión y gestió",
+      "comment": "Ok me gusta, pero el fondo que quiero que tenga al 100% son los circulos de la esquina izquierda que va por debajo y por arriba.",
+      "createdAt": "2026-11-07T15:31:11.716Z",
+      "status": "resolved",
+      "sentAt": "2026-11-07T15:31:11.721Z",
+      "resolvedAt": "2026-11-07T15:32:44.108Z"
+    },
+    {
+      "id": "iowx559f",
+      "file": "04-pull-quote-editorial.html",
+      "selector": "body > section:nth-of-type(2)",
+      "excerpt": "RECOMENDACIONES ❝ Tengo la oportunidad de trabajar con Santiago como Full Stack Developer Jr. dentro del área de tokenizaciones, en un entorno fintech/crypto de alta exigencia, y su evolución fue realmente destacable. Participó activamente en el desarrollo de soluciones vinculadas a emisión y gestió",
+      "comment": "Bien me gusta pero en vez de repetirlo en todo el contenedor que solamente se muestro por abajo y arriba.",
+      "createdAt": "2026-11-07T15:34:59.475Z",
+      "status": "resolved",
+      "sentAt": "2026-11-07T15:34:59.481Z",
+      "resolvedAt": "2026-11-07T15:35:44.774Z"
+    },
+    {
+      "id": "uwt9q2yw",
+      "file": "04-pull-quote-editorial.html",
+      "selector": "body > section:nth-of-type(2)",
+      "excerpt": "RECOMENDACIONES ❝ Tengo la oportunidad de trabajar con Santiago como Full Stack Developer Jr. dentro del área de tokenizaciones, en un entorno fintech/crypto de alta exigencia, y su evolución fue realmente destacable. Participó activamente en el desarrollo de soluciones vinculadas a emisión y gestió",
+      "comment": "Bien, y ahora que ocupe el 100% del width. que vaya de izquierda a derecha el dibujo.",
+      "createdAt": "2026-11-07T15:36:53.545Z",
+      "status": "resolved",
+      "sentAt": "2026-11-07T15:36:53.551Z",
+      "resolvedAt": "2026-11-07T15:37:34.806Z"
+    },
+    {
+      "id": "81pggpd5",
+      "file": "04-pull-quote-editorial.html",
+      "selector": "body > section:nth-of-type(2)",
+      "excerpt": "RECOMENDACIONES ❝ Tengo la oportunidad de trabajar con Santiago como Full Stack Developer Jr. dentro del área de tokenizaciones, en un entorno fintech/crypto de alta exigencia, y su evolución fue realmente destacable. Participó activamente en el desarrollo de soluciones vinculadas a emisión y gestió",
+      "comment": "Perfecto, agregale o sacale algo que vos veas que lo mejoraria al 100%. haz arte bro",
+      "createdAt": "2026-11-07T15:39:34.481Z",
+      "status": "resolved",
+      "sentAt": "2026-11-07T15:39:34.487Z",
+      "resolvedAt": "2026-11-07T15:41:41.721Z"
+    },
+    {
+      "id": "lqkdr7h3",
+      "file": "04-pull-quote-editorial.html",
+      "selector": "#mtrack > div:nth-of-type(3) > blockquote > span > span",
+      "excerpt": "❝",
+      "comment": "sacale eso",
+      "createdAt": "2026-11-07T15:44:56.910Z",
+      "status": "resolved",
+      "sentAt": "2026-11-07T15:44:56.917Z",
+      "resolvedAt": "2026-11-07T15:46:00.533Z"
+    },
+    {
+      "id": "916404ty",
+      "file": "04-pull-quote-editorial.html",
+      "selector": "body > section:nth-of-type(2) > div:nth-of-type(3) > div > blockquote > span > span",
+      "excerpt": "❝",
+      "comment": "aca igual",
+      "createdAt": "2026-11-07T15:47:18.362Z",
+      "status": "resolved",
+      "sentAt": "2026-11-07T15:47:18.370Z",
+      "resolvedAt": "2026-11-07T15:48:49.026Z"
     }
   ]
 }

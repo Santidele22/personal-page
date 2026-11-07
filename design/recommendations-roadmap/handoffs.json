@@ -1,22 +1,32 @@
 {
   "version": 1,
-  "chosen": "03-network-graph.html",
+  "chosen": "04-pull-quote-editorial.html",
   "handoffs": {
     "02-bento-stepper.html": {
-      "status": "in_progress",
+      "status": "implemented",
       "queued": false,
       "sentAt": "2026-11-06T19:21:19.445Z",
       "startedAt": "2026-11-06T19:35:51.680Z",
-      "implementedAt": null,
-      "note": "Implementación iniciada: widget Recommendations (bento) después de About, datos administrables con fallback."
+      "implementedAt": "2026-11-06T20:02:23.852Z",
+      "note": "Sección bento implementada después de About (quien-soy → recomendaciones → proyectos), datos desde GET /recommendations con fallback. Verificado en smoke aislado.",
+      "previewUrl": "http://localhost:4321/"
     },
     "03-network-graph.html": {
-      "status": "in_progress",
+      "status": "implemented",
       "queued": false,
       "sentAt": "2026-11-06T19:21:26.876Z",
       "startedAt": "2026-11-06T19:35:51.694Z",
+      "implementedAt": "2026-11-06T20:02:23.840Z",
+      "note": "Página /roadmap implementada: grafo SVG generado desde datos (no markup fijo), tarjetas Ahora y hitos. Verificado en smoke aislado con API y con fallback.",
+      "previewUrl": "http://localhost:4321/roadmap"
+    },
+    "04-pull-quote-editorial.html": {
+      "status": "in_progress",
+      "queued": false,
+      "sentAt": "2026-11-07T15:51:59.421Z",
+      "startedAt": "2026-11-07T15:52:09.150Z",
       "implementedAt": null,
-      "note": "Implementación iniciada: página /roadmap con grafo SVG, datos administrables con fallback."
+      "feature": "odd/tasks/recommendations-roadmap.md"
     }
   }
 }

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>04 — Pull-quote editorial (recomendaciones en home)</title>
+<style>
+  :root {
+    --radius: 0.375rem;
+    --background: #f4efe4; --foreground: #23201a; --card: #fbf8f0;
+    --secondary: #ece5d4; --muted: #ebe4d2; --muted-foreground: #6f6657;
+    --accent: #e9e1cd; --border: #ddd2bc;
+    --aka: #c73e3a; --aka-deep: #a02f2b; --ink-soft: #57503f;
+  }
+  .dark {
+    --background: #14110d; --foreground: #eae3d3; --card: #1c1812;
+    --secondary: #241f17; --muted: #231e16; --muted-foreground: #a29681;
+    --accent: #2a241a; --border: #322b20;
+    --aka: #d95448; --aka-deep: #c73e3a; --ink-soft: #b3a78e;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--background); color: var(--foreground);
+    font-family: 'Zen Kaku Gothic New','Hiragino Kaku Gothic ProN','Yu Gothic',system-ui,sans-serif;
+    font-feature-settings: "palt" 1;
+  }
+  body::after {
+    content: ""; position: fixed; inset: 0; z-index: 40; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+  }
+  .mincho { font-family: 'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif; }
+  .mono { font-family: 'Geist Mono',ui-monospace,'SF Mono',monospace; }
+  .container { max-width: 1152px; margin: 0 auto; padding: 0 32px; }
+  .aka { color: var(--aka); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--aka); outline-offset: 2px; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  .reveal { animation: rise .7s ease both; animation-delay: var(--d, 0s); }
+
+  /* ── Anotación de canvas (no es UI del sitio) ───────── */
+  .page-tag {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 32px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted-foreground); border-bottom: 1px dashed var(--border);
+  }
+  .page-tag b { font-weight: 600; color: var(--aka); }
+  .page-tag .mono { letter-spacing: 0.05em; }
+  .page-tag .chip { border: 1px solid var(--border); padding: 2px 8px; }
+
+  /* ── Contexto comprimido de la página (no es la propuesta) ── */
+  .nav-stub { display: flex; justify-content: space-between; align-items: center; padding: 18px 0; }
+  .nav-stub .brand { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+  .nav-stub nav { display: flex; gap: 22px; }
+  .nav-stub nav a { font-size: 13px; color: var(--muted-foreground); text-decoration: none; }
+  .band { padding: 40px 0; }
+  .band.about { background: color-mix(in oklab, var(--secondary) 40%, transparent); border-top: 1px solid var(--border); }
+  .band .eyebrow-s { font-size: 11px; font-weight: 500; letter-spacing: 0.25em; text-transform: uppercase; color: var(--muted-foreground); }
+  .band h3 { margin-top: 10px; font-size: 24px; font-weight: 600; letter-spacing: -0.02em; }
+  .skel { height: 10px; background: var(--muted); margin-top: 12px; }
+  .skel.w60 { width: 60%; } .skel.w80 { width: 80%; } .skel.w45 { width: 45%; }
+  .cards-skel { margin-top: 24px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .cards-skel .c { border: 1px solid var(--border); background: var(--card); height: 110px; padding: 16px; }
+  .cards-skel .c .skel:first-child { margin-top: 0; }
+  .footer-stub { border-top: 1px solid var(--border); padding: 22px 0; font-size: 12px; color: var(--muted-foreground); display: flex; justify-content: space-between; }
+
+  /* ══ LA PROPUESTA: pull-quote editorial ═══════════════ */
+  /* Card rectangular chica con la cita, sobre las figuras que ya usa la
+     página (ondas seigaiha como Blog/BookCard, blobs aka como Hero/Contact). */
+  .recs { position: relative; overflow: hidden; padding: 46px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .recs .container { position: relative; z-index: 1; }
+  .seigaiha { position: absolute; inset-inline: 0; width: 100%; height: 72px; color: var(--foreground); pointer-events: none; }
+  .seigaiha circle { fill: var(--background); stroke: currentColor; stroke-width: 1.1; }
+  .seigaiha.top { top: 0; opacity: .16; }
+  .seigaiha.bottom { bottom: 0; opacity: .1; transform: rotate(180deg); }
+  .blob { position: absolute; border-radius: 9999px; background: var(--aka); pointer-events: none; }
+  .blob.b1 { width: 320px; height: 320px; right: -80px; top: 20px; opacity: .07; }
+  .blob.b2 { width: 220px; height: 220px; left: -100px; bottom: -60px; opacity: .05; }
+  .recs .eyebrow { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; letter-spacing: 0.25em; text-transform: uppercase; color: var(--muted-foreground); }
+  .recs .eyebrow svg { width: 16px; height: 16px; color: var(--aka); }
+  .rec-card { position: relative; margin-top: 22px; max-width: 38rem; background: var(--card); border: 1px solid var(--border); padding: 20px 22px; transition: border-color .2s; }
+  .rec-card:hover { border-color: color-mix(in oklab, var(--aka) 60%, transparent); }
+  .corner { position: absolute; width: 14px; height: 14px; border: 0 solid var(--aka); }
+  .corner.tl { top: -1px; left: -1px; border-top-width: 2px; border-left-width: 2px; }
+  .corner.tr { top: -1px; right: -1px; border-top-width: 2px; border-right-width: 2px; }
+  .corner.bl { bottom: -1px; left: -1px; border-bottom-width: 2px; border-left-width: 2px; }
+  .corner.br { bottom: -1px; right: -1px; border-bottom-width: 2px; border-right-width: 2px; }
+  .quote { font-size: 15px; line-height: 1.75; color: var(--ink-soft); }
+  .quote p { margin: 0; text-wrap: balance; }
+
+  .kanji { position: absolute; right: 44px; top: 50%; transform: translateY(-50%); writing-mode: vertical-rl; font-size: 60px; letter-spacing: .12em; color: var(--foreground); opacity: .07; pointer-events: none; }
+  .ver-mas { margin-top: 10px; padding: 0; border: 0; background: none; cursor: pointer; font: inherit; font-size: 13px; color: var(--aka); transition: color .2s; }
+  .ver-mas:hover { color: var(--aka-deep); text-decoration: underline; text-underline-offset: 3px; }
+  .attrib { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .who-row { display: flex; align-items: center; gap: 12px; }
+  .hanko { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--aka); color: #fdf8ee; font-size: 12px; font-weight: 600; flex: none; box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--aka-deep) 60%, transparent); transform: rotate(-4deg); transition: transform .25s ease; }
+  .rec-card:hover .hanko, .mcard:hover .hanko { transform: rotate(0deg); }
+  .who { font-size: 14px; font-weight: 500; }
+  .role { font-size: 12px; color: var(--muted-foreground); }
+  .rel { font-size: 11px; color: var(--muted-foreground); }
+  .roadmap-link { font-size: 13px; color: var(--muted-foreground); text-decoration: none; transition: color .2s; }
+  .roadmap-link:hover { color: var(--aka); }
+
+  @media (max-width: 880px) {
+    .recs { padding: 44px 0; }
+    .modal { padding: 28px 24px 24px; }
+    .kanji { display: none; }
+  }
+
+  /* ── Modal «Ver completo» ──────────────────────────── */
+  .modal-overlay { position: fixed; inset: 0; z-index: 60; background: color-mix(in oklab, var(--foreground) 45%, transparent); display: none; align-items: center; justify-content: center; padding: 24px; }
+  .modal-overlay.open { display: flex; animation: fade .25s ease both; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  .modal { position: relative; width: 100%; max-width: 40rem; max-height: 82vh; overflow: auto; background: var(--card); border: 1px solid var(--border); padding: 36px 40px 28px; animation: rise .35s ease both; }
+  .modal .eyebrow { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 500; letter-spacing: 0.25em; text-transform: uppercase; color: var(--muted-foreground); }
+  .modal .eyebrow svg { width: 15px; height: 15px; color: var(--aka); }
+  .modal-quote { margin-top: 20px; font-size: 15px; line-height: 1.8; color: var(--ink-soft); }
+  .modal .attrib { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .modal .close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border: 1px solid var(--border); background: none; color: var(--muted-foreground); font-size: 15px; cursor: pointer; transition: .2s; }
+  .modal .close:hover { color: var(--aka); border-color: var(--aka); }
+
+  .card-meta { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  .card-meta .ver-mas { margin-top: 0; margin-left: auto; }
+
+  /* ── Variante: varios mensajes (marquee viajando) ────── */
+  .variant-tag { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 32px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted-foreground); border-top: 1px dashed var(--border); border-bottom: 1px dashed var(--border); }
+  .variant-tag b { color: var(--aka); font-weight: 600; }
+  .variant-tag .mono { letter-spacing: 0.05em; }
+  .variant-tag .chip { border: 1px solid var(--border); padding: 2px 8px; }
+  .marquee { margin-top: 22px; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+  .marquee-track { display: flex; width: max-content; animation: travel 32s linear infinite; }
+  .marquee:hover .marquee-track, .marquee:focus-within .marquee-track { animation-play-state: paused; }
+  @keyframes travel { to { transform: translateX(-50%); } }
+  .mcard { position: relative; flex: none; width: 320px; margin-right: 16px; background: var(--card); border: 1px solid var(--border); padding: 18px 20px; display: flex; flex-direction: column; transition: border-color .2s; }
+  .mcard:hover { border-color: color-mix(in oklab, var(--aka) 60%, transparent); }
+  .mcard .quote { font-size: 13.5px; line-height: 1.7; flex: 1; }
+  .mcard .card-meta { margin-top: 12px; padding-top: 10px; gap: 10px; }
+  .mcard .hanko { width: 28px; height: 28px; font-size: 10px; }
+  .mcard .who { font-size: 13px; }
+  .mcard .role { font-size: 11px; }
+  .marquee-note { margin-top: 14px; font-size: 11px; color: var(--muted-foreground); }
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track { animation: none !important; }
+    .marquee { overflow-x: auto; }
+    .mcard.dup { display: none; }
+  }
+
+  .toggle { position: fixed; top: 46px; right: 16px; z-index: 50; border: 1px solid var(--border); background: var(--card); color: var(--foreground); border-radius: 6px; padding: 8px 14px; font-size: 12px; cursor: pointer; }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+</style>
+</head>
+<body>
+<button class="toggle" onclick="document.documentElement.classList.toggle('dark')">◐ dark</button>
+
+<p class="page-tag"><b>Propuesta · Home</b> <span class="mono">/</span> recomendaciones: card rectangular + excerpt + modal <span class="chip mono">≈400px alto total · vs ~880px actual</span> <span class="mono">· abajo: variante carrusel para varios mensajes</span></p>
+
+<!-- contexto comprimido: nav -->
+<header>
+  <div class="container nav-stub">
+    <p class="brand mincho">Santiago<span class="aka">.</span></p>
+    <nav aria-label="Principal">
+      <a href="#">Proyectos</a><a href="#">Blog</a><a href="#">Hoja de ruta</a><a href="#">Contacto</a>
+    </nav>
+  </div>
+</header>
+
+<!-- contexto comprimido: sección anterior (Sobre mí) -->
+<section class="band about" aria-label="Contexto: Sobre mí (comprimido)">
+  <div class="container">
+    <p class="eyebrow-s">Sobre mí</p>
+    <h3 class="mincho">Contexto comprimido<span class="aka">.</span></h3>
+    <div class="skel w80"></div>
+    <div class="skel w60"></div>
+    <div class="skel w45"></div>
+  </div>
+</section>
+
+<!-- ══ RECOMENDACIONES (pull-quote editorial) ══ -->
+<section class="recs" aria-labelledby="rec-eyebrow">
+  <svg class="seigaiha top" aria-hidden="true">
+    <defs>
+      <pattern id="sei-tile" width="128" height="71.7" patternUnits="userSpaceOnUse">
+        <g id="seigaiha-rows"></g>
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#sei-tile)"/>
+  </svg>
+  <svg class="seigaiha bottom" aria-hidden="true"><rect width="100%" height="100%" fill="url(#sei-tile)"/></svg>
+  <div class="blob b1" aria-hidden="true"></div>
+  <div class="blob b2" aria-hidden="true"></div>
+  <p class="kanji mincho" aria-hidden="true">推薦</p>
+  <div class="container">
+    <p class="eyebrow reveal" id="rec-eyebrow" style="--d:.05s">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 8v6a4 4 0 0 1-4 4H5v-2h1a2 2 0 0 0 2-2H5V8h5zm9 0v6a4 4 0 0 1-4 4h-1v-2h1a2 2 0 0 0 2-2h-3V8h5z"/></svg>
+      Recomendaciones
+    </p>
+    <div class="rec-card reveal" style="--d:.15s">
+      <span class="corner tl" aria-hidden="true"></span><span class="corner tr" aria-hidden="true"></span>
+      <span class="corner bl" aria-hidden="true"></span><span class="corner br" aria-hidden="true"></span>
+      <blockquote class="quote mincho">
+        <p>Tengo la oportunidad de trabajar con Santiago como Full Stack Developer Jr. dentro del área de tokenizaciones, en un entorno fintech/crypto de alta exigencia, y su evolución fue realmente destacable. Participó activamente en el desarrollo de soluciones vinculadas a emisión y gestión de activos tokenizados, integrando componentes frontend y backend con gran responsabilidad. <span aria-hidden="true">…</span></p>
+      </blockquote>
+      <button class="ver-mas" id="rec-open" aria-haspopup="dialog">Ver completo →</button>
+    </div>
+    <footer class="attrib reveal" style="--d:.25s">
+      <div class="who-row">
+        <span class="hanko" aria-hidden="true">CL</span>
+        <div>
+          <p class="who">Carlos Fabian Lencina</p>
+          <p class="role">CTO · Blockchain &amp; AI Engineer</p>
+          <p class="rel">Me supervisó directamente</p>
+        </div>
+      </div>
+      <a class="roadmap-link" href="#">Conocé mi hoja de ruta →</a>
+    </footer>
+  </div>
+</section>
+
+<p class="variant-tag"><b>Variante · con varios mensajes</b> <span class="mono">/</span> marquee: 3-4 cards chicas viajando en loop continuo, pausa al hover, degradado en los bordes <span class="chip mono">· reduced-motion: scroll manual</span></p>
+
+<!-- ══ RECOMENDACIONES (carrusel, varios mensajes) ══ -->
+<section class="recs" aria-label="Recomendaciones (carrusel)">
+  <svg class="seigaiha top" aria-hidden="true"><rect width="100%" height="100%" fill="url(#sei-tile)"/></svg>
+  <svg class="seigaiha bottom" aria-hidden="true"><rect width="100%" height="100%" fill="url(#sei-tile)"/></svg>
+  <div class="blob b1" aria-hidden="true"></div>
+  <div class="blob b2" aria-hidden="true"></div>
+  <p class="kanji mincho" aria-hidden="true">推薦</p>
+  <div class="container">
+    <p class="eyebrow">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="width:16px;height:16px;color:var(--aka)"><path d="M10 8v6a4 4 0 0 1-4 4H5v-2h1a2 2 0 0 0 2-2H5V8h5zm9 0v6a4 4 0 0 1-4 4h-1v-2h1a2 2 0 0 0 2-2h-3V8h5z"/></svg>
+      Recomendaciones
+    </p>
+    <div class="marquee" aria-label="Recomendaciones en carrusel continuo">
+      <div class="marquee-track" id="mtrack">
+        <div class="mcard">
+          <span class="corner tl" aria-hidden="true"></span><span class="corner tr" aria-hidden="true"></span>
+          <span class="corner bl" aria-hidden="true"></span><span class="corner br" aria-hidden="true"></span>
+          <blockquote class="quote mincho">
+            <p>Tengo la oportunidad de trabajar con Santiago como Full Stack Developer Jr. en el área de tokenizaciones, en un entorno fintech/crypto de alta exigencia, y su evolución fue realmente destacable. <span aria-hidden="true">…</span></p>
+          </blockquote>
+          <div class="card-meta">
+            <div class="who-row">
+              <span class="hanko" aria-hidden="true">CL</span>
+              <div>
+                <p class="who">Carlos Fabian Lencina</p>
+                <p class="role">CTO · Blockchain &amp; AI Engineer</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mcard">
+          <span class="corner tl" aria-hidden="true"></span><span class="corner tr" aria-hidden="true"></span>
+          <span class="corner bl" aria-hidden="true"></span><span class="corner br" aria-hidden="true"></span>
+          <blockquote class="quote mincho">
+            <p>Santiago demuestra una madurez técnica poco común: entiende el negocio antes de escribir código y comunica cada decisión con claridad. <span aria-hidden="true">…</span></p>
+          </blockquote>
+          <div class="card-meta">
+            <div class="who-row">
+              <span class="hanko" aria-hidden="true">TL</span>
+              <div>
+                <p class="who">Tech Lead <span class="rel">· muestra</span></p>
+                <p class="role">Fintech crypto · Squad Tokenización</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mcard">
+          <span class="corner tl" aria-hidden="true"></span><span class="corner tr" aria-hidden="true"></span>
+          <span class="corner bl" aria-hidden="true"></span><span class="corner br" aria-hidden="true"></span>
+          <blockquote class="quote mincho">
+            <p>Compartimos desarrollo durante un año y siempre fue quien destapaba los problemas difíciles entre frontend y backend. <span aria-hidden="true">…</span></p>
+          </blockquote>
+          <div class="card-meta">
+            <div class="who-row">
+              <span class="hanko" aria-hidden="true">FS</span>
+              <div>
+                <p class="who">Full Stack Developer <span class="rel">· muestra</span></p>
+                <p class="role">Proyecto Web3 · Mismo equipo</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mcard">
+          <span class="corner tl" aria-hidden="true"></span><span class="corner tr" aria-hidden="true"></span>
+          <span class="corner bl" aria-hidden="true"></span><span class="corner br" aria-hidden="true"></span>
+          <blockquote class="quote mincho">
+            <p>Lideró incidentes en producción con una calma y un método que no se ven en perfiles junior: aprende rápido y aplica el feedback. <span aria-hidden="true">…</span></p>
+          </blockquote>
+          <div class="card-meta">
+            <div class="who-row">
+              <span class="hanko" aria-hidden="true">EM</span>
+              <div>
+                <p class="who">Engineering Manager <span class="rel">· muestra</span></p>
+                <p class="role">Fintech · Plataforma de pagos</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="marquee-note">auto-scroll continuo · se pausa al pasar el mouse · con prefers-reduced-motion: scroll manual · demo: solo la primera recomendación es real, las otras tres son contenido de muestra</p>
+  </div>
+</section>
+
+<!-- contexto comprimido: sección siguiente (Proyectos) -->
+<section class="band" aria-label="Contexto: Proyectos (comprimido)">
+  <div class="container">
+    <p class="eyebrow-s">Proyectos</p>
+    <h3 class="mincho">Contexto comprimido<span class="aka">.</span></h3>
+    <div class="cards-skel">
+      <div class="c"><div class="skel w60"></div><div class="skel w80"></div><div class="skel w45"></div></div>
+      <div class="c"><div class="skel w45"></div><div class="skel w80"></div><div class="skel w60"></div></div>
+      <div class="c"><div class="skel w80"></div><div class="skel w45"></div><div class="skel w60"></div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container footer-stub">
+    <span>© 2026 Santiago</span>
+    <span>Hecho con Astro · washi &amp; sumi-e</span>
+  </div>
+</footer>
+
+<!-- ══ Modal: recomendación completa ══ -->
+<div class="modal-overlay" id="rec-modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rec-modal-title">
+    <button class="close" id="rec-close" aria-label="Cerrar">✕</button>
+    <p class="eyebrow" id="rec-modal-title">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 8v6a4 4 0 0 1-4 4H5v-2h1a2 2 0 0 0 2-2H5V8h5zm9 0v6a4 4 0 0 1-4 4h-1v-2h1a2 2 0 0 0 2-2h-3V8h5z"/></svg>
+      Recomendación
+    </p>
+    <blockquote class="modal-quote mincho">
+      <p>Tengo la oportunidad de trabajar con Santiago como Full Stack Developer Jr. dentro del área de tokenizaciones, en un entorno fintech/crypto de alta exigencia, y su evolución fue realmente destacable. Participó activamente en el desarrollo de soluciones vinculadas a emisión y gestión de activos tokenizados, integrando componentes frontend y backend con gran responsabilidad. Siempre recibí muy buenos reportes de los Tech Leads sobre su desempeño, su capacidad de aprendizaje y su compromiso con la calidad, especialmente en flujos sensibles relacionados con blockchain y transacciones. Se caracteriza por su actitud proactiva, su interés por comprender el impacto de lo que construye y su disposición constante a mejorar. Es un profesional en crecimiento, con bases sólidas y gran proyección dentro del ecosistema digital. Sin duda, un talento con mucho futuro en el mundo de la tokenización y el desarrollo full stack.</p>
+    </blockquote>
+    <footer class="attrib">
+      <div class="who-row">
+        <span class="hanko" aria-hidden="true">CL</span>
+        <div>
+          <p class="who">Carlos Fabian Lencina</p>
+          <p class="role">CTO · Blockchain &amp; AI Engineer</p>
+          <p class="rel">Me supervisó directamente</p>
+        </div>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+  /* Ondas seigaiha idénticas a shared/ui/SeigaihaBand.astro: tile de 2
+     columnas (128px) dentro de un <pattern> que se repite al 100% del
+     ancho a escala natural (sin estirar ni cortar las figuras). */
+  (function buildSeigaiha() {
+    const g = document.getElementById('seigaiha-rows');
+    const NS = 'http://www.w3.org/2000/svg';
+    const radius = 32, dx = 64, dy = radius * 0.62, columns = 2, rows = 3;
+    for (let row = 0; row < rows; row++) {
+      for (let i = -1; i <= columns; i++) {
+        const cx = i * dx + (row % 2) * (dx / 2);
+        const cy = row * dy;
+        [radius, radius * 0.72, radius * 0.44].forEach((r) => {
+          const c = document.createElementNS(NS, 'circle');
+          c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', r);
+          g.appendChild(c);
+        });
+      }
+    }
+  })();
+
+  /* Marquee: duplicar las cards para el loop continuo (los clones se
+     ocultan a lectores de pantalla y desaparecen con reduced-motion). */
+  (function marquee() {
+    const track = document.getElementById('mtrack');
+    if (!track) return;
+    Array.from(track.children).forEach((el) => {
+      const c = el.cloneNode(true);
+      c.classList.add('dup');
+      c.setAttribute('aria-hidden', 'true');
+      track.appendChild(c);
+    });
+  })();
+
+  const overlay = document.getElementById('rec-modal');
+  const openBtn = document.getElementById('rec-open');
+  const closeBtn = document.getElementById('rec-close');
+  function openModal() { overlay.classList.add('open'); document.body.style.overflow = 'hidden'; closeBtn.focus(); }
+  function closeModal() { overlay.classList.remove('open'); document.body.style.overflow = ''; openBtn.focus(); }
+  openBtn.addEventListener('click', openModal);
+  closeBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal(); });
+</script>
+
+</body>
+</html>
