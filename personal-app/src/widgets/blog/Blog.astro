@@ -32,13 +32,13 @@ const flujo = slots.find((slot) => slot.id === 'flujo');
 				<div>
 					<p class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
 						<Icon name="book-open" class="size-4 text-aka" />
-						EL DIARIO
+						ABRIR EL DIARIO
 					</p>
-					<h2 id="diario-title" class="mt-3 font-mincho text-3xl font-semibold tracking-tight sm:text-4xl">Entradas recientes</h2>
+					<h2 id="diario-title" class="mt-3 font-mincho text-3xl font-semibold tracking-tight sm:text-4xl">Escrito despacio</h2>
 				</div>
 				{featured && (
 					<a href="/blog/" class="group inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-aka">
-						Ver archivo completo
+						Abrir el archivo
 						<Icon name="arrow-up-right" class="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
 					</a>
 				)}
@@ -74,8 +74,8 @@ const flujo = slots.find((slot) => slot.id === 'flujo');
 			) : (
 				<EmptyState
 					icon="book-open"
-					title="Todavía no hay entradas"
-					description="El archivo del diario todavía está vacío; el primer borrador se publica dentro de poco."
+					title="El diario está en blanco"
+					description="Todavía no escribí la primera entrada. Cuando la termine va a estar acá: escrita a mano, sin apuro."
 					class="mt-10"
 				/>
 			)}
