@@ -283,6 +283,8 @@ export default function DiarioEditorPage(props: Props) {
 
 	/** Applies an editor transform to the content field. */
 	const applyEditorEdit = (result: EditResult) => update('content', result.text);
+	/** Plain typing inside the pane flows into the form content. */
+	const typeEditorContent = (text: string) => update('content', text);
 
 	return (
 		<div class="editor-page">
@@ -386,7 +388,7 @@ export default function DiarioEditorPage(props: Props) {
 				</Show>
 
 				<div class="split">
-					<EditorPane content={() => form().content} onEdit={applyEditorEdit} />
+					<EditorPane content={() => form().content} onEdit={applyEditorEdit} onType={typeEditorContent} />
 					<div class="pane right">
 						<p class="preview-head">Vista previa · como se va a leer</p>
 						<article class="preview" innerHTML={previewHtml(form().content)} />

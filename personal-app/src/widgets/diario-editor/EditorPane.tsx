@@ -22,6 +22,10 @@ type Props = {
 	content: () => string;
 	/** Applies a transform result (text + caret) to the form content. */
 	onEdit: (result: EditResult) => void;
+	/** Typing: the textarea is uncontrolled, so every keystroke must flow
+	    into the page's form — otherwise the preview, the counters and the
+	    saved text keep the original (a real bug this fixes). */
+	onType: (text: string) => void;
 };
 
 const PREFIX_BUTTONS: { prefix: string; label: JSXElement }[] = [
@@ -80,6 +84,7 @@ export default function EditorPane(props: Props) {
 	};
 
 	const onEditorInput = () => {
+		props.onType(editorArea.value);
 		const target = slashTarget(editorArea.value, editorArea.selectionStart);
 
 		if (target) {
