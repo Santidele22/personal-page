@@ -6,6 +6,9 @@ import ProjectPurchaseDialog from '../../features/project/ProjectPurchaseDialog'
 
 interface Props {
 	project: Project;
+	/** Render the view-transition name (off on the portada grid, where the
+	    same project also exists as a headline variant). */
+	transition?: boolean;
 }
 
 /* Standard card of the projects grid: the landing section and the dedicated
@@ -13,11 +16,11 @@ interface Props {
    landing-only concept and stays in the widget). The view-transition name
    follows the card across both pages (issue 47 S11): the slug keeps the
    free-form project name a valid CSS identifier. */
-const { project } = Astro.props;
+const { project, transition = true } = Astro.props;
 const transitionName = `project-card-${transitionNameSlug(project.name)}`;
 ---
 
-<article transition:name={transitionName} data-project-type={project.type ?? ''} class="group flex h-full flex-col border border-border bg-card p-7 transition-colors hover:border-aka/60">
+<article data-project-name={project.name} data-project-type={project.type ?? ''} transition:name={transition ? transitionName : undefined} class="group flex h-full flex-col border border-border bg-card p-7 transition-colors hover:border-aka/60">
 	<div class="flex items-center justify-between">
 		<span aria-hidden="true" class="flex size-11 items-center justify-center border border-aka/40 text-aka">
 			<Icon name={project.icon} class="size-5" strokeWidth={1.5} />

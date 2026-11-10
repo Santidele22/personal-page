@@ -1,5 +1,6 @@
 ---
 import ProjectCard from '../../entities/project/ProjectCard.astro';
+import type { Project } from '../../entities/project/types';
 import { fetchProjectsPage } from '../../features/project/api/projects';
 import EmptyState from '../../shared/ui/EmptyState.astro';
 import Icon from '../../shared/ui/Icon.astro';
@@ -26,7 +27,7 @@ const featured = projectCards.find((project) => project.featured) ?? projectCard
 const rest = projectCards.filter((project) => project !== featured);
 
 /* Type facets for the client-side filter (projects-type-restore S6, revised
-   L8): counts cover every card including the featured one, so a type filter
+   L10): counts cover every card including the featured one, so a type filter
    never mixes categories on screen. Only rendered with two or more distinct
    types — a single category needs no filter. */
 const typeFacets = [...new Map(
@@ -37,6 +38,23 @@ const typeFacets = [...new Map(
 	}]),
 ).values()];
 const showFilter = typeFacets.length > 1;
+
+/* Headline variants (L10): every filter value owns one headline card, so the
+   big card is always present — `all` shows the featured project and each
+   type promotes its featured (or first) project. The headline pick is
+   excluded from the grid of its own view, and each variant is hidden until
+   the filter script shows it. */
+type HeadlineVariant = { value: string; project: Project };
+const headlineVariants: HeadlineVariant[] = [
+	{ value: 'all', project: featured },
+	...typeFacets.map((facet) => ({
+		value: facet.value,
+		project:
+			projectCards.find((project) => project.type === facet.value && project.featured) ??
+			projectCards.find((project) => project.type === facet.value)!,
+	})),
+];
+const headlineValues = [...new Set(headlineVariants.map((variant) => variant.project.name))];
 ---
 
 <section id="proyectos" class="scroll-mt-20 border-y border-border bg-secondary/40" aria-labelledby="proyectos-title">
@@ -100,46 +118,90 @@ const showFilter = typeFacets.length > 1;
 		    clamps itself to (see ToolsBlock): the band is never taller than the
 		    projects column. */}
 		<div class="min-w-0" data-projects-column>
-		{/* The headline card only exists when the backend serves at least one
-		    project: an empty list renders the section without cards instead of
-		    falling back to the shipped copy. */}
-		{projectCards.length > 0 && (
-			<Reveal delay={0.1}>
-			<article data-project-type={featured.type ?? ''} transition:name={`project-card-${transitionNameSlug(featured.name)}`} class="group grid overflow-hidden border border-border bg-card transition-colors hover:border-aka/60 lg:grid-cols-2">
-				<div class="relative flex min-h-[240px] items-center justify-center overflow-hidden border-b border-border bg-secondary/60 lg:border-b-0 lg:border-r">
-					<SeigaihaBand class="absolute inset-x-0 top-0 h-24 text-foreground opacity-[0.16]" rows={3} />
-					<SeigaihaBand class="absolute inset-x-0 bottom-0 h-24 rotate-180 text-foreground opacity-[0.1]" rows={3} />
-					<Icon name={featured.icon} class="relative size-24 text-aka" strokeWidth={1} />
-					<span class="absolute left-4 top-4 flex flex-col items-start gap-1.5">
-					<span class="rounded-full border border-aka/40 bg-background/80 px-3 py-1 text-[11px] font-medium tracking-wider text-aka backdrop-blur-sm">{featured.statusLabel.toUpperCase()}</span>
-					{featured.typeLabel && <span class="rounded-full border border-aka/40 bg-background/80 px-3 py-1 text-[11px] font-medium tracking-wider text-aka backdrop-blur-sm">{featured.typeLabel.toUpperCase()}</span>}
-				</span>
-				</div>
-				<div class="flex flex-col p-6 sm:p-9">
-					<h3 class="text-balance font-mincho text-2xl font-semibold leading-snug tracking-tight sm:text-[1.7rem]">{featured.name}</h3>
-					<p class="mt-1 text-sm font-medium text-aka">{featured.tagline}</p>
-					<p class="mt-4 flex-1 text-[15px] leading-relaxed text-muted-foreground">{featured.description}</p>
-					<ul class="mt-5 flex flex-wrap gap-1.5">
-						{featured.stack.map((tech) => <li class="rounded-sm bg-secondary px-2 py-0.5 text-[11px] font-medium tracking-wide text-foreground/80">{tech}</li>)}
-					</ul>
-					<div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-4">
-						{featured.repoUrl && (
-							<a href={featured.repoUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
-								<Icon name="github" class="size-4" />
-								Código
-							</a>
-						)}
-						{featured.demoUrl && (
-							<a href={featured.demoUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
-								Demo
-								<Icon name="arrow-up-right" class="size-4" />
-							</a>
-						)}
-						{featured.forSale && <ProjectPurchaseDialog projectName={featured.name} client:load />}
+		{/* One headline variant per filter value (projects-type-restore S6 L10):
+		    the big card is always present — filtering by a type promotes that
+		    type's featured (or first) project into this slot. Only the active
+		    variant is visible; the filter script owns the visibility. */}
+		{showFilter ? (
+			headlineVariants.map((variant, index) => (
+				<Reveal delay={0.1} class:list={[index !== 0 && 'hidden']}>
+					<div data-project-headline data-headline-value={variant.value} data-headline-project={variant.project.name} class="contents">
+						<article data-project-type={variant.project.type ?? ''} transition:name={`project-card-${transitionNameSlug(variant.project.name)}`} class="group grid overflow-hidden border border-border bg-card transition-colors hover:border-aka/60 lg:grid-cols-2">
+							<div class="relative flex min-h-[240px] items-center justify-center overflow-hidden border-b border-border bg-secondary/60 lg:border-b-0 lg:border-r">
+								<SeigaihaBand class="absolute inset-x-0 top-0 h-24 text-foreground opacity-[0.16]" rows={3} />
+								<SeigaihaBand class="absolute inset-x-0 bottom-0 h-24 rotate-180 text-foreground opacity-[0.1]" rows={3} />
+								<Icon name={variant.project.icon} class="relative size-24 text-aka" strokeWidth={1} />
+								<span class="absolute left-4 top-4 flex flex-col items-start gap-1.5">
+								<span class="rounded-full border border-aka/40 bg-background/80 px-3 py-1 text-[11px] font-medium tracking-wider text-aka backdrop-blur-sm">{variant.project.statusLabel.toUpperCase()}</span>
+								{variant.project.typeLabel && <span class="rounded-full border border-aka/40 bg-background/80 px-3 py-1 text-[11px] font-medium tracking-wider text-aka backdrop-blur-sm">{variant.project.typeLabel.toUpperCase()}</span>}
+							</span>
+							</div>
+							<div class="flex flex-col p-6 sm:p-9">
+								<h3 class="text-balance font-mincho text-2xl font-semibold leading-snug tracking-tight sm:text-[1.7rem]">{variant.project.name}</h3>
+								<p class="mt-1 text-sm font-medium text-aka">{variant.project.tagline}</p>
+								<p class="mt-4 flex-1 text-[15px] leading-relaxed text-muted-foreground">{variant.project.description}</p>
+								<ul class="mt-5 flex flex-wrap gap-1.5">
+									{variant.project.stack.map((tech) => <li class="rounded-sm bg-secondary px-2 py-0.5 text-[11px] font-medium tracking-wide text-foreground/80">{tech}</li>)}
+								</ul>
+								<div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-4">
+									{variant.project.repoUrl && (
+										<a href={variant.project.repoUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
+											<Icon name="github" class="size-4" />
+											Código
+										</a>
+									)}
+									{variant.project.demoUrl && (
+										<a href={variant.project.demoUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
+											Demo
+											<Icon name="arrow-up-right" class="size-4" />
+										</a>
+									)}
+									{variant.project.forSale && <ProjectPurchaseDialog projectName={variant.project.name} client:load />}
+								</div>
+							</div>
+						</article>
 					</div>
-				</div>
-			</article>
-			</Reveal>
+				</Reveal>
+			))
+		) : (
+			projectCards.length > 0 && (
+				<Reveal delay={0.1}>
+				<article data-project-type={featured.type ?? ''} transition:name={`project-card-${transitionNameSlug(featured.name)}`} class="group grid overflow-hidden border border-border bg-card transition-colors hover:border-aka/60 lg:grid-cols-2">
+					<div class="relative flex min-h-[240px] items-center justify-center overflow-hidden border-b border-border bg-secondary/60 lg:border-b-0 lg:border-r">
+						<SeigaihaBand class="absolute inset-x-0 top-0 h-24 text-foreground opacity-[0.16]" rows={3} />
+						<SeigaihaBand class="absolute inset-x-0 bottom-0 h-24 rotate-180 text-foreground opacity-[0.1]" rows={3} />
+						<Icon name={featured.icon} class="relative size-24 text-aka" strokeWidth={1} />
+						<span class="absolute left-4 top-4 flex flex-col items-start gap-1.5">
+						<span class="rounded-full border border-aka/40 bg-background/80 px-3 py-1 text-[11px] font-medium tracking-wider text-aka backdrop-blur-sm">{featured.statusLabel.toUpperCase()}</span>
+						{featured.typeLabel && <span class="rounded-full border border-aka/40 bg-background/80 px-3 py-1 text-[11px] font-medium tracking-wider text-aka backdrop-blur-sm">{featured.typeLabel.toUpperCase()}</span>}
+					</span>
+					</div>
+					<div class="flex flex-col p-6 sm:p-9">
+						<h3 class="text-balance font-mincho text-2xl font-semibold leading-snug tracking-tight sm:text-[1.7rem]">{featured.name}</h3>
+						<p class="mt-1 text-sm font-medium text-aka">{featured.tagline}</p>
+						<p class="mt-4 flex-1 text-[15px] leading-relaxed text-muted-foreground">{featured.description}</p>
+						<ul class="mt-5 flex flex-wrap gap-1.5">
+							{featured.stack.map((tech) => <li class="rounded-sm bg-secondary px-2 py-0.5 text-[11px] font-medium tracking-wide text-foreground/80">{tech}</li>)}
+						</ul>
+						<div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-4">
+							{featured.repoUrl && (
+								<a href={featured.repoUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
+									<Icon name="github" class="size-4" />
+									Código
+								</a>
+							)}
+							{featured.demoUrl && (
+								<a href={featured.demoUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
+									Demo
+									<Icon name="arrow-up-right" class="size-4" />
+								</a>
+							)}
+							{featured.forSale && <ProjectPurchaseDialog projectName={featured.name} client:load />}
+						</div>
+					</div>
+				</article>
+				</Reveal>
+			)
 		)}
 		{projectCards.length === 0 && (
 			<Reveal delay={0.1}>
@@ -151,13 +213,16 @@ const showFilter = typeFacets.length > 1;
 			</Reveal>
 		)}
 		{rest.length > 0 && (
-			<div class="mt-6 grid gap-6 lg:grid-cols-2">
+			<div data-project-grid class="mt-6 grid gap-6 lg:grid-cols-2">
 			{rest.map((project, index) => (
 				<Reveal delay={0.1 * index} class="h-full">
-					<ProjectCard project={project} />
+					<ProjectCard project={project} transitionName={showFilter ? false : undefined} />
 				</Reveal>
 			))}
 			</div>
+		)}
+		{showFilter && rest.length === 0 && (
+			<p data-project-grid-empty class="hidden mt-6 text-[13px] text-muted-foreground">Este tipo no tiene más proyectos por ahora.</p>
 		)}
 			</div>
 
@@ -178,27 +243,43 @@ const showFilter = typeFacets.length > 1;
 </section>
 
 <script>
-/* Client-side type filter (projects-type-restore S6, revised L8): exactly
-   one type active at a time — selecting a chip replaces the previous one and
-   applies to every card, featured included, so a filtered view never mixes
-   categories. The active chip swaps to ink-on-ink via data-project-active. */
+/* Client-side type filter (projects-type-restore S6, revised L10): exactly
+   one type active at a time and the headline card is always present — every
+   filter value owns a pre-rendered headline variant, and the grid shows the
+   type's remaining projects (excluding the promoted headline pick). The
+   active chip swaps to ink-on-ink via data-project-active. */
 const filterSection = document.getElementById('proyectos');
 const filterChips = filterSection
 	? [...filterSection.querySelectorAll<HTMLButtonElement>('[data-project-chip]')]
 	: [];
 if (filterChips.length > 0) {
-	const cards = [...filterSection!.querySelectorAll<HTMLElement>('[data-project-type]')];
+	const headlines = [...filterSection!.querySelectorAll<HTMLElement>('[data-project-headline]')];
+	const gridCards = [...filterSection!.querySelectorAll<HTMLElement>('[data-project-name]')];
+	const grid = filterSection!.querySelector<HTMLElement>('[data-project-grid]');
+	const gridEmpty = filterSection!.querySelector<HTMLElement>('[data-project-grid-empty]');
 	const count = filterSection!.querySelector<HTMLElement>('[data-project-count]');
 	const clearButton = filterSection!.querySelector<HTMLButtonElement>('[data-project-clear]');
-	const total = cards.length;
+	const total = 1 + gridCards.length;
 
 	const applyFilter = (value: string) => {
-		let visible = 0;
-		for (const card of cards) {
-			const show = value === 'all' || card.dataset.projectType === value;
-			card.closest<HTMLElement>('.reveal')?.classList.toggle('hidden', !show);
-			if (show) visible += 1;
+		const activeHeadline = headlines.find((headline) => headline.dataset.headlineValue === value);
+		const headlineName = activeHeadline?.dataset.headlineProject ?? '';
+
+		for (const headline of headlines) {
+			headline.closest<HTMLElement>('.reveal')?.classList.toggle('hidden', headline !== activeHeadline);
 		}
+
+		let gridVisible = 0;
+		for (const card of gridCards) {
+			const show = (value === 'all' || card.dataset.projectType === value) && card.dataset.projectName !== headlineName;
+			card.closest<HTMLElement>('.reveal')?.classList.toggle('hidden', !show);
+			if (show) gridVisible += 1;
+		}
+
+		const visible = (activeHeadline ? 1 : 0) + gridVisible;
+		grid?.classList.toggle('hidden', gridVisible === 0);
+		gridEmpty?.classList.toggle('hidden', gridVisible !== 0);
+
 		for (const chip of filterChips) {
 			const active = chip.dataset.projectValue === value;
 			chip.setAttribute('aria-pressed', String(active));

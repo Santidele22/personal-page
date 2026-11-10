@@ -99,3 +99,13 @@ L9: "acordate que los filtros no se sumen que solo funcione uno" — with a
 type active the featured card was still on screen mixing categories; the
 filter now applies to every card including the featured one, counts include
 it (Todos 5), and selection stays single (one chip active at a time).
+
+L10: "Vamos con la siguiente logica: 1- siempre tiene que haber una card como
+esta ... por ejemplo si filtras por auditoria se deberia convertir a esta
+imagen. 2- en todos los filtros tiene que existir una card principal" — every
+filter value owns a pre-rendered headline variant (`data-headline-value`):
+`all` shows the featured project, each type promotes its featured (or first)
+project into the big card. The grid shows the view's remaining projects
+(excluding the promoted pick) and collapses with a note when empty; grid
+cards drop their view-transition names on the portada to avoid duplicates
+with the headline variants.
