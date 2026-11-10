@@ -11,6 +11,8 @@ import ThemeScript from '../../shared/ui/ThemeScript.astro';
 import '../styles/global.css';
 
 interface Props {
+	/** Request a noindex meta: 404 and other transient pages. */
+	noindex?: boolean;
 	title?: string;
 	description?: string;
 	/** `ImageMetadata` from `astro:assets` or a plain URL string (backend heroes). */
@@ -27,7 +29,7 @@ const siteTitle = profile?.siteTitle || SITE_TITLE;
 const siteDescription = profile?.siteDescription || SITE_DESCRIPTION;
 const siteAuthor = profile?.siteAuthor || SITE_AUTHOR;
 
-const { title = siteTitle, description = siteDescription, image = FallbackImage } = Astro.props;
+const { title = siteTitle, description = siteDescription, image = FallbackImage, noindex = false } = Astro.props;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 ---
 
@@ -42,6 +44,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 		<link rel="alternate" type="application/rss+xml" title={siteName} href={new URL('rss.xml', Astro.site)} />
 		<meta name="generator" content={Astro.generator} />
 		<meta name="description" content={description} />
+		{noindex && <meta name="robots" content="noindex" />}
 		{/* Cross-document view transitions (issue 47 S11): native, CSP-safe — no
 		    script involved, the browser interpolates the shared
 		    `transition:name` elements between same-origin pages. Unsupported

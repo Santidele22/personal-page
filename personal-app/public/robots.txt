@@ -1,0 +1,6 @@
+# Search engines: everything is indexable except what pages mark noindex
+# (the 404, admin routes answer 401/404 on their own).
+User-agent: *
+Allow: /
+
+Sitemap: https://personal-page.ezedelebecq22.workers.dev/sitemap-index.xml

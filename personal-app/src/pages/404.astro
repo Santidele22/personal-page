@@ -1,0 +1,42 @@
+---
+import BaseLayout from '../app/layouts/BaseLayout.astro';
+import Icon from '../shared/ui/Icon.astro';
+import SeigaihaBand from '../shared/ui/SeigaihaBand.astro';
+
+/* The 404 the platform default replaced: every broken or mistyped URL lands
+   here, so it keeps the site's visual language, explains what happened with
+   the real requested path (Astro escapes interpolated text) and offers the
+   three main ways back in. `noindex` keeps search engines out. */
+const requestedPath = Astro.url.pathname;
+---
+
+<BaseLayout title="Página no encontrada" description="La página que buscás no existe o cambió de dirección." noindex>
+	<main class="relative flex min-h-[70vh] items-center overflow-hidden">
+		<div aria-hidden="true" class="pointer-events-none absolute -right-24 -top-24 size-[380px] rounded-full bg-aka opacity-[0.07]"></div>
+		<div class="relative mx-auto w-full max-w-6xl px-5 py-16 sm:px-8 lg:py-24">
+			<div class="max-w-xl">
+				<p class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
+					<span aria-hidden="true" class="inline-block h-px w-10 bg-aka"></span>
+					ERROR 404
+				</p>
+				<h1 class="mt-6 text-balance font-mincho text-4xl font-semibold leading-[1.15] tracking-tight sm:text-5xl">
+					Ruta perdida<span class="text-aka">.</span>
+				</h1>
+				<p class="mt-6 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
+					La página que buscás no existe o cambió de dirección
+					{requestedPath !== '/' && <>— probaste <code class="rounded-sm bg-secondary px-1.5 py-0.5 font-mono text-[13px] text-foreground">{requestedPath}</code></>}.
+					El resto del sitio sigue en pie: empezá de nuevo por acá.
+				</p>
+				<div class="mt-8 flex flex-wrap items-center gap-3">
+					<a href="/" class="group inline-flex items-center gap-2 rounded-md bg-foreground px-6 py-3 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-[#fdf8ee]">
+						Volver al inicio
+						<Icon name="arrow-right" class="size-4 transition-transform group-hover:translate-x-0.5" />
+					</a>
+					<a href="/proyectos/" class="inline-flex items-center rounded-md border border-border px-6 py-3 text-sm font-medium transition-colors hover:border-aka hover:text-aka">Ver proyectos</a>
+					<a href="/#diario" class="inline-flex items-center rounded-md border border-border px-6 py-3 text-sm font-medium transition-colors hover:border-aka hover:text-aka">Leer el diario</a>
+				</div>
+			</div>
+		</div>
+		<SeigaihaBand class="absolute inset-x-0 bottom-0 h-24 rotate-180 text-foreground opacity-[0.1]" rows={3} />
+	</main>
+</BaseLayout>
