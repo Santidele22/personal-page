@@ -89,3 +89,13 @@ the single source of truth. S5 added; fallbacks removed from projects + tools
 (profile, books and ad-slots included, commit b676f8f). Config constants in
 `app/config/site` (SITE_NAME, social URLs, contact email) stay: deployment
 configuration, not stored content.
+
+L8: "Falta el type de 'auditorias' y agregar ese proyecto para mostrarlo. hoy
+no se ve en la pagina principal" — the portada fetch went to limit=5 so the
+audit project enters the grid and the filter shows its full facet set
+(commit b395c3f).
+
+L9: "acordate que los filtros no se sumen que solo funcione uno" — with a
+type active the featured card was still on screen mixing categories; the
+filter now applies to every card including the featured one, counts include
+it (Todos 5), and selection stays single (one chip active at a time).
