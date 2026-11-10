@@ -16,6 +16,7 @@ export type NavLink = {
 
 export const NAV_LINKS: NavLink[] = [
 	{ href: '/#diario', label: 'Diario' },
+	{ href: '/manifiesto', label: 'Manifiesto' },
 	{ href: '/#quien-soy', label: 'Quién soy' },
 	{ href: '/#proyectos', label: 'Proyectos' },
 	{ href: '/roadmap', label: 'Roadmap' },
