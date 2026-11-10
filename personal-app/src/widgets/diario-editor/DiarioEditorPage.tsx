@@ -8,7 +8,7 @@ import {
 	type PostBody,
 } from '../../features/diario-editor/api/post';
 import {
-	fetchManifesto,
+	fetchManifestoForEditor,
 	MANIFIESTO_CONTENT,
 	MANIFIESTO_DESCRIPTION,
 	MANIFIESTO_TITLE,
@@ -114,6 +114,8 @@ export default function DiarioEditorPage(props: Props) {
 	const [saveError, setSaveError] = createSignal('');
 	const [savedAt, setSavedAt] = createSignal<number | null>(null);
 	const [drawerOpen, setDrawerOpen] = createSignal(false);
+	/** Manifiesto mode: whether the stored article is currently published. */
+	const [manifestoPublished, setManifestoPublished] = createSignal(false);
 	/* 30 s ticker so «guardado hace N min» stays honest while the tab sits open. */
 	const [now, setNow] = createSignal(Date.now());
 
@@ -133,7 +135,7 @@ export default function DiarioEditorPage(props: Props) {
 		setSavedAt(null);
 
 		if (props.mode === 'manifesto') {
-			const stored = await fetchManifesto();
+			const stored = await fetchManifestoForEditor();
 			const manifestoForm: EditorForm = {
 				title: stored?.title ?? MANIFIESTO_TITLE,
 				description: stored?.description ?? MANIFIESTO_DESCRIPTION,
@@ -144,6 +146,7 @@ export default function DiarioEditorPage(props: Props) {
 				featured: false,
 			};
 			setEntryId(null);
+			setManifestoPublished(stored?.pubDate != null);
 			setForm(manifestoForm);
 			setBaseline(manifestoForm);
 			setStatus('ready');
@@ -201,7 +204,7 @@ export default function DiarioEditorPage(props: Props) {
 	const canPublish = () => canSaveDraft() && form().pubDate !== '';
 
 	const stateLabel = () => {
-		if (props.mode === 'manifesto') return 'Manifiesto';
+		if (props.mode === 'manifesto') return manifestoPublished() ? 'Publicado' : 'Borrador';
 		return form().pubDate ? 'Publicado' : 'Borrador';
 	};
 	const savedLabel = () => {
@@ -215,7 +218,7 @@ export default function DiarioEditorPage(props: Props) {
 	async function save(asPublish: boolean) {
 		if (props.mode === 'manifesto') {
 			if (!canSaveDraft()) return;
-			setSaving('draft');
+			setSaving(asPublish ? 'publish' : 'draft');
 			setSaveError('');
 			const current = form();
 			try {
@@ -223,7 +226,9 @@ export default function DiarioEditorPage(props: Props) {
 					title: current.title.trim(),
 					description: current.description.trim(),
 					content: current.content,
+					publish: asPublish,
 				});
+				setManifestoPublished(asPublish);
 				setBaseline(current);
 				setSavedAt(Date.now());
 			} catch (cause) {
@@ -330,9 +335,14 @@ export default function DiarioEditorPage(props: Props) {
 							</>
 						}
 					>
-						<button type="button" class="btn-primary" disabled={!canSaveDraft()} onClick={() => void save(false)}>
-							<Show when={saving() === 'draft'} fallback="Guardar manifiesto">
+						<button type="button" class="btn-secondary" disabled={!canSaveDraft()} onClick={() => void save(false)}>
+							<Show when={saving() === 'draft'} fallback="Guardar borrador">
 								Guardando…
+							</Show>
+						</button>
+						<button type="button" class="btn-primary" disabled={!canSaveDraft()} onClick={() => void save(true)}>
+							<Show when={saving() === 'publish'} fallback={manifestoPublished() ? 'Publicado · volver a publicar' : 'Publicar'}>
+								Publicando…
 							</Show>
 						</button>
 					</Show>
