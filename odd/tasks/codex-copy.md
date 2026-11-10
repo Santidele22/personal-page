@@ -1,0 +1,36 @@
+# Codex copy — rewrite del copywriting del sitio
+
+Narrativa: Codex Catharsis (ver Log L1). Estética intacta; solo copy frontend + página Manifiesto.
+
+## Specs
+
+S1. "Cambiame el copy-writing de toda la pagina con la historia que te mande" — reescribir el copy de sección hardcodeado de la landing (eyebrows, títulos, intros, CTAs, estados vacíos) en la voz de la narrativa: primera persona serena, máquinas que ayudan y personas que guían, lo artesanal, calma sin apuro.
+S2. "un apartado que diga 'manifiesto' y ahi escriba el manifiesto del mundo distopico contado" — nueva página `/manifiesto` con el mundo distópico contado completo: distopía cómoda, el conflicto del timón, el torno del artesano, la tesis (el progreso tiene que ser humano, aprender es un acto de resistencia), las tres referencias (Mad Max, El libro de los secretos, wabi-sabi/kintsugi), las reglas del copista y el cierre "Si te sirve, es tuyo".
+S3. "por el momento solo frontend" — no tocar backend ni datos del perfil: los textos que hoy vienen de `fetchProfile` (hero, bio, contacto) quedan como están y se retocan desde el panel más adelante.
+S4. "cuando lo termines lo agregamos al panel para poder retocarlo" — fase posterior, fuera de este alcance: la copia hardcodeada migrará a campos editables del panel.
+S5. Decisión del usuario (Log L2): el título "Codex Catharsis" queda descartado y pendiente de reemplazo → el copy NO usa la palabra "codex" ni marca de título; se usan los nombres de sección neutros de la narrativa (el diario, el taller, el copista, manifiesto) para poder cambiar el título en una sola pasada después.
+
+S6. Decisión del usuario (Log L8): el manifiesto es un artículo — reutilizar el editor full-page del Diario. Diseño: slug reservado `manifiesto` en `blogs`; excluido de portada/archivo/RSS y de la lista del panel Diario; sección propia en el sidebar (`/admin/manifiesto`) que monta el mismo editor en modo slug; la página pública `/manifiesto` pasa a renderizar el artículo.
+
+## Tasks
+
+T1 [S1] Copy sweep de landing: hero (botones), blog, about/quién soy, proyectos, lectura, certificados, contacto, header kicker, footer — ruta inline, commit `65e7050 copy: rewrite landing copy in codex narrative voice`.
+T2 [S2] Página `/manifiesto` nueva + enlaces (footer y nav fallback) — ruta inline, commit `321d3df feat: add manifiesto page with distopia narrative`.
+T4 [S1-S2] Verificación: `astro build` ✓ + `vitest run` ✓ (19 archivos, 134 tests) en personal-app — ruta inline.
+T5 [S6] Backend: slug reservado + endpoint admin + seed del artículo — inline.
+T6 [S6] Frontend: editor en modo slug, sidebar, página pública — inline. Hecho: `features/manifiesto/{default.ts,api.ts}` (fallback en código + fetch/save); `DiarioEditorPage` con prop `mode: 'manifesto'` (sin fecha ni drawer ni Publicar: guardar es publicar); `/admin/manifiesto` monta el mismo editor full-page; sidebar suma la sección Manifiesto (feather); `/manifiesto` renderiza el artículo guardado y cae al default si no hay fila o el backend no responde.
+T7 [S5-S6] Verificación y despliegue — backend 306 tests ✓; frontend build ✓, 134 tests ✓, astro check ✓.
+
+Notas T1: alcance final — Hero ("Abrir el diario"), Blog (ABRIR EL DIARIO / "Escrito despacio" / "Abrir el archivo" / estado vacío), About (eyebrow y fallback "El copista"), Projects (EN EL TALLER / intro con "cada pieza entendida" / "Ver todo el taller"), Reading (APRENDER DESPACIO / intro), Certificates (eyebrow), blog/index (ABRIR EL DIARIO / "El archivo del diario"), 404 ("Abrir el diario"), about.astro (título y eyebrow). El copy data-driven (perfil, menú del backend) no se tocó (S3).
+Notas T2: página estática sin loaders; enlaces añadidos al fallback NAV_LINKS y columna Diario del footer. Nota: el menú real viene del backend (`/menu-items`), así que para que aparezca en el header hay que agregarlo desde el panel o esperar a S4.
+L5 (usuario, verbatim): "Bueno ahora hay que cambiar todo el writing de la pagina: desde la bio hasta el hero. para que se amolde a la narrativa de la historia... usa las referencias para inspirarte" → escritura del perfil completo (hero, bio, valores, contacto, footer, meta).
+L6 (usuario, verbatim): "Pero hacelo vos hermano" → autorización explícita para escribir el perfil yo mismo. Vía elegida: seed script siguiendo el patrón del repo (nunca credenciales; `node --env-file=.env`). T4: `DEFAULT_PROFILE` narrativo + `seed-profile.ts` idempotente (imprime backup antes de escribir; no toca drafts) + script `seed:profile`; ejecutado contra prod → fila actualizada (commit `59e5817` en personal-page-backend). Bug corregido durante la ejecución: arrays crudos se serializan como literal de Postgres, no JSON → `toParam` stringify solo columnas JSON. El draft del panel quedó intacto (1 fila).
+L7 (usuario): el título "Mi lugar para la catarsis" no va con la narrativa → eligió "Aprender es un acto de resistencia." (ask_user_choice). UPDATE puntual de la columna `"heroTitle"` (camelCase comilleado) + defaults y seed alineados; verificado en prod; commit `9a3a9fe`.
+L8 (usuario, verbatim): "Bueno ahora si vayamos al backen para agregar en el panel la escritura del manifiesto" + "Al frontend armalo como el editor que hay para escribir los articulos. asi que saquemos el editor de articulos a un apartado aparte y reutilicemoslo. porque el manifiesto es eso. un articulo" → S6/T5-T6. El editor del diario ya vive aparte (`widgets/diario-editor/`): se reutiliza tal cual.
+
+## Log
+
+L1 (usuario, verbatim): "Creame un primer boceto de esta narracion en la pagina y despues yo voy a ir retocando pero es para para poder publicarlo y que quede bien" + resumen completo de la historia (mundo distópico cómodo, conflicto del timón, dev real en primera persona, el libro es esta web, aceptar la tecnología como herramienta no reemplazo, referencias Mad Max / El libro de los secretos / wabi-sabi-kintsugi, lema "Máquinas que ayudan, personas que guían", cierre "Si te sirve, es tuyo", secciones: Abrir el codex / El copista o Quién soy / En el taller / Manifiesto, kintsugi como práctica real, reglas del copista).
+L2 (usuario, verbatim): "No quiero cambiar la estetica, solamente el 'copy writing'. el titulo de codex ... no me gusta. voy a pensar otro titulo" → título descartado, pendiente; ver S5.
+L3 (usuario, verbatim): "Cambiame el copy-writing de toda la pagina con la historia que te mande y un apartado que diga 'manifiesto' y ahi escriba el manifiesto del mundo distopico contado. por el momento solo frontend y cuando lo termines lo agregamos al panel para poder retocarlo".
+L4 (usuario, con capturas): "toda la pagina tiene que tener esa narrativa. el manifiesto se tiene que ver en un link que sea como el de 'quien soy'". El usuario fijó el hero desde el panel: "Mi lugar para la catarsis" + intro "Mi lugar para escribir sobre aprendizajes, pensamientos, opiniones. Si no logro explicarlo, todavía no lo aprendí." → dirección de título: catarsis. Commit 656e09b: botón Manifiesto en hero (estilo Quién soy), kicker del header "ESCRITO A MANO", estado vacío de recomendaciones y contacto "Escribime".

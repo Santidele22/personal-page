@@ -7,6 +7,13 @@ import {
 	updatePost,
 	type PostBody,
 } from '../../features/diario-editor/api/post';
+import {
+	fetchManifesto,
+	MANIFIESTO_CONTENT,
+	MANIFIESTO_DESCRIPTION,
+	MANIFIESTO_TITLE,
+	saveManifesto,
+} from '../../features/manifiesto/api';
 import { readMinutes } from '../../features/diario-editor/lib/editorStats';
 import { slugPreviewPath } from '../../features/diario-editor/lib/slug';
 import type { EditResult } from '../../features/diario-editor/lib/selection';
@@ -20,11 +27,17 @@ import MetadataDrawer from './MetadataDrawer';
  * viewport. `/admin/diario/nueva` mounts it without `blogId`; the edit route
  * passes the entry id and the island loads the entry in the browser because
  * drafts need the admin session cookie.
+ *
+ * `mode: 'manifesto'` reuses the exact same editor for the `/manifiesto`
+ * singleton article (codex-copy S6): no date, no metadata drawer and a
+ * single save button — saving is publishing for that page.
  */
 
 type Props = {
 	/** Entry id in edit mode; absent in create mode. */
 	blogId?: number;
+	/** `'post'` (default) edits a diario entry; `'manifesto'` the singleton article. */
+	mode?: 'post' | 'manifesto';
 };
 
 type EditorForm = {
@@ -119,6 +132,24 @@ export default function DiarioEditorPage(props: Props) {
 		setLoadError('');
 		setSavedAt(null);
 
+		if (props.mode === 'manifesto') {
+			const stored = await fetchManifesto();
+			const manifestoForm: EditorForm = {
+				title: stored?.title ?? MANIFIESTO_TITLE,
+				description: stored?.description ?? MANIFIESTO_DESCRIPTION,
+				content: stored?.content ?? MANIFIESTO_CONTENT,
+				pubDate: '',
+				level: 'basico',
+				categories: [],
+				featured: false,
+			};
+			setEntryId(null);
+			setForm(manifestoForm);
+			setBaseline(manifestoForm);
+			setStatus('ready');
+			return;
+		}
+
 		if (props.blogId === undefined) {
 			setEntryId(null);
 			setForm(EMPTY_FORM);
@@ -169,7 +200,10 @@ export default function DiarioEditorPage(props: Props) {
 	/** Publishing needs the date that makes the entry visible on the landing. */
 	const canPublish = () => canSaveDraft() && form().pubDate !== '';
 
-	const stateLabel = () => (form().pubDate ? 'Publicado' : 'Borrador');
+	const stateLabel = () => {
+		if (props.mode === 'manifesto') return 'Manifiesto';
+		return form().pubDate ? 'Publicado' : 'Borrador';
+	};
 	const savedLabel = () => {
 		const at = savedAt();
 		if (at === null) return '';
@@ -179,6 +213,27 @@ export default function DiarioEditorPage(props: Props) {
 	};
 
 	async function save(asPublish: boolean) {
+		if (props.mode === 'manifesto') {
+			if (!canSaveDraft()) return;
+			setSaving('draft');
+			setSaveError('');
+			const current = form();
+			try {
+				await saveManifesto({
+					title: current.title.trim(),
+					description: current.description.trim(),
+					content: current.content,
+				});
+				setBaseline(current);
+				setSavedAt(Date.now());
+			} catch (cause) {
+				setSaveError(errorText(cause) || 'No se pudo guardar el manifiesto. Inténtalo de nuevo.');
+			} finally {
+				setSaving(null);
+			}
+			return;
+		}
+
 		if (asPublish ? !canPublish() : !canSaveDraft()) return;
 
 		setSaving(asPublish ? 'publish' : 'draft');
@@ -336,8 +391,8 @@ export default function DiarioEditorPage(props: Props) {
 				}
 			>
 				<header class="chrome">
-					<a class="back" href="/admin/diario">
-						← Diario
+					<a class="back" href={props.mode === 'manifesto' ? '/admin/' : '/admin/diario'}>
+						{props.mode === 'manifesto' ? '← Panel' : '← Diario'}
 					</a>
 					<span class="doc-state">
 						<span class="dot" aria-hidden="true" />
@@ -347,19 +402,32 @@ export default function DiarioEditorPage(props: Props) {
 						</Show>
 					</span>
 					<span class="spacer" />
-					<button type="button" class="btn-secondary" onClick={() => setDrawerOpen((open) => !open)}>
-						⚙ Metadatos
-					</button>
-					<button type="button" class="btn-secondary" disabled={!canSaveDraft()} onClick={() => void save(false)}>
-						<Show when={saving() === 'draft'} fallback="Guardar borrador">
-							Guardando…
-						</Show>
-					</button>
-					<button type="button" class="btn-primary" disabled={!canPublish()} onClick={() => void save(true)}>
-						<Show when={saving() === 'publish'} fallback="Publicar">
-							Publicando…
-						</Show>
-					</button>
+					<Show
+						when={props.mode === 'manifesto'}
+						fallback={
+							<>
+								<button type="button" class="btn-secondary" onClick={() => setDrawerOpen((open) => !open)}>
+									⚙ Metadatos
+								</button>
+								<button type="button" class="btn-secondary" disabled={!canSaveDraft()} onClick={() => void save(false)}>
+									<Show when={saving() === 'draft'} fallback="Guardar borrador">
+										Guardando…
+									</Show>
+								</button>
+								<button type="button" class="btn-primary" disabled={!canPublish()} onClick={() => void save(true)}>
+									<Show when={saving() === 'publish'} fallback="Publicar">
+										Publicando…
+									</Show>
+								</button>
+							</>
+						}
+					>
+						<button type="button" class="btn-primary" disabled={!canSaveDraft()} onClick={() => void save(false)}>
+							<Show when={saving() === 'draft'} fallback="Guardar manifiesto">
+								Guardando…
+							</Show>
+						</button>
+					</Show>
 				</header>
 
 				<div class="meta-bar">
@@ -379,12 +447,14 @@ export default function DiarioEditorPage(props: Props) {
 						value={form().description}
 						onInput={(event) => update('description', event.currentTarget.value)}
 					/>
-					<input
-						type="date"
-						aria-label="Fecha de publicación (vacía = borrador)"
-						value={form().pubDate}
-						onInput={(event) => update('pubDate', event.currentTarget.value)}
-					/>
+					<Show when={props.mode !== 'manifesto'}>
+						<input
+							type="date"
+							aria-label="Fecha de publicación (vacía = borrador)"
+							value={form().pubDate}
+							onInput={(event) => update('pubDate', event.currentTarget.value)}
+						/>
+					</Show>
 				</div>
 
 				<Show when={saveError()}>
@@ -401,30 +471,32 @@ export default function DiarioEditorPage(props: Props) {
 					</div>
 				</div>
 
-				<MetadataDrawer
-					open={() => drawerOpen()}
-					onClose={() => setDrawerOpen(false)}
-					level={() => form().level}
-					onSelectLevel={(level) => update('level', level)}
-					categories={() => form().categories}
-					onAddCategory={(raw) =>
-						setForm((current) =>
-							current.categories.includes(raw)
-								? current
-								: { ...current, categories: [...current.categories, raw] }
-						)
-					}
-					onRemoveCategory={(index) =>
-						setForm((current) => ({
-							...current,
-							categories: current.categories.filter((_, at) => at !== index),
-						}))
-					}
-					featured={() => form().featured}
-					onToggleFeatured={() => update('featured', !form().featured)}
-					readMin={() => readMinutes(form().content)}
-					slugPath={() => slugPreviewPath(form().title)}
-				/>
+				<Show when={props.mode !== 'manifesto'}>
+					<MetadataDrawer
+						open={() => drawerOpen()}
+						onClose={() => setDrawerOpen(false)}
+						level={() => form().level}
+						onSelectLevel={(level) => update('level', level)}
+						categories={() => form().categories}
+						onAddCategory={(raw) =>
+							setForm((current) =>
+								current.categories.includes(raw)
+									? current
+									: { ...current, categories: [...current.categories, raw] }
+							)
+						}
+						onRemoveCategory={(index) =>
+							setForm((current) => ({
+								...current,
+								categories: current.categories.filter((_, at) => at !== index),
+							}))
+						}
+						featured={() => form().featured}
+						onToggleFeatured={() => update('featured', !form().featured)}
+						readMin={() => readMinutes(form().content)}
+						slugPath={() => slugPreviewPath(form().title)}
+					/>
+				</Show>
 			</Show>
 		</div>
 	);

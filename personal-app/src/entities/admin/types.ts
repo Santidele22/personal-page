@@ -1,6 +1,7 @@
 export type AdminSection =
 	| 'resumen'
 	| 'diario'
+	| 'manifiesto'
 	| 'servicios'
 	| 'proyectos'
 	| 'libros'

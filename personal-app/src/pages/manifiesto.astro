@@ -1,146 +1,44 @@
 ---
 import BaseLayout from '../app/layouts/BaseLayout.astro';
 import Icon from '../shared/ui/Icon.astro';
-import type { IconName } from '../shared/ui/Icon.astro';
-import { SITE_NAME } from '../app/config/site';
+import { renderMarkdown } from '../shared/lib/markdown';
+import {
+	fetchManifesto,
+	MANIFIESTO_CONTENT,
+	MANIFIESTO_DESCRIPTION,
+	MANIFIESTO_TITLE,
+} from '../features/manifiesto/api';
 
-/* Manifiesto (codex-copy S2): el mundo distópico contado completo, escrito
-   estático y a mano. Sin loaders ni datos del backend: esta página es el
-   texto del libro, no una sección administrable (S3/S4 la migran después). */
+/* The manifiesto is a reserved blog article (codex-copy S6): the panel edits
+   it with the full-page diario editor and this page serves the stored copy
+   on demand. While nobody saved the article (or the backend is down) the
+   page renders the source-controlled default, so it never renders empty. */
+const stored = await fetchManifesto(Astro.url.origin);
 
-const referencias: { icon: IconName; title: string; rol: string; text: string }[] = [
-	{
-		icon: 'wrench',
-		rol: 'EL CÓMO',
-		title: 'Mad Max',
-		text: 'Lo artesanal, lo armado con lo que hay. Se nota en mi entorno Linux: cada pieza elegida y entendida, cada remiendo a la vista.',
-	},
-	{
-		icon: 'book-open',
-		rol: 'EL POR QUÉ',
-		title: 'El libro de los secretos',
-		text: 'Preservar el saber. Se nota en este diario: existe y se cuida aunque nadie lo pida, como un libro en un estante.',
-	},
-	{
-		icon: 'feather',
-		rol: 'EL TONO',
-		title: 'Wabi-sabi y kintsugi',
-		text: 'Calma, imperfección, cicatrices visibles. Se nota en las correcciones publicadas: lo que se corrige no se borra, se remienda.',
-	},
-];
-
-const reglas = [
-	{
-		title: 'Explicar para aprender.',
-		text: 'Si no logro explicarlo, todavía no lo aprendí.',
-	},
-	{
-		title: 'Mostrar lo remendado.',
-		text: 'Las entradas corregidas se marcan como reparadas y dicen qué cambió: nada se reescribe en silencio.',
-	},
-	{
-		title: 'Aprender despacio.',
-		text: 'La prisa es de la distopía. El criterio se construye a mano, a la velocidad de la comprensión.',
-	},
-	{
-		title: 'Preguntar y después entender.',
-		text: 'La máquina responde enseguida; entender lleva el tiempo que lleva. El orden de esos dos hechos es la diferencia entera.',
-	},
-];
+const title = stored?.title ?? MANIFIESTO_TITLE;
+const description = stored?.description ?? MANIFIESTO_DESCRIPTION;
+const html = renderMarkdown(stored?.content ?? MANIFIESTO_CONTENT);
 ---
 
-<BaseLayout title={`Manifiesto · ${SITE_NAME}`} description="El manifiesto de este diario: una distopía cómoda, el conflicto del timón y la postura de que el progreso tiene que ser humano.">
+<BaseLayout title={`Manifiesto · devlog.`} description={description}>
 	<section class="mx-auto max-w-3xl px-5 py-16 sm:px-8 lg:py-24">
 		<p class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
 			<Icon name="feather" class="size-4 text-aka" />
 			MANIFIESTO
 		</p>
 		<h1 class="mt-3 font-mincho text-4xl font-semibold tracking-tight sm:text-5xl">
-			El progreso tiene que ser humano<span class="text-aka">.</span>
+			{title}
 		</h1>
 		<p class="mt-6 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-			Aprender es un acto de resistencia. Esto es lo que creo, escrito despacio y en público: el mundo que veo, el conflicto que de verdad importa y la postura con la que escribo cada entrada de este diario.
+			{description}
 		</p>
 
-		<div class="mt-12 space-y-12">
-			<div>
-				<h2 class="font-mincho text-2xl font-semibold tracking-tight sm:text-3xl">Una distopía cómoda<span class="text-aka">.</span></h2>
-				<div class="mt-4 space-y-4 text-[15px] leading-relaxed text-muted-foreground">
-					<p>
-						Nadie me obligó a nada nunca. Esa es la parte inquietante. La distopía que veo no tiene vigilantes ni uniformes: tiene respuestas instantáneas, feeds infinitos y un culto tranquilo a la ignorancia disfrazado de eficiencia. Todo se puede delegar, y delegar es cómodo.
-					</p>
-					<p>
-						De a poco, sin que nadie lo decida, olvidamos cómo pensar sin ayuda, cómo hacer con las manos y cómo tener criterio propio. La comodidad no nos quitó la libertad: nos quitó las ganas de usarla.
-					</p>
-				</div>
-			</div>
+		<article
+			class="mt-12 max-w-none [&_blockquote]:border-l-2 [&_blockquote]:border-aka [&_blockquote]:font-mincho [&_blockquote]:pl-5 [&_h2]:mt-12 [&_h2]:font-mincho [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_h2]:sm:text-3xl [&_h3]:mt-8 [&_h3]:font-mincho [&_h3]:text-xl [&_h3]:font-semibold [&_li]:text-[15px] [&_li]:leading-relaxed [&_li]:text-muted-foreground [&_ol]:mt-6 [&_ol]:list-decimal [&_ol]:space-y-4 [&_ol]:pl-6 [&_p]:mt-5 [&_p]:text-[15px] [&_p]:leading-relaxed [&_p]:text-muted-foreground [&_strong]:font-semibold [&_strong]:text-foreground [&_ul]:mt-6 [&_ul]:space-y-4"
+			set:html={html}
+		/>
 
-			<div>
-				<h2 class="font-mincho text-2xl font-semibold tracking-tight sm:text-3xl">Quién sostiene el timón<span class="text-aka">.</span></h2>
-				<div class="mt-4 space-y-4 text-[15px] leading-relaxed text-muted-foreground">
-					<p>
-						Este no es un relato de humanos contra máquinas. El conflicto es otro, y es más viejo que la IA: quién sostiene el timón. El problema nunca fue la herramienta; es la renuncia al criterio de quien la usa.
-					</p>
-					<p>
-						La máquina es un torno, un martillo, una montura más. El daño empieza cuando el artesano deja de mirar lo que hace — cuando acepta el resultado sin entender el camino, porque el camino era lo único que de verdad le pertenecía.
-					</p>
-				</div>
-			</div>
-
-			<div>
-				<h2 class="font-mincho text-2xl font-semibold tracking-tight sm:text-3xl">Máquinas que ayudan, personas que guían<span class="text-aka">.</span></h2>
-				<div class="mt-4 space-y-4 text-[15px] leading-relaxed text-muted-foreground">
-					<p>
-						Mi postura cabe en una frase: acepto la tecnología como herramienta de ayuda, no como reemplazo. Máquinas y personas van de la mano, pero el humano guía: elige, corrige, decide qué vale la pena construir.
-					</p>
-					<p>
-						Por eso escribo a mano lo que aprendo, en un mundo que ya no tiene tiempo para entender. Uso las máquinas todos los días — y las guío yo. Si me equivoco, el error queda publicado y remendado, con la cicatriz a la vista: así se distingue un libro vivo de un folleto.
-					</p>
-				</div>
-			</div>
-
-			<div>
-				<h2 class="font-mincho text-2xl font-semibold tracking-tight sm:text-3xl">Las tres referencias<span class="text-aka">.</span></h2>
-				<ul class="mt-6 space-y-6">
-					{referencias.map((ref) => (
-						<li class="flex items-start gap-4">
-							<span aria-hidden="true" class="mt-0.5 flex size-10 shrink-0 items-center justify-center border border-aka/50 bg-card text-aka">
-								<Icon name={ref.icon} class="size-4.5" strokeWidth={1.75} />
-							</span>
-							<div>
-								<h3 class="font-mincho text-[15px] font-semibold">
-									{ref.title}
-									<span class="ml-2 align-middle text-[10px] font-medium tracking-[0.2em] text-aka">{ref.rol}</span>
-								</h3>
-								<p class="mt-1 text-sm leading-relaxed text-muted-foreground">{ref.text}</p>
-							</div>
-						</li>
-					))}
-				</ul>
-			</div>
-
-			<div>
-				<h2 class="font-mincho text-2xl font-semibold tracking-tight sm:text-3xl">Las reglas del copista<span class="text-aka">.</span></h2>
-				<ol class="mt-6 space-y-5">
-					{reglas.map((regla, index) => (
-						<li class="flex items-baseline gap-4">
-							<span aria-hidden="true" class="shrink-0 font-mono text-[12px] text-aka">{String(index + 1).padStart(2, '0')}</span>
-							<p class="text-[15px] leading-relaxed text-muted-foreground">
-								<strong class="font-semibold text-foreground">{regla.title}</strong>
-								{regla.text}
-							</p>
-						</li>
-					))}
-				</ol>
-			</div>
-
-			<div class="border-y border-border py-10 text-center">
-				<p class="font-mincho text-2xl font-semibold tracking-tight">Si te sirve, es tuyo<span class="text-aka">.</span></p>
-				<p class="mt-3 text-[13px] tracking-[0.1em] text-muted-foreground">Máquinas que ayudan, personas que guían.</p>
-			</div>
-		</div>
-
-		<a href="/" class="mt-10 inline-flex items-center gap-2 text-sm font-medium text-aka hover:underline">
+		<a href="/" class="mt-12 inline-flex items-center gap-2 text-sm font-medium text-aka hover:underline">
 			<Icon name="arrow-right" class="size-4 rotate-180" />
 			Volver a la portada
 		</a>

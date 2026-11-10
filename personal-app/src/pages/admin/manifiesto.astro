@@ -1,0 +1,14 @@
+---
+import EditorLayout from '../../app/layouts/EditorLayout.astro';
+import DiarioEditorPage from '../../widgets/diario-editor/DiarioEditorPage';
+
+/* Full-page manifiesto editor (codex-copy S6): the same island the diario
+   uses, mounted in `manifesto` mode. The island loads the stored article in
+   the browser (or the source-controlled default on the first visit) because
+   saving needs the admin session cookie; the middleware already answered the
+   auth gate before this page. */
+---
+
+<EditorLayout title="Panel · Manifiesto">
+	<DiarioEditorPage client:load mode="manifesto" />
+</EditorLayout>
