@@ -1,5 +1,4 @@
 import type { Book, BookKind, ReadingStatus } from '../../../entities/book/types';
-import { booksFallback } from '../../../entities/book/data';
 import { getJson } from '../../../shared/api/http';
 import type { Paged } from '../../../shared/api/pagination';
 
@@ -97,5 +96,3 @@ export async function fetchBooksPage(
 		return null;
 	}
 }
-
-export { booksFallback };

@@ -9,10 +9,12 @@ import Icon from '../../shared/ui/Icon.astro';
 import type { IconName } from '../../shared/ui/Icon.astro';
 
 /* The profile and the footer advertising band are read while the server
-   renders the page; the fallbacks below are the copy this footer shipped with
-   before the profile entity existed. Plans and brands share the same
-   composition as the hero band; a failed request becomes `null`, which the
-   composition resolves with the shipped ad-slot fallback. */
+   renders the page. A failed profile read leaves the copy at the generated
+   minimum (site name from config, generated copyright): the backend is the
+   single source of truth and the footer never shows shipped copy
+   (projects-type-restore L3). Plans and brands share the same composition as
+   the hero band; a failed request becomes `null`, which the composition
+   resolves as an empty band. */
 const serverOrigin = Astro.url.origin;
 const [profile, plans, brands] = await Promise.all([
 	fetchProfile(serverOrigin),
@@ -26,14 +28,12 @@ const siteName = profile?.siteName || SITE_NAME;
 const siteNameText = siteName.endsWith('.') ? siteName.slice(0, -1) : siteName;
 const siteNamePeriod = siteName.endsWith('.');
 
-const blurb =
-	profile?.footerBlurb ||
-	'Web personal y diario sobre backend, blockchain e ingeniería de software. Escrito despacio desde 2026.';
+const blurb = profile?.footerBlurb || '';
 
-/* Copyright is stored verbatim (year included); only the offline fallback
-   rebuilds the current year, exactly as this footer used to. */
+/* Copyright is stored verbatim (year included); with no stored value it
+   degrades to the generated year and site name, no invented tagline. */
 const year = new Date().getFullYear();
-const copyright = profile?.footerCopyright || `© ${year} ${siteNameText} — Todos los textos son míos; el código también.`;
+const copyright = profile?.footerCopyright || `© ${year} ${siteNameText}`;
 
 type SocialLink = { icon: IconName; label: string; href: string };
 
@@ -74,7 +74,7 @@ const columns = [
 					<span class="hanko size-8 rounded-[4px] font-mono text-[10px] font-semibold">&lt;/&gt;</span>
 					<span class="font-mincho text-xl font-semibold">{siteNameText}{siteNamePeriod && <span class="text-aka">.</span>}</span>
 				</p>
-				<p class="mt-4 max-w-xs text-[13px] leading-relaxed text-muted-foreground">{blurb}</p>
+				{blurb && <p class="mt-4 max-w-xs text-[13px] leading-relaxed text-muted-foreground">{blurb}</p>}
 				<div class="mt-5 flex items-center gap-2">
 					{socials.map((social) => {
 						const isExternal = social.href.startsWith('http');

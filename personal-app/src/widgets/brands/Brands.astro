@@ -1,14 +1,14 @@
 ---
-import { fetchAdSlots, adSlotsFallback } from '../../features/ad-slot/api/ad-slots';
+import { fetchAdSlots } from '../../features/ad-slot/api/ad-slots';
 import EmptyState from '../../shared/ui/EmptyState.astro';
 import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
 
-/* The ad slots are read while the server renders the page; the fallback below
-   is the pricing grid this section shipped with before the public columns of
-   advertising-plans existed. */
+/* The ad slots are read while the server renders the page; a failed read
+   renders the empty state — the API is the single source of truth and the
+   grid never shows shipped copy (projects-type-restore L3). */
 const serverOrigin = Astro.url.origin;
-const adSlotList = (await fetchAdSlots(serverOrigin)) ?? adSlotsFallback;
+const adSlotList = (await fetchAdSlots(serverOrigin)) ?? [];
 
 const guarantees = [
 	{ icon: 'sprout', text: 'Sin impresiones infladas: el diario recién empieza. Quien entra ahora congela el precio fundador para siempre.' },

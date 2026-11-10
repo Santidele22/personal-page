@@ -4,50 +4,51 @@ import HeroArt from '../../shared/ui/HeroArt.astro';
 import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
 
-/* The profile is read while the server renders the page; the fallbacks below
-   are the copy this section shipped with before the profile entity existed. */
+/* The profile is read while the server renders the page. A failed read leaves
+   the copy empty: the backend is the single source of truth and the hero
+   never shows shipped text (projects-type-restore L3). */
 const serverOrigin = Astro.url.origin;
 const profile = await fetchProfile(serverOrigin);
 
-const eyebrow = profile?.eyebrow ?? 'SANTIAGO DELEBECQ · BACKEND & BLOCKCHAIN';
+const eyebrow = profile?.eyebrow ?? '';
 
 /* `heroTitle` is stored with its final period, which the design renders inside
    the accent span: take it out of the text and keep it in the span. */
-const heroTitle = profile?.heroTitle ?? 'Un rincón quieto para construir software.';
+const heroTitle = profile?.heroTitle ?? '';
 const titleText = heroTitle.endsWith('.') ? heroTitle.slice(0, -1) : heroTitle;
 const titlePeriod = heroTitle.endsWith('.');
 
-const heroIntro =
-	profile?.heroIntro ??
-	'Soy Santiago Delebecq, desarrollador backend de Córdoba, Argentina — hoy en Monetae, con background full stack y foco en arquitectura de software y sistemas que escalan. Acá escribo de backend, blockchain e ingeniería, despacio y primero en español. Sin humo: si algo está acá, lo probé antes con mis propias manos.';
+const heroIntro = profile?.heroIntro ?? '';
 
-const commitments = profile?.commitments ?? [
-	{ value: 'Monetae', label: 'donde trabajo el backend hoy' },
-	{ value: '2/mes', label: 'una entrada cada dos semanas' },
-	{ value: 'Año 1', label: 'el diario recién empieza' },
-];
+const commitments = profile?.commitments ?? [];
 ---
 
 <section class="relative overflow-hidden" aria-labelledby="hero-title">
 	<div aria-hidden="true" class="pointer-events-none absolute -right-24 -top-24 size-[380px] rounded-full bg-aka opacity-[0.07]"></div>
 	<div class="mx-auto grid max-w-6xl gap-10 px-5 pb-14 pt-14 sm:px-8 md:pt-20 lg:grid-cols-[1fr_minmax(320px,420px)] lg:items-center lg:gap-14 lg:pb-16">
 		<div>
-			<Reveal>
-				<p class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
-					<span aria-hidden="true" class="inline-block h-px w-10 bg-aka"></span>
-					{eyebrow}
-				</p>
-			</Reveal>
-			<Reveal delay={0.08}>
-				<h1 id="hero-title" class="mt-6 max-w-xl text-balance font-mincho text-4xl font-semibold leading-[1.15] tracking-tight sm:text-5xl lg:text-[3.4rem]">
-					{titleText}{titlePeriod && <span class="text-aka">.</span>}
-				</h1>
-			</Reveal>
-			<Reveal delay={0.16}>
-				<p class="mt-6 max-w-lg text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-					{heroIntro}
-				</p>
-			</Reveal>
+			{eyebrow && (
+				<Reveal>
+					<p class="flex items-center gap-3 text-[13px] font-medium tracking-[0.25em] text-muted-foreground">
+						<span aria-hidden="true" class="inline-block h-px w-10 bg-aka"></span>
+						{eyebrow}
+					</p>
+				</Reveal>
+			)}
+			{heroTitle && (
+				<Reveal delay={0.08}>
+					<h1 id="hero-title" class="mt-6 max-w-xl text-balance font-mincho text-4xl font-semibold leading-[1.15] tracking-tight sm:text-5xl lg:text-[3.4rem]">
+						{titleText}{titlePeriod && <span class="text-aka">.</span>}
+					</h1>
+				</Reveal>
+			)}
+			{heroIntro && (
+				<Reveal delay={0.16}>
+					<p class="mt-6 max-w-lg text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+						{heroIntro}
+					</p>
+				</Reveal>
+			)}
 			<Reveal delay={0.24}>
 				<div class="mt-8 flex flex-wrap items-center gap-3">
 					<a href="#diario" class="group inline-flex items-center gap-2 rounded-md bg-foreground px-6 py-3 text-sm font-medium text-background transition-colors hover:bg-aka hover:text-[#fdf8ee]">
@@ -57,16 +58,18 @@ const commitments = profile?.commitments ?? [
 					<a href="#quien-soy" class="inline-flex items-center rounded-md border border-border px-6 py-3 text-sm font-medium transition-colors hover:border-aka hover:text-aka">Quién soy</a>
 				</div>
 			</Reveal>
-			<Reveal delay={0.32}>
-				<dl class="mt-12 grid max-w-md grid-cols-3 divide-x divide-border border-y border-border py-5">
-					{commitments.map((item) => (
-						<div class="px-4 first:pl-0 last:pr-0">
-							<dt class="order-2 mt-1 text-[11px] leading-snug text-muted-foreground">{item.label}</dt>
-							<dd class="order-1 font-mincho text-2xl font-semibold text-foreground">{item.value}</dd>
-						</div>
-					))}
-				</dl>
-			</Reveal>
+			{commitments.length > 0 && (
+				<Reveal delay={0.32}>
+					<dl class="mt-12 grid max-w-md grid-cols-3 divide-x divide-border border-y border-border py-5">
+						{commitments.map((item) => (
+							<div class="px-4 first:pl-0 last:pr-0">
+								<dt class="order-2 mt-1 text-[11px] leading-snug text-muted-foreground">{item.label}</dt>
+								<dd class="order-1 font-mincho text-2xl font-semibold text-foreground">{item.value}</dd>
+							</div>
+						))}
+					</dl>
+				</Reveal>
+			)}
 		</div>
 		<Reveal delay={0.2} class="relative">
 			<figure class="relative border border-border bg-card shadow-[0_20px_60px_-30px_rgba(0,0,0,0.25)]">

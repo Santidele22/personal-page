@@ -1,6 +1,6 @@
 ---
 import AdSlot from '../../entities/ad-slot/AdSlot.astro';
-import { fetchAdSlots, adSlotsFallback } from '../../features/ad-slot/api/ad-slots';
+import { fetchAdSlots } from '../../features/ad-slot/api/ad-slots';
 import { fetchBlogRows, toPost } from '../../features/blog/api/blogs';
 import type { Post } from '../../entities/post/types';
 import EmptyState from '../../shared/ui/EmptyState.astro';
@@ -12,11 +12,11 @@ import PostCard from './PostCard.astro';
 /* The portada cards come from the backend (`GET /blogs`), the single source
    of truth the admin panel edits (issue 28): every card links to the public
    slug route, so the landing never advertises an entry with no post behind
-   it. The flow ad slot is read while the server renders the page; that
-   fallback is the content the slot shipped with. */
+   it. The flow ad slot is read while the server renders the page; a failed
+   read leaves it out (single source of truth, projects-type-restore L3). */
 const serverOrigin = Astro.url.origin;
 const [rows, adSlots] = await Promise.all([fetchBlogRows(serverOrigin), fetchAdSlots(serverOrigin)]);
-const slots = adSlots ?? adSlotsFallback;
+const slots = adSlots ?? [];
 
 const cards: Post[] = rows.map((row) => toPost(row));
 

@@ -1,5 +1,4 @@
 import type { AdSlotInfo } from '../../../entities/ad-slot/types';
-import { adSlots } from '../../../entities/ad-slot/data';
 import { getJson } from '../../../shared/api/http';
 
 /**
@@ -58,6 +57,3 @@ export async function fetchAdSlots(serverOrigin?: string): Promise<AdSlotInfo[] 
 		return null;
 	}
 }
-
-/** The slots merged over the fallback response (kept public for the widgets). */
-export { adSlots as adSlotsFallback };

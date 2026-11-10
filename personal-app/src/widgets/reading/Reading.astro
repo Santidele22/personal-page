@@ -1,6 +1,6 @@
 ---
 import BookCard from '../../entities/book/BookCard.astro';
-import { fetchBooksPage, booksFallback } from '../../features/book/api/books';
+import { fetchBooksPage } from '../../features/book/api/books';
 import EmptyState from '../../shared/ui/EmptyState.astro';
 import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
@@ -8,12 +8,12 @@ import Reveal from '../../shared/ui/Reveal.astro';
 /* The landing only reads the first page of published books (`limit=4` with
    the server-side `published=true` filter, issue 47 S5/S8); `total` counts
    every published book, so it decides whether the «Ver todos» link has more
-   to point at. The fallback below is the empty shelf this section shipped
-   with before the books entity was consumed by the landing, capped to the
-   same four cards. */
+   to point at. A failed read renders the empty shelf: the backend is the
+   single source of truth and the section never shows shipped copy
+   (projects-type-restore L3). */
 const serverOrigin = Astro.url.origin;
 const page = await fetchBooksPage(serverOrigin, 0, 4, true);
-const reading = page?.items ?? booksFallback.slice(0, 4);
+const reading = page?.items ?? [];
 const showAllLink = page !== null && page.total > page.items.length;
 
 /* The PDF download goes through the rate-limited endpoint; the absolute URL

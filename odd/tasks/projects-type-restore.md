@@ -61,4 +61,6 @@ L3: "No entiendo porque se cambia esto a cada rato: tiene que haber una sola
 info y no se de donde sale esto." — the tools band showed its shipped fallback
 (Hetzner/Obsidian/Ledger) because the API read failed; user ruled the API is
 the single source of truth. S5 added; fallbacks removed from projects + tools
-(profile, books and ad-slots still carry the same pattern, pending decision).
+(profile, books and ad-slots included, commit b676f8f). Config constants in
+`app/config/site` (SITE_NAME, social URLs, contact email) stay: deployment
+configuration, not stored content.

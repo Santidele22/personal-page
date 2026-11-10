@@ -5,14 +5,14 @@ import Icon from '../../shared/ui/Icon.astro';
 import type { IconName } from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
 
-/* The profile is read while the server renders the page; the fallbacks below
-   are the copy this section ships with when no profile exists yet. */
+/* The profile is read while the server renders the page. A failed read leaves
+   the intro empty: the backend is the single source of truth (projects-type-
+   restore L3). The GitHub/LinkedIn/email defaults come from app/config/site —
+   deployment config, not stored content. */
 const serverOrigin = Astro.url.origin;
 const profile = await fetchProfile(serverOrigin);
 
-const intro =
-	profile?.contactIntro ||
-	'¿Tenés un proyecto en mente, una idea para el diario o simplemente querés charlar sobre desarrollo? Escribime. Leo todo y respondo personalmente, normalmente dentro de las 48 horas.';
+const intro = profile?.contactIntro || '';
 
 const githubUrl = profile?.githubUrl || GITHUB_URL;
 const linkedinUrl = profile?.linkedinUrl || LINKEDIN_URL;
@@ -70,7 +70,7 @@ const socials: SocialLink[] = [
 				CONTACTO
 			</p>
 			<h2 id="contacto-title" class="mt-3 text-balance font-mincho text-3xl font-semibold tracking-tight sm:text-4xl">Hablemos<span class="text-aka">.</span></h2>
-			<p class="mt-4 max-w-md text-[15px] leading-relaxed text-muted-foreground">{intro}</p>
+			{intro && <p class="mt-4 max-w-md text-[15px] leading-relaxed text-muted-foreground">{intro}</p>}
 			<p class="mt-4 max-w-md text-[15px] leading-relaxed text-muted-foreground">
 				Si representás a una marca o herramienta dev, podés ver los formatos de colaboración y las tarifas en
 				<a href="/marcas" class="font-medium text-aka underline decoration-aka/40 underline-offset-4 transition-colors hover:decoration-aka focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">la sección de marcas</a>.
