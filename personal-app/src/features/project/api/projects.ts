@@ -1,4 +1,4 @@
-import type { Project, ProjectIcon, ProjectStatus } from '../../../entities/project/types';
+import type { Project, ProjectIcon, ProjectStatus, ProjectType } from '../../../entities/project/types';
 import { projects } from '../../../entities/project/data';
 import { getJson } from '../../../shared/api/http';
 import { pageQuery, type Paged } from '../../../shared/api/pagination';
@@ -6,6 +6,7 @@ import { safeHref } from '../../../shared/api/url';
 
 const PROJECT_ICONS: ProjectIcon[] = ['sprout', 'feather', 'blocks', 'wrench'];
 const PROJECT_STATUSES: ProjectStatus[] = ['en-produccion', 'en-construccion', 'codigo-abierto'];
+const PROJECT_TYPES: ProjectType[] = ['full-stack', 'backend', 'frontend', 'auditoria', 'web3'];
 
 /** Rendered label of each stored status key. */
 const STATUS_LABELS: Record<ProjectStatus, string> = {
@@ -13,6 +14,28 @@ const STATUS_LABELS: Record<ProjectStatus, string> = {
 	'en-construccion': 'En construcción',
 	'codigo-abierto': 'Código abierto',
 };
+
+/** Rendered label of each stored type key. */
+const TYPE_LABELS: Record<ProjectType, string> = {
+	'full-stack': 'Full-stack',
+	backend: 'Backend',
+	frontend: 'Frontend',
+	auditoria: 'Auditoría',
+	web3: 'Web3',
+};
+
+/**
+ * Category of a stored row: the known key keeps its enum value and label,
+ * an unknown stored key stays as free text with a capitalized label so the
+ * chip still reads like a category, and a missing one renders no chip.
+ */
+function mapType(raw?: string | null): { type: ProjectType | string | null; typeLabel: string | null } {
+	if (!raw) return { type: null, typeLabel: null };
+	if (PROJECT_TYPES.includes(raw as ProjectType)) {
+		return { type: raw, typeLabel: TYPE_LABELS[raw as ProjectType] };
+	}
+	return { type: raw, typeLabel: raw.charAt(0).toUpperCase() + raw.slice(1) };
+}
 
 /**
  * A project row as `GET /projects` serves it: the editable body plus the
@@ -29,6 +52,7 @@ type ApiProjectCard = {
 	icon?: string | null;
 	tagline?: string | null;
 	status?: string | null;
+	type?: string | null;
 	featured?: boolean | null;
 	forSale?: boolean | null;
 };
@@ -54,6 +78,8 @@ function mapProjectCard(project: ApiProjectCard): Project {
 	// renders only the repository link instead of a lying Demo anchor.
 	const demo = project.url === project.githubUrl ? undefined : project.url;
 
+	const { type, typeLabel } = mapType(project.type);
+
 	return {
 		name: project.name,
 		icon: PROJECT_ICONS.includes(project.icon as ProjectIcon)
@@ -64,6 +90,8 @@ function mapProjectCard(project: ApiProjectCard): Project {
 		stack: project.technologies,
 		status,
 		statusLabel: STATUS_LABELS[status],
+		type,
+		typeLabel,
 		repoUrl: repo,
 		demoUrl: safeHref(demo),
 		featured: project.featured === true,

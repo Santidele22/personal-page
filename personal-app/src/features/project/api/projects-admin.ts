@@ -25,6 +25,7 @@ export type AdminProjectRow = {
 	icon?: string | null;
 	tagline?: string | null;
 	status?: string | null;
+	type?: string | null;
 	featured?: boolean | null;
 	forSale: boolean;
 };
@@ -45,6 +46,7 @@ export type ProjectWriteBody = {
 	icon: ProjectIcon | null;
 	tagline: string | null;
 	status: ProjectStatus | null;
+	type: string | null;
 	featured: boolean;
 	forSale: boolean;
 };

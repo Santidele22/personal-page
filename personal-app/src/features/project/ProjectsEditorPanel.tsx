@@ -43,6 +43,8 @@ type FormState = {
 	tagline: string;
 	/** Status key, empty when the card has no state. */
 	status: string;
+	/** Portfolio category key, empty when the card has none. */
+	type: string;
 	featured: boolean;
 	forSale: boolean;
 };
@@ -56,6 +58,7 @@ const EMPTY_FORM: FormState = {
 	icon: '',
 	tagline: '',
 	status: '',
+	type: '',
 	featured: false,
 	forSale: false,
 };
@@ -71,6 +74,15 @@ const STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
 	{ value: 'en-produccion', label: 'En producción' },
 	{ value: 'en-construccion', label: 'En construcción' },
 	{ value: 'codigo-abierto', label: 'Código abierto' },
+];
+
+/** Portfolio categories the backend stores as free text (issue: projects type). */
+const TYPE_OPTIONS: { value: string; label: string }[] = [
+	{ value: 'full-stack', label: 'Full-stack' },
+	{ value: 'backend', label: 'Backend' },
+	{ value: 'frontend', label: 'Frontend' },
+	{ value: 'auditoria', label: 'Auditoría' },
+	{ value: 'web3', label: 'Web3' },
 ];
 
 const ICON_KEYS: string[] = ICON_OPTIONS.map((option) => option.value);
@@ -92,6 +104,7 @@ function toForm(row: AdminProjectRow): FormState {
 		icon: row.icon ?? '',
 		tagline: row.tagline ?? '',
 		status: row.status ?? '',
+		type: row.type ?? '',
 		featured: row.featured === true,
 		forSale: row.forSale === true,
 	};
@@ -126,6 +139,7 @@ function toBody(form: FormState): ProjectWriteBody {
 		icon: ICON_KEYS.includes(form.icon) ? (form.icon as ProjectIcon) : null,
 		tagline: form.tagline.trim() || null,
 		status: STATUS_KEYS.includes(form.status) ? (form.status as ProjectStatus) : null,
+		type: form.type.trim() || null,
 		featured: form.featured,
 		forSale: form.forSale,
 	};
@@ -383,6 +397,14 @@ function ProjectFields(props: {
 					emptyLabel="Sin estado"
 					options={STATUS_OPTIONS}
 					onInput={(value) => props.onInput('status', value)}
+				/>
+				<SelectField
+					id={`${props.prefix}-type`}
+					label="TIPO"
+					value={props.form.type}
+					emptyLabel="Sin tipo"
+					options={TYPE_OPTIONS}
+					onInput={(value) => props.onInput('type', value)}
 				/>
 			</div>
 			<div class="grid gap-5 sm:grid-cols-2">

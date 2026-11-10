@@ -10,6 +10,8 @@ export const projects: Project[] = [
 		stack: ['Angular 21', 'Astro 6', 'Svelte 5', 'Tailwind 4', 'Supabase', 'Postgres', 'Realtime', 'Edge Functions'],
 		status: 'en-produccion',
 		statusLabel: 'En producción',
+		type: null,
+		typeLabel: null,
 		repoUrl: 'https://github.com/Santidele22/orvel',
 		demoUrl: 'https://orvel.pro',
 		featured: true,
@@ -24,6 +26,8 @@ export const projects: Project[] = [
 		stack: ['Foundry', 'Solidity', 'Vite', 'viem', 'Chainlink'],
 		status: 'codigo-abierto',
 		statusLabel: 'Código abierto',
+		type: null,
+		typeLabel: null,
 		repoUrl: 'https://github.com/Santidele22/whiskito',
 	},
 	{
@@ -35,6 +39,8 @@ export const projects: Project[] = [
 		stack: ['Next.js 16', 'React 19', 'TypeScript', 'Tailwind 4', 'Foundry', 'Solidity', 'OpenZeppelin'],
 		status: 'en-construccion',
 		statusLabel: 'En construcción',
+		type: null,
+		typeLabel: null,
 		repoUrl: 'https://github.com/Santidele22/nft-marketplace',
 	},
 	{
@@ -46,6 +52,8 @@ export const projects: Project[] = [
 		stack: ['Next.js 16', 'React 19', 'RainbowKit', 'wagmi', 'viem'],
 		status: 'codigo-abierto',
 		statusLabel: 'Código abierto',
+		type: null,
+		typeLabel: null,
 		repoUrl: 'https://github.com/Santidele22/ts-sender-clon',
 	},
 ];

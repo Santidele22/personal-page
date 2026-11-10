@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getJson } from '../../../shared/api/http';
-import { fetchProjectsPage } from './projects';
+import { fetchProjects, fetchProjectsPage } from './projects';
 
 /**
  * Paginated projects read (issue 47 S3/S8): the envelope items go through the
@@ -21,6 +21,7 @@ const row = (overrides: Record<string, unknown> = {}) => ({
 	icon: null,
 	tagline: null,
 	status: null,
+	type: null,
 	featured: false,
 	forSale: false,
 	...overrides,
@@ -51,11 +52,31 @@ describe('fetchProjectsPage — paginated envelope', () => {
 			stack: ['node'],
 			status: 'en-construccion',
 			statusLabel: 'En construcción',
+			type: null,
+			typeLabel: null,
 			repoUrl: 'https://github.com/example/app',
 			demoUrl: 'https://github.com/example/app',
 			featured: false,
 			forSale: false,
 		});
+	});
+
+	it('maps a stored type key to its rendered label', async () => {
+		getJsonMock.mockResolvedValue([row({ type: 'auditoria' })]);
+
+		const projects = await fetchProjects();
+
+		expect(projects?.[0].type).toBe('auditoria');
+		expect(projects?.[0].typeLabel).toBe('Auditoría');
+	});
+
+	it('falls back to the capitalized raw value on an unknown type key', async () => {
+		getJsonMock.mockResolvedValue([row({ type: 'ml' })]);
+
+		const projects = await fetchProjects();
+
+		expect(projects?.[0].type).toBe('ml');
+		expect(projects?.[0].typeLabel).toBe('Ml');
 	});
 
 	it('answers null when the read itself fails', async () => {
