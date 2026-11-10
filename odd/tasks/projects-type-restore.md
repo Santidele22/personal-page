@@ -33,6 +33,13 @@ a failed API read renders the empty state in the projects section and the
 tools band; the static fallbacks (`entities/project/data.ts`,
 `entities/tool/data.ts`) are deleted from the frontend.
 
+S6: "Falta que se implemente en la pagina principal" — the portada projects
+section renders client-side type filter chips (Todos + each stored type with
+counts, aria-pressed, focus visible), a live visible-count line and a
+"Quitar filtro" reset; cards carry `data-project-type`; the bar renders only
+with two or more distinct types. Search input excluded (canvas comment
+77dhh06r: "Borremos el input para buscar, no me interesa").
+
 ## Tasks
 
 T1 (S3, backend): entity + DTOs accept `type`; unit tests. Route: inline.
@@ -56,6 +63,17 @@ four demo projects into Neon.
 L2: cleanup deleted the four rows; user confirmed they were real data and
 asked to re-upload them plus the audit projects and to add the `type` column
 (verbatim request in S1-S3).
+
+L4: "Vamos a diseñar esto: que le falta: 1- le falta un input para filtrar
+proyectos" — design session `design/projects-filter/` with three artboards
+(01 filtro-cabecera, 02 barra-sumi, 03 rail-proyectos).
+
+L5: canvas comment 77dhh06r removed the search input from artboard 02; the
+implementation follows 02 without search.
+
+L6: "Falta que se implemente en la pagina principal ... como se veria ahi?" —
+implemented as S6 in the real widget (chip row + count + reset, client-side
+toggling of the card wrappers).
 
 L3: "No entiendo porque se cambia esto a cada rato: tiene que haber una sola
 info y no se de donde sale esto." — the tools band showed its shipped fallback

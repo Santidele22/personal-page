@@ -17,7 +17,7 @@ const { project } = Astro.props;
 const transitionName = `project-card-${transitionNameSlug(project.name)}`;
 ---
 
-<article transition:name={transitionName} class="group flex h-full flex-col border border-border bg-card p-7 transition-colors hover:border-aka/60">
+<article transition:name={transitionName} data-project-type={project.type ?? ''} class="group flex h-full flex-col border border-border bg-card p-7 transition-colors hover:border-aka/60">
 	<div class="flex items-center justify-between">
 		<span aria-hidden="true" class="flex size-11 items-center justify-center border border-aka/40 text-aka">
 			<Icon name={project.icon} class="size-5" strokeWidth={1.5} />

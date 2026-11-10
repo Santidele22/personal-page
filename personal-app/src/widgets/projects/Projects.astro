@@ -22,6 +22,19 @@ const showAllLink = page !== null && page.total > page.items.length;
    the admin has not marked any project as featured. */
 const featured = projectCards.find((project) => project.featured) ?? projectCards[0];
 const rest = projectCards.filter((project) => project !== featured);
+
+/* Type facets for the client-side filter (projects-type-restore S6): the
+   stored types in first-seen order, each with its rendered label and count.
+   Only rendered with more than one distinct type — a single category needs
+   no filter. */
+const typeFacets = [...new Map(
+	projectCards.filter((project) => project.type).map((project) => [project.type, {
+		value: project.type as string,
+		label: project.typeLabel as string,
+		count: projectCards.filter((other) => other.type === project.type).length,
+	}]),
+).values()];
+const showFilter = typeFacets.length > 1;
 ---
 
 <section id="proyectos" class="scroll-mt-20 border-y border-border bg-secondary/40" aria-labelledby="proyectos-title">
@@ -44,6 +57,37 @@ const rest = projectCards.filter((project) => project !== featured);
 				)}
 			</div>
 		</Reveal>
+		{showFilter && (
+			<Reveal delay={0.06}>
+				<div class="mt-8 flex flex-wrap items-center gap-2.5" role="group" aria-label="Filtrar proyectos por tipo">
+					<span class="text-[11px] font-medium tracking-[0.2em] text-muted-foreground">TIPO</span>
+					<button
+						type="button"
+						data-project-chip
+						data-project-value="all"
+						aria-pressed="true"
+						class="rounded-sm border border-foreground bg-foreground px-3.5 py-1.5 text-xs font-medium tracking-wide text-background transition-colors hover:bg-aka hover:border-aka"
+					>
+						Todos<span class="ml-1.5 font-mono text-[10px] opacity-70">{projectCards.length}</span>
+					</button>
+					{typeFacets.map((facet) => (
+						<button
+							type="button"
+							data-project-chip
+							data-project-value={facet.value}
+							aria-pressed="false"
+							class="rounded-sm border border-border px-3.5 py-1.5 text-xs font-medium tracking-wide text-muted-foreground transition-colors hover:border-aka/60 hover:text-aka"
+						>
+							{facet.label}<span class="ml-1.5 font-mono text-[10px] opacity-70">{facet.count}</span>
+						</button>
+					))}
+				</div>
+				<p class="mt-3 text-[13px] text-muted-foreground" aria-live="polite">
+					<span data-project-count>{projectCards.length} proyectos</span>
+					<button type="button" data-project-clear class="ml-3 hidden text-[12.5px] text-aka underline underline-offset-2">Quitar filtro</button>
+				</p>
+			</Reveal>
+		)}
 		{/* Two columns from md up: the projects keep the wide column and the
 		    tools band becomes a tall side panel (narrower at md, roomier at lg).
 		    Below md the grid collapses to a single column, so the section still
@@ -58,7 +102,7 @@ const rest = projectCards.filter((project) => project !== featured);
 		    falling back to the shipped copy. */}
 		{projectCards.length > 0 && (
 			<Reveal delay={0.1}>
-			<article transition:name={`project-card-${transitionNameSlug(featured.name)}`} class="group grid overflow-hidden border border-border bg-card transition-colors hover:border-aka/60 lg:grid-cols-2">
+			<article data-project-type={featured.type ?? ''} transition:name={`project-card-${transitionNameSlug(featured.name)}`} class="group grid overflow-hidden border border-border bg-card transition-colors hover:border-aka/60 lg:grid-cols-2">
 				<div class="relative flex min-h-[240px] items-center justify-center overflow-hidden border-b border-border bg-secondary/60 lg:border-b-0 lg:border-r">
 					<SeigaihaBand class="absolute inset-x-0 top-0 h-24 text-foreground opacity-[0.16]" rows={3} />
 					<SeigaihaBand class="absolute inset-x-0 bottom-0 h-24 rotate-180 text-foreground opacity-[0.1]" rows={3} />
@@ -129,3 +173,39 @@ const rest = projectCards.filter((project) => project !== featured);
 		</div>
 	</div>
 </section>
+
+<script>
+/* Client-side type filter (projects-type-restore S6): the chips toggle the
+   `.reveal` wrapper of each card and report the visible count. Runs only
+   when the filter bar rendered (showFilter); the featured card and the grid
+   cards carry the same `data-project-type` attribute. */
+const filterSection = document.getElementById('proyectos');
+const filterChips = filterSection
+	? [...filterSection.querySelectorAll<HTMLButtonElement>('[data-project-chip]')]
+	: [];
+if (filterChips.length > 0) {
+	const cards = [...filterSection!.querySelectorAll<HTMLElement>('[data-project-type]')];
+	const count = filterSection!.querySelector<HTMLElement>('[data-project-count]');
+	const clearButton = filterSection!.querySelector<HTMLButtonElement>('[data-project-clear]');
+	const total = cards.length;
+
+	const applyFilter = (value: string) => {
+		let visible = 0;
+		for (const card of cards) {
+			const show = value === 'all' || card.dataset.projectType === value;
+			card.closest<HTMLElement>('.reveal')?.classList.toggle('hidden', !show);
+			if (show) visible += 1;
+		}
+		for (const chip of filterChips) {
+			chip.setAttribute('aria-pressed', String(chip.dataset.projectValue === value));
+		}
+		if (count) count.textContent = visible === total ? `${total} proyectos` : `${visible} de ${total} proyectos`;
+		clearButton?.classList.toggle('hidden', value === 'all');
+	};
+
+	for (const chip of filterChips) {
+		chip.addEventListener('click', () => applyFilter(chip.dataset.projectValue ?? 'all'));
+	}
+	clearButton?.addEventListener('click', () => applyFilter('all'));
+}
+</script>
