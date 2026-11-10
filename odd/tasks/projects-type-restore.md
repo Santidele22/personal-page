@@ -75,6 +75,13 @@ L6: "Falta que se implemente en la pagina principal ... como se veria ahi?" —
 implemented as S6 in the real widget (chip row + count + reset, client-side
 toggling of the card wrappers).
 
+L7: "Que no se sumen los proyectos: que haya un 'todos' 'full-stack', etc. y
+que se vaya cambiando el estado y que cambie el background" — the featured
+headline card is presentation and stays out of the filter (counts and hiding
+cover the grid cards only); the active chip swaps to ink background via
+`data-project-active` styled in global.css. With one grid type the bar does
+not render (current state: featured Orvel + three Web3 grid cards → no bar).
+
 L3: "No entiendo porque se cambia esto a cada rato: tiene que haber una sola
 info y no se de donde sale esto." — the tools band showed its shipped fallback
 (Hetzner/Obsidian/Ledger) because the API read failed; user ruled the API is

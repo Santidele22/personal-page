@@ -216,3 +216,18 @@ body::after {
     animation: none !important;
   }
 }
+
+/* Projects type filter (widgets/projects): the active chip swaps its surface
+   to ink-on-ink; the inactive ones stay paper with a hairline border. One
+   attribute toggle drives the whole state (projects-type-restore S6 L7). */
+[data-project-chip][data-project-active] {
+	border-color: var(--foreground);
+	background: var(--foreground);
+	color: var(--background);
+}
+
+[data-project-chip][data-project-active]:hover {
+	border-color: var(--aka);
+	background: var(--aka);
+	color: #fdf8ee;
+}

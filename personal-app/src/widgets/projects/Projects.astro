@@ -23,15 +23,16 @@ const showAllLink = page !== null && page.total > page.items.length;
 const featured = projectCards.find((project) => project.featured) ?? projectCards[0];
 const rest = projectCards.filter((project) => project !== featured);
 
-/* Type facets for the client-side filter (projects-type-restore S6): the
-   stored types in first-seen order, each with its rendered label and count.
-   Only rendered with more than one distinct type — a single category needs
-   no filter. */
+/* Type facets for the client-side filter (projects-type-restore S6, revised
+   L7): counts cover the grid cards only — the featured headline card stays
+   out of the filter, it is always visible. Only rendered with two or more
+   distinct grid types — a single category needs no filter. */
+const gridCards = rest;
 const typeFacets = [...new Map(
-	projectCards.filter((project) => project.type).map((project) => [project.type, {
+	gridCards.filter((project) => project.type).map((project) => [project.type, {
 		value: project.type as string,
 		label: project.typeLabel as string,
-		count: projectCards.filter((other) => other.type === project.type).length,
+		count: gridCards.filter((other) => other.type === project.type).length,
 	}]),
 ).values()];
 const showFilter = typeFacets.length > 1;
@@ -66,9 +67,10 @@ const showFilter = typeFacets.length > 1;
 						data-project-chip
 						data-project-value="all"
 						aria-pressed="true"
-						class="rounded-sm border border-foreground bg-foreground px-3.5 py-1.5 text-xs font-medium tracking-wide text-background transition-colors hover:bg-aka hover:border-aka"
+						data-project-active
+						class="rounded-sm border border-border px-3.5 py-1.5 text-xs font-medium tracking-wide text-muted-foreground transition-colors hover:border-aka/60 hover:text-aka"
 					>
-						Todos<span class="ml-1.5 font-mono text-[10px] opacity-70">{projectCards.length}</span>
+						Todos<span class="ml-1.5 font-mono text-[10px] opacity-70">{gridCards.length}</span>
 					</button>
 					{typeFacets.map((facet) => (
 						<button
@@ -83,7 +85,7 @@ const showFilter = typeFacets.length > 1;
 					))}
 				</div>
 				<p class="mt-3 text-[13px] text-muted-foreground" aria-live="polite">
-					<span data-project-count>{projectCards.length} proyectos</span>
+					<span data-project-count>{gridCards.length} proyectos</span>
 					<button type="button" data-project-clear class="ml-3 hidden text-[12.5px] text-aka underline underline-offset-2">Quitar filtro</button>
 				</p>
 			</Reveal>
@@ -102,7 +104,7 @@ const showFilter = typeFacets.length > 1;
 		    falling back to the shipped copy. */}
 		{projectCards.length > 0 && (
 			<Reveal delay={0.1}>
-			<article data-project-type={featured.type ?? ''} transition:name={`project-card-${transitionNameSlug(featured.name)}`} class="group grid overflow-hidden border border-border bg-card transition-colors hover:border-aka/60 lg:grid-cols-2">
+			<article data-project-type={featured.type ?? ''} data-project-featured transition:name={`project-card-${transitionNameSlug(featured.name)}`} class="group grid overflow-hidden border border-border bg-card transition-colors hover:border-aka/60 lg:grid-cols-2">
 				<div class="relative flex min-h-[240px] items-center justify-center overflow-hidden border-b border-border bg-secondary/60 lg:border-b-0 lg:border-r">
 					<SeigaihaBand class="absolute inset-x-0 top-0 h-24 text-foreground opacity-[0.16]" rows={3} />
 					<SeigaihaBand class="absolute inset-x-0 bottom-0 h-24 rotate-180 text-foreground opacity-[0.1]" rows={3} />
@@ -175,16 +177,19 @@ const showFilter = typeFacets.length > 1;
 </section>
 
 <script>
-/* Client-side type filter (projects-type-restore S6): the chips toggle the
-   `.reveal` wrapper of each card and report the visible count. Runs only
-   when the filter bar rendered (showFilter); the featured card and the grid
-   cards carry the same `data-project-type` attribute. */
+/* Client-side type filter (projects-type-restore S6, revised L7): the chips
+   toggle only the grid cards — the featured headline card is presentation
+   and always stays visible. The active chip swaps to ink-on-ink via a class
+   so the background change is one class toggle, and the count line reports
+   the grid state. */
 const filterSection = document.getElementById('proyectos');
 const filterChips = filterSection
 	? [...filterSection.querySelectorAll<HTMLButtonElement>('[data-project-chip]')]
 	: [];
 if (filterChips.length > 0) {
-	const cards = [...filterSection!.querySelectorAll<HTMLElement>('[data-project-type]')];
+	const cards = [...filterSection!.querySelectorAll<HTMLElement>('[data-project-type]')]
+		.filter((card) => !card.hasAttribute('data-project-featured'));
+	const ACTIVE = 'data-project-active';
 	const count = filterSection!.querySelector<HTMLElement>('[data-project-count]');
 	const clearButton = filterSection!.querySelector<HTMLButtonElement>('[data-project-clear]');
 	const total = cards.length;
@@ -197,7 +202,9 @@ if (filterChips.length > 0) {
 			if (show) visible += 1;
 		}
 		for (const chip of filterChips) {
-			chip.setAttribute('aria-pressed', String(chip.dataset.projectValue === value));
+			const active = chip.dataset.projectValue === value;
+			chip.setAttribute('aria-pressed', String(active));
+			chip.toggleAttribute(ACTIVE, active);
 		}
 		if (count) count.textContent = visible === total ? `${total} proyectos` : `${visible} de ${total} proyectos`;
 		clearButton?.classList.toggle('hidden', value === 'all');
