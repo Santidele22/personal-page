@@ -9,12 +9,14 @@ import { transitionNameSlug } from '../../shared/lib/slug';
 import ProjectPurchaseDialog from '../../features/project/ProjectPurchaseDialog';
 import ToolsBlock from '../blog/ToolsBlock.astro';
 
-/* The landing only reads the first page of projects (`limit=4`, issue 47
-   S8); `total` decides whether the «Ver todos» link has more to point at. A
-   failed read renders the empty state: the backend is the single source of
-   truth and the section never shows shipped copy (projects-type-restore L3). */
+/* The landing reads the first five projects: the four-card grid plus the
+   audit project so every stored type is represented on the portada and the
+   type filter has its full facet set (projects-type-restore S6 L8). `total`
+   decides whether the «Ver todos» link has more to point at. A failed read
+   renders the empty state: the backend is the single source of truth and the
+   section never shows shipped copy (projects-type-restore L3). */
 const serverOrigin = Astro.url.origin;
-const page = await fetchProjectsPage(serverOrigin, 0, 4);
+const page = await fetchProjectsPage(serverOrigin, 0, 5);
 const projectCards = page?.items ?? [];
 const showAllLink = page !== null && page.total > page.items.length;
 
