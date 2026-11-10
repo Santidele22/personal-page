@@ -1,15 +1,15 @@
 ---
-import { fetchTools, toolsFallback } from '../../features/tool/api/tools';
+import { fetchTools } from '../../features/tool/api/tools';
 import Icon from '../../shared/ui/Icon.astro';
 
-/* The tools are read while the server renders the page; the fallback below is
-   the list this grid shipped with before the tools entity existed. API rows
-   carry the `sponsorship` classification, so the block then splits into the
-   love-of-art and the sponsored sections; the fallback keeps the plain list
-   and its original copy (no classification to apply). */
+/* The tools are read while the server renders the page. A failed read renders
+   the empty state: the API is the single source of truth and the band never
+   shows shipped copy (projects-type-restore L3). API rows carry the
+   `sponsorship` classification, so the block then splits into the love-of-art
+   and the sponsored sections. */
 const serverOrigin = Astro.url.origin;
 const apiTools = await fetchTools(serverOrigin);
-const toolList = apiTools ?? toolsFallback;
+const toolList = apiTools ?? [];
 const sponsored = apiTools?.filter((tool) => tool.sponsorship === 'patrocinada') ?? [];
 const loveOfArt = apiTools?.filter((tool) => tool.sponsorship !== 'patrocinada') ?? [];
 const showSponsorship = apiTools !== null;

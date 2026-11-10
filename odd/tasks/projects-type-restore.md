@@ -28,6 +28,11 @@ S4: chip on the card ("Mostrar chip en tarjeta") — the portada project cards
 render the project type as a visible chip/label; unknown stored keys fall back
 to the capitalized raw value.
 
+S5: "tiene que haber una sola info" — the portada never renders shipped copy:
+a failed API read renders the empty state in the projects section and the
+tools band; the static fallbacks (`entities/project/data.ts`,
+`entities/tool/data.ts`) are deleted from the frontend.
+
 ## Tasks
 
 T1 (S3, backend): entity + DTOs accept `type`; unit tests. Route: inline.
@@ -51,3 +56,9 @@ four demo projects into Neon.
 L2: cleanup deleted the four rows; user confirmed they were real data and
 asked to re-upload them plus the audit projects and to add the `type` column
 (verbatim request in S1-S3).
+
+L3: "No entiendo porque se cambia esto a cada rato: tiene que haber una sola
+info y no se de donde sale esto." — the tools band showed its shipped fallback
+(Hetzner/Obsidian/Ledger) because the API read failed; user ruled the API is
+the single source of truth. S5 added; fallbacks removed from projects + tools
+(profile, books and ad-slots still carry the same pattern, pending decision).

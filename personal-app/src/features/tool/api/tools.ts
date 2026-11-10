@@ -1,5 +1,4 @@
 import type { Tool, ToolSponsorship } from "../../../entities/tool/types";
-import { tools } from "../../../entities/tool/data";
 import { getJson } from "../../../shared/api/http";
 import { safeHref } from "../../../shared/api/url";
 
@@ -19,10 +18,11 @@ type ApiTool = {
 /**
  * The "herramientas que uso" grid (`widgets/blog/ToolsBlock.astro`). `null`
  * means the request itself failed (API down, proxy misconfigured, server
- * without the backend): the widget then renders the values the grid shipped
- * with, exactly like the profile loader. An empty stored collection answers
- * `[]` (nothing to render): the admin chose to hide the block, not to fall
- * back — the widget hides the list instead of pinning the old copy.
+ * without the backend): the widget renders the empty state instead of any
+ * shipped copy — the API is the single source of truth and the block never
+ * invents data (user decision, projects-type-restore L3). An empty stored
+ * collection answers `[]` (nothing to render): the admin chose to hide the
+ * block, not to fall back — the widget hides the list too.
  */
 export async function fetchTools(
   serverOrigin?: string,
@@ -44,5 +44,3 @@ export async function fetchTools(
     return null;
   }
 }
-
-export { tools as toolsFallback };

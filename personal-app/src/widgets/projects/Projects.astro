@@ -1,6 +1,6 @@
 ---
 import ProjectCard from '../../entities/project/ProjectCard.astro';
-import { fetchProjectsPage, projectsFallback } from '../../features/project/api/projects';
+import { fetchProjectsPage } from '../../features/project/api/projects';
 import EmptyState from '../../shared/ui/EmptyState.astro';
 import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
@@ -10,12 +10,12 @@ import ProjectPurchaseDialog from '../../features/project/ProjectPurchaseDialog'
 import ToolsBlock from '../blog/ToolsBlock.astro';
 
 /* The landing only reads the first page of projects (`limit=4`, issue 47
-   S8); `total` decides whether the «Ver todos» link has more to point at. The
-   fallback below is the copy this section shipped with before the projects
-   entity was consumed by the landing, capped to the same four cards. */
+   S8); `total` decides whether the «Ver todos» link has more to point at. A
+   failed read renders the empty state: the backend is the single source of
+   truth and the section never shows shipped copy (projects-type-restore L3). */
 const serverOrigin = Astro.url.origin;
 const page = await fetchProjectsPage(serverOrigin, 0, 4);
-const projectCards = page?.items ?? projectsFallback.slice(0, 4);
+const projectCards = page?.items ?? [];
 const showAllLink = page !== null && page.total > page.items.length;
 
 /* The grid pins one headline card: the featured flag, or the first card when

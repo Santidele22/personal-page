@@ -1,5 +1,4 @@
 import type { Project, ProjectIcon, ProjectStatus, ProjectType } from '../../../entities/project/types';
-import { projects } from '../../../entities/project/data';
 import { getJson } from '../../../shared/api/http';
 import { pageQuery, type Paged } from '../../../shared/api/pagination';
 import { safeHref } from '../../../shared/api/url';
@@ -122,5 +121,3 @@ export async function fetchProjectsPage(
 		return null;
 	}
 }
-
-export { projects as projectsFallback };
