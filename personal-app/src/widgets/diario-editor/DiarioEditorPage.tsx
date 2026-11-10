@@ -200,6 +200,11 @@ export default function DiarioEditorPage(props: Props) {
 
 	const changed = () => !sameForm(form(), baseline());
 	const canSaveDraft = () => saving() === null && requiredReady() && changed();
+	/** Manifiesto mode drops the changed() requirement: the first visit loads
+	    the source-controlled default with no diff, and the owner must be able
+	    to save/publish it as-is (an upsert of identical content is harmless). */
+	const canSaveManifesto = () => saving() === null && requiredReady();
+	const canSave = () => (props.mode === 'manifesto' ? canSaveManifesto() : canSaveDraft());
 	/** Publishing needs the date that makes the entry visible on the landing. */
 	const canPublish = () => canSaveDraft() && form().pubDate !== '';
 
@@ -217,8 +222,7 @@ export default function DiarioEditorPage(props: Props) {
 
 	async function save(asPublish: boolean) {
 		if (props.mode === 'manifesto') {
-			if (!canSaveDraft()) return;
-			setSaving(asPublish ? 'publish' : 'draft');
+			if (!canSaveManifesto()) return;
 			setSaveError('');
 			const current = form();
 			try {
@@ -335,12 +339,12 @@ export default function DiarioEditorPage(props: Props) {
 							</>
 						}
 					>
-						<button type="button" class="btn-secondary" disabled={!canSaveDraft()} onClick={() => void save(false)}>
+						<button type="button" class="btn-secondary" disabled={!canSave()} onClick={() => void save(false)}>
 							<Show when={saving() === 'draft'} fallback="Guardar borrador">
 								Guardando…
 							</Show>
 						</button>
-						<button type="button" class="btn-primary" disabled={!canSaveDraft()} onClick={() => void save(true)}>
+						<button type="button" class="btn-primary" disabled={!canSave()} onClick={() => void save(true)}>
 							<Show when={saving() === 'publish'} fallback={manifestoPublished() ? 'Publicado · volver a publicar' : 'Publicar'}>
 								Publicando…
 							</Show>
