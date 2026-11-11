@@ -5,16 +5,22 @@ import EmptyState from '../../shared/ui/EmptyState.astro';
 import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
 
-/* The landing only reads the first page of published books (`limit=4` with
-   the server-side `published=true` filter, issue 47 S5/S8); `total` counts
-   every published book, so it decides whether the «Ver todos» link has more
-   to point at. A failed read renders the empty shelf: the backend is the
+/* The landing reads one server-side window per shelf (`limit=4` with the
+   `published=true` + `kind` filters, issue 47 S5/S8): each shelf counts only
+   its own books, so a shelf never goes empty just because the other kind's
+   ids sort first. A failed read renders the empty shelf: the backend is the
    single source of truth and the section never shows shipped copy
    (projects-type-restore L3). */
 const serverOrigin = Astro.url.origin;
-const page = await fetchBooksPage(serverOrigin, 0, 4, true);
-const reading = page?.items ?? [];
-const showAllLink = page !== null && page.total > page.items.length;
+const shelfWindows = await Promise.all([
+	fetchBooksPage(serverOrigin, 0, 4, true, 'tecnico'),
+	fetchBooksPage(serverOrigin, 0, 4, true, 'no_tecnico'),
+]);
+const [tecnicoWindow, noTecnicoWindow] = shelfWindows;
+const reading = [...(tecnicoWindow?.items ?? []), ...(noTecnicoWindow?.items ?? [])];
+const publishedTotal =
+	(tecnicoWindow?.total ?? 0) + (noTecnicoWindow?.total ?? 0);
+const showAllLink = shelfWindows.some((window) => window !== null) && publishedTotal > reading.length;
 
 /* The PDF download goes through the rate-limited endpoint; the absolute URL
    keeps the link working the same once the browser opens it in a new tab. */
@@ -26,11 +32,11 @@ const downloadUrl = (id: number) => `${serverOrigin}/api/books/${id}/download`;
    toggle (client script below) shows one shelf at a time; the server-side
    default is the first shelf with books, so the filter never opens empty. */
 const shelves: { title: string; description: string; books: typeof reading }[] = [
-	{ title: 'Técnicos', description: 'Desarrollo, arquitectura, testing y demás lectura de oficio.', books: reading.filter((book) => book.kind === 'tecnico') },
+	{ title: 'Técnicos', description: 'Desarrollo, arquitectura, testing y demás lectura de oficio.', books: tecnicoWindow?.items ?? [] },
 	{
 		title: 'No técnicos',
 		description: 'Novelas, ensayo general y lo que leo fuera del código.',
-		books: reading.filter((book) => book.kind !== 'tecnico'),
+		books: noTecnicoWindow?.items ?? [],
 	},
 ];
 const defaultShelf = Math.max(

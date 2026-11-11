@@ -64,6 +64,16 @@ describe('fetchBooksPage — paginated envelope with the published filter', () =
 		expect(getJsonMock).toHaveBeenCalledWith('/books?offset=8&limit=4', { serverOrigin: undefined });
 	});
 
+	it('adds the kind filter to the window query when the caller sets it', async () => {
+		getJsonMock.mockResolvedValue({ items: [], total: 0, offset: 0, limit: 4 });
+
+		await fetchBooksPage('https://example.test', 0, 4, true, 'tecnico');
+
+		expect(getJsonMock).toHaveBeenCalledWith('/books?offset=0&limit=4&published=true&kind=tecnico', {
+			serverOrigin: 'https://example.test',
+		});
+	});
+
 	it('answers null when the read itself fails', async () => {
 		getJsonMock.mockRejectedValue(new Error('No se pudo conectar con el servidor.'));
 

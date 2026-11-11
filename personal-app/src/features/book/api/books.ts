@@ -83,12 +83,14 @@ export async function fetchBooksPage(
 	offset: number | undefined,
 	limit: number,
 	published?: boolean,
+	kind?: string,
 ): Promise<Paged<Book> | null> {
 	try {
 		const params = new URLSearchParams();
 		if (offset !== undefined) params.set('offset', String(offset));
 		if (limit !== undefined) params.set('limit', String(limit));
 		if (published !== undefined) params.set('published', String(published));
+		if (kind) params.set('kind', kind);
 		const query = params.toString();
 		const page = await getJson<Paged<ApiBook>>(`/books${query ? `?${query}` : ''}`, { serverOrigin });
 		return { ...page, items: page.items.map(mapBook) };
