@@ -1,0 +1,21 @@
+// Cloudflare Worker config — https://developers.cloudflare.com/workers/wrangler/configuration/
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "personal-page-keep-alive",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-26",
+  "vars": {
+    "BACKEND_URL": "https://personal-page-backend-ahbb.onrender.com"
+  },
+  "triggers": {
+    // Ping every 4 minutes (< 5 min Neon Free autosuspend, < 15 min Render
+    // sleep) across a 12h waking window: 10:00–22:00 ART = 13:00–00:59 UTC.
+    // Staying within 12h/day keeps 0.25 CU Neon usage (~93 CU-h/month) inside
+    // the 100 CU-hours/month free quota. Overnight (22:00–10:00 ART) public
+    // SSR reads are served from personal-app's Cloudflare KV Edge Cache.
+    "crons": ["*/4 13-23 * * *", "*/4 0 * * *"]
+  },
+  "observability": {
+    "enabled": true
+  }
+}
