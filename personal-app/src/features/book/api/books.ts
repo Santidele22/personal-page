@@ -1,5 +1,11 @@
-import type { Book, BookKind, ReadingStatus } from '../../../entities/book/types';
-import { getJson } from '../../../shared/api/http';
+import type {
+	Book,
+	BookKind,
+	BookReadingDocument,
+	BookReadingState,
+	ReadingStatus,
+} from '../../../entities/book/types';
+import { getJson, putJson } from '../../../shared/api/http';
 import type { Paged } from '../../../shared/api/pagination';
 
 const READING_STATUSES: ReadingStatus[] = ['reading', 'finished', 'queued'];
@@ -97,4 +103,43 @@ export async function fetchBooksPage(
 	} catch {
 		return null;
 	}
+}
+
+export async function fetchBookById(id: number, serverOrigin?: string): Promise<Book | null> {
+	try {
+		const row = await getJson<ApiBook>(`/books/${id}`, { serverOrigin });
+		if (row.published !== true) return null;
+		return mapBook(row);
+	} catch {
+		return null;
+	}
+}
+
+export async function fetchBookReading(
+	id: number,
+	serverOrigin?: string,
+): Promise<BookReadingDocument | null> {
+	try {
+		return await getJson<BookReadingDocument>(`/books/${id}/reading`, { serverOrigin });
+	} catch {
+		return null;
+	}
+}
+
+export async function fetchBookReadingState(
+	id: number,
+	serverOrigin?: string,
+): Promise<BookReadingState | null> {
+	try {
+		return await getJson<BookReadingState>(`/books/${id}/reading-state`, { serverOrigin });
+	} catch {
+		return null;
+	}
+}
+
+export async function saveBookReadingState(
+	id: number,
+	state: Partial<BookReadingState>,
+): Promise<void> {
+	await putJson(`/books/${id}/reading-state`, state);
 }

@@ -35,11 +35,18 @@ const Title = headingLevel;
 		<blockquote class="relative mt-4 border-l-2 border-aka/40 pl-4 text-sm italic leading-relaxed text-muted-foreground">{book.review}</blockquote>
 	)}
 	{book.published && downloadUrl && (
-		<p class="relative mt-6 border-t border-border pt-4">
+		<div class="relative mt-6 flex flex-wrap items-center gap-4 border-t border-border pt-4">
+			<a
+				href={`/lecturas/${book.id}`}
+				class="inline-flex items-center gap-2 rounded-sm bg-foreground px-4 py-2 text-xs font-medium tracking-wider uppercase text-background transition-colors hover:bg-aka hover:text-[#fdf8ee]"
+			>
+				<Icon name="book-open" class="size-3.5" />
+				Leer
+			</a>
 			<a href={downloadUrl} target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-aka hover:underline">
 				<Icon name="download" class="size-4" />
 				Descargar PDF
 			</a>
-		</p>
+		</div>
 	)}
 </article>

@@ -97,7 +97,7 @@ export function cachedEntryCount(): number {
  */
 export function cacheablePath(path: string): boolean {
 	const clean = path.replace(/\/+$/, '');
-	if (NEVER_CACHED.has(clean)) return false;
+	if (NEVER_CACHED.has(clean) || clean.endsWith('/reading-state')) return false;
 	if (CACHEABLE_PATHS.has(clean) || CACHEABLE_QUERIED_PATHS.has(clean)) return true;
 
 	return CACHEABLE_PREFIXES.some((prefix) => clean.startsWith(`/${prefix}`));

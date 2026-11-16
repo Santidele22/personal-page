@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getJson } from '../../../shared/api/http';
-import { fetchBooks, fetchBooksPage } from './books';
+import { getJson, putJson } from '../../../shared/api/http';
+import {
+	fetchBookById,
+	fetchBookReading,
+	fetchBookReadingState,
+	fetchBooks,
+	fetchBooksPage,
+	saveBookReadingState,
+} from './books';
 
 /**
  * The reading loaders (issue 47 S5): the array read keeps filtering
@@ -9,9 +16,10 @@ import { fetchBooks, fetchBooksPage } from './books';
  * books. Both share the card mapping.
  */
 
-vi.mock('../../../shared/api/http', () => ({ getJson: vi.fn() }));
+vi.mock('../../../shared/api/http', () => ({ getJson: vi.fn(), putJson: vi.fn() }));
 
 const getJsonMock = vi.mocked(getJson);
+const putJsonMock = vi.mocked(putJson);
 
 const row = (overrides: Record<string, unknown> = {}) => ({
 	id: 1,
@@ -27,6 +35,7 @@ const row = (overrides: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
 	getJsonMock.mockReset();
+	putJsonMock.mockReset();
 });
 
 describe('fetchBooksPage — paginated envelope with the published filter', () => {
@@ -88,5 +97,53 @@ describe('fetchBooks — array read keeps the client-side published filter', () 
 		const books = await fetchBooks();
 
 		expect(books?.map((book) => book.id)).toEqual([1]);
+	});
+});
+
+describe('immersive reader API helpers (issue 50)', () => {
+	it('fetchBookById returns mapped book only when published', async () => {
+		getJsonMock.mockResolvedValueOnce(row({ id: 7, published: true }));
+		const book = await fetchBookById(7, 'https://example.test');
+		expect(book?.id).toBe(7);
+
+		getJsonMock.mockResolvedValueOnce(row({ id: 8, published: false }));
+		const unpublished = await fetchBookById(8, 'https://example.test');
+		expect(unpublished).toBeNull();
+	});
+
+	it('fetches reading.json and reading-state and saves reading-state via PUT', async () => {
+		const doc = {
+			bookId: '7',
+			pdfPages: 312,
+			ocrPending: false,
+			chunks: [
+				{
+					id: 'p0118.0340',
+					type: 'para' as const,
+					page: 118,
+					offset: 340,
+					text: 'Drogo contemplaba la llanura.',
+					mood: 'espera' as const,
+					cues: ['llanura', 'espera'],
+				},
+			],
+		};
+		getJsonMock.mockResolvedValueOnce(doc);
+		await expect(fetchBookReading(7, 'https://example.test')).resolves.toEqual(doc);
+
+		const state = {
+			bookId: '7',
+			marks: [],
+			words: [{ term: 'relevos' }],
+			progress: { page: 118, pct: 38 },
+		};
+		getJsonMock.mockResolvedValueOnce(state);
+		await expect(fetchBookReadingState(7, 'https://example.test')).resolves.toEqual(state);
+
+		putJsonMock.mockResolvedValueOnce();
+		await saveBookReadingState(7, { progress: { page: 120, pct: 40 } });
+		expect(putJsonMock).toHaveBeenCalledWith('/books/7/reading-state', {
+			progress: { page: 120, pct: 40 },
+		});
 	});
 });
