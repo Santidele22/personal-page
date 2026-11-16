@@ -669,6 +669,14 @@ export default function BooksEditorPanel() {
 													/>
 
 													<div class="mt-4 flex flex-wrap items-center gap-3">
+														<Show when={row.published === true && Boolean(row.filePath || row.originalName)}>
+															<a
+																href={`/lecturas/${row.id}`}
+																class={secondaryButtonClass}
+															>
+																Leer
+															</a>
+														</Show>
 														<button
 															type="button"
 															onClick={() => startEdit(row)}

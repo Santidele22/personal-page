@@ -1,6 +1,6 @@
 import { defineMiddleware } from 'astro:middleware';
 import { hasAdminSession } from './features/auth/api/serverSession';
-import { LOGIN_PATH } from './features/auth/paths';
+import { isAdminSecurityScope, isProtectedAdminRoute, LOGIN_PATH } from './features/auth/paths';
 import { setEdgeCacheStore, setWaitUntil } from './shared/api/contentCache';
 import { contentCacheKv } from './shared/api/serverEnvironment';
 
@@ -105,17 +105,6 @@ p.note { color: ${PAGE_MUTED}; font-size: .9rem; }
 	});
 }
 
-const ADMIN_PREFIX = '/admin';
-
-/** Admin routes an anonymous visitor may see; everything else under `/admin` is gated. */
-const PUBLIC_ADMIN_ROUTES = new Set(['/admin/login', LOGIN_PATH, '/admin/recuperar', '/admin/recuperar/']);
-
-function isProtectedAdminRoute(pathname: string): boolean {
-	const isAdmin = pathname === ADMIN_PREFIX || pathname.startsWith(`${ADMIN_PREFIX}/`);
-
-	return isAdmin && !PUBLIC_ADMIN_ROUTES.has(pathname);
-}
-
 function applySecurityHeaders(headers: Headers, isHttps: boolean, isAdmin: boolean): void {
 	headers.set('X-Content-Type-Options', 'nosniff');
 	headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -157,7 +146,8 @@ const waitUntilOwner = runtime.cfContext?.waitUntil ? runtime.cfContext : runtim
 
 	let response: Response;
 
-	if (isProtectedAdminRoute(context.url.pathname)) {
+	const isProtected = isProtectedAdminRoute(context.url.pathname);
+	if (isProtected) {
 		const session = await hasAdminSession(context.request.headers.get('cookie'));
 
 		if (!session) {
@@ -192,8 +182,11 @@ const waitUntilOwner = runtime.cfContext?.waitUntil ? runtime.cfContext : runtim
 		}
 	}
 
-	const isAdmin = context.url.pathname === ADMIN_PREFIX || context.url.pathname.startsWith(`${ADMIN_PREFIX}/`);
+	const isAdmin = isAdminSecurityScope(context.url.pathname);
 	applySecurityHeaders(response.headers, context.url.protocol === 'https:', isAdmin);
+	if (isProtected) {
+		response.headers.set('Cache-Control', 'no-store');
+	}
 
 	return response;
 });

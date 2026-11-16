@@ -1,5 +1,6 @@
 ---
 import BookCard from '../../entities/book/BookCard.astro';
+import { hasAdminSession } from '../../features/auth/api/serverSession';
 import { fetchBooksPage } from '../../features/book/api/books';
 import EmptyState from '../../shared/ui/EmptyState.astro';
 import Icon from '../../shared/ui/Icon.astro';
@@ -12,9 +13,12 @@ import Reveal from '../../shared/ui/Reveal.astro';
    single source of truth and the section never shows shipped copy
    (projects-type-restore L3). */
 const serverOrigin = Astro.url.origin;
-const shelfWindows = await Promise.all([
-	fetchBooksPage(serverOrigin, 0, 4, true, 'tecnico'),
-	fetchBooksPage(serverOrigin, 0, 4, true, 'no_tecnico'),
+const [shelfWindows, isAdmin] = await Promise.all([
+	Promise.all([
+		fetchBooksPage(serverOrigin, 0, 4, true, 'tecnico'),
+		fetchBooksPage(serverOrigin, 0, 4, true, 'no_tecnico'),
+	]),
+	hasAdminSession(Astro.request.headers.get('cookie')),
 ]);
 const [tecnicoWindow, noTecnicoWindow] = shelfWindows;
 const reading = [...(tecnicoWindow?.items ?? []), ...(noTecnicoWindow?.items ?? [])];
@@ -113,7 +117,7 @@ const defaultShelf = Math.max(
 						<div class="mt-6 grid gap-6 md:grid-cols-2">
 							{shelf.books.map((book, index) => (
 								<Reveal delay={0.1 * index} class="h-full">
-									<BookCard book={book} downloadUrl={downloadUrl(book.id)} />
+									<BookCard book={book} downloadUrl={downloadUrl(book.id)} canRead={isAdmin} />
 								</Reveal>
 							))}
 						</div>

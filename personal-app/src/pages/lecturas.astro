@@ -2,6 +2,7 @@
 import BaseLayout from '../app/layouts/BaseLayout.astro';
 import { SITE_NAME } from '../app/config/site';
 import BookCard from '../entities/book/BookCard.astro';
+import { hasAdminSession } from '../features/auth/api/serverSession';
 import { fetchBooksPage } from '../features/book/api/books';
 import EmptyState from '../shared/ui/EmptyState.astro';
 import Icon from '../shared/ui/Icon.astro';
@@ -14,7 +15,10 @@ import { parseOffset } from '../shared/api/pagination';
 const PAGE_SIZE = 8;
 const offset = parseOffset(Astro.url.searchParams.get('offset'));
 const serverOrigin = Astro.url.origin;
-const page = await fetchBooksPage(serverOrigin, offset, PAGE_SIZE, true);
+const [page, isAdmin] = await Promise.all([
+	fetchBooksPage(serverOrigin, offset, PAGE_SIZE, true),
+	hasAdminSession(Astro.request.headers.get('cookie')),
+]);
 const downloadUrl = (id: number) => `${serverOrigin}/api/books/${id}/download`;
 
 const title = `Lecturas — ${SITE_NAME}`;
@@ -62,7 +66,7 @@ const description = 'Todos los libros publicados: los que estoy leyendo, los que
 			<>
 				<div class="mt-10 grid gap-6 md:grid-cols-2">
 					{page.items.map((book) => (
-						<BookCard book={book} downloadUrl={downloadUrl(book.id)} headingLevel="h3" />
+						<BookCard book={book} downloadUrl={downloadUrl(book.id)} headingLevel="h3" canRead={isAdmin} />
 					))}
 				</div>
 				<PaginationControls basePath="/lecturas/" total={page.total} offset={page.offset} limit={PAGE_SIZE} />

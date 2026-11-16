@@ -5,7 +5,8 @@ import type {
 	BookReadingState,
 	ReadingStatus,
 } from '../../../entities/book/types';
-import { getJson, putJson } from '../../../shared/api/http';
+import { getJson, type RequestOptions } from '../../../shared/api/http';
+import { putJson as authorizedPutJson } from '../../../shared/api/authorizedHttp';
 import type { Paged } from '../../../shared/api/pagination';
 
 const READING_STATUSES: ReadingStatus[] = ['reading', 'finished', 'queued'];
@@ -115,12 +116,20 @@ export async function fetchBookById(id: number, serverOrigin?: string): Promise<
 	}
 }
 
+function toRequestOptions(optionsOrOrigin?: string | RequestOptions): RequestOptions {
+	if (typeof optionsOrOrigin === 'string') {
+		return { serverOrigin: optionsOrOrigin };
+	}
+
+	return optionsOrOrigin ?? {};
+}
+
 export async function fetchBookReading(
 	id: number,
-	serverOrigin?: string,
+	optionsOrOrigin?: string | RequestOptions,
 ): Promise<BookReadingDocument | null> {
 	try {
-		return await getJson<BookReadingDocument>(`/books/${id}/reading`, { serverOrigin });
+		return await getJson<BookReadingDocument>(`/books/${id}/reading`, toRequestOptions(optionsOrOrigin));
 	} catch {
 		return null;
 	}
@@ -128,10 +137,13 @@ export async function fetchBookReading(
 
 export async function fetchBookReadingState(
 	id: number,
-	serverOrigin?: string,
+	optionsOrOrigin?: string | RequestOptions,
 ): Promise<BookReadingState | null> {
 	try {
-		return await getJson<BookReadingState>(`/books/${id}/reading-state`, { serverOrigin });
+		return await getJson<BookReadingState>(
+			`/books/${id}/reading-state`,
+			toRequestOptions(optionsOrOrigin),
+		);
 	} catch {
 		return null;
 	}
@@ -141,5 +153,5 @@ export async function saveBookReadingState(
 	id: number,
 	state: Partial<BookReadingState>,
 ): Promise<void> {
-	await putJson(`/books/${id}/reading-state`, state);
+	await authorizedPutJson(`/books/${id}/reading-state`, state);
 }

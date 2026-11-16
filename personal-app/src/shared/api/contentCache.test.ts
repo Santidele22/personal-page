@@ -134,6 +134,8 @@ describe('cacheablePath — public read whitelist (spec S7)', () => {
     ['/menu-items', true],
     ['/books', true],
     ['/books/3', true],
+    ['/books/3/reading', false],
+    ['/books/3/reading-state', false],
     ['/services', true],
     ['/advertising-plans', true],
     ['/brands', true],

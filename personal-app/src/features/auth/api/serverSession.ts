@@ -50,14 +50,32 @@ async function readAuthMode(): Promise<AuthMode> {
 	return mode;
 }
 
+export type ServerAdminAuth =
+	| { isAdmin: false }
+	| { isAdmin: true; bearerToken?: string; cookie?: string };
+
+async function readNeonToken(cookieHeader: string): Promise<string | undefined> {
+	if (!neonAuthUrl) return undefined;
+	try {
+		const res = await fetch(`${neonAuthUrl}/token`, {
+			headers: { cookie: cookieHeader, 'cache-control': 'no-store' },
+			signal: AbortSignal.timeout(SESSION_CHECK_TIMEOUT_MS),
+		});
+		if (!res.ok) return undefined;
+		const payload = (await res.json().catch(() => null)) as { token?: unknown } | null;
+		return typeof payload?.token === 'string' && payload.token.length > 0 ? payload.token : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
 /**
- * Whether the given `Cookie` header belongs to a valid admin session. The
- * browser cookie is forwarded verbatim so the backend validates the same
- * signed value it issued.
+ * Resolves the admin session and the SSR credential needed to read protected
+ * backend endpoints (`bearerToken` in Neon mode, `cookie` in Better/Dev mode).
  */
-export async function hasAdminSession(cookieHeader: string | null): Promise<boolean> {
+export async function getServerAdminAuth(cookieHeader: string | null): Promise<ServerAdminAuth> {
 	if (!cookieHeader) {
-		return false;
+		return { isAdmin: false };
 	}
 
 	const mode = await readAuthMode();
@@ -74,15 +92,36 @@ export async function hasAdminSession(cookieHeader: string | null): Promise<bool
 			signal: AbortSignal.timeout(SESSION_CHECK_TIMEOUT_MS),
 		});
 		if (!response.ok) {
-			return false;
+			return { isAdmin: false };
 		}
 
 		// Better Auth answers `null` without a session; the dev stack answers
 		// `401`. A valid non-admin session must not enter the panel either.
 		const data: unknown = await response.json().catch(() => null);
+		if (!isAdminSession(data)) {
+			return { isAdmin: false };
+		}
 
-		return isAdminSession(data);
+		if (mode === 'neon') {
+			const headerJwt = response.headers.get('set-auth-jwt');
+			const bearerToken =
+				typeof headerJwt === 'string' && headerJwt.length > 0
+					? headerJwt
+					: await readNeonToken(cookieHeader);
+			return { isAdmin: true, bearerToken };
+		}
+
+		return { isAdmin: true, cookie: cookieHeader };
 	} catch {
-		return false;
+		return { isAdmin: false };
 	}
+}
+
+/**
+ * Whether the given `Cookie` header belongs to a valid admin session. The
+ * browser cookie is forwarded verbatim so the backend validates the same
+ * signed value it issued.
+ */
+export async function hasAdminSession(cookieHeader: string | null): Promise<boolean> {
+	return (await getServerAdminAuth(cookieHeader)).isAdmin;
 }

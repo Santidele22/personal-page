@@ -595,3 +595,73 @@ export function computeFovealBandMetrics(
 	const topPx = Math.round(safeVh * 0.21);
 	return { topPx, heightPx, bottomPx: topPx + heightPx };
 }
+
+function clampReaderLineHeight(lineHeightPx: number): number {
+	return Math.min(72, Math.max(24, Number.isFinite(lineHeightPx) ? lineHeightPx : 42));
+}
+
+export function computeDampedWheelDelta(
+	deltaY: number,
+	deltaMode: number,
+	lineHeightPx: number,
+	viewportHeightPx: number,
+): number {
+	if (!Number.isFinite(deltaY) || deltaY === 0) return 0;
+	const safeLine = clampReaderLineHeight(lineHeightPx);
+	const safeVh = Math.min(2400, Math.max(360, Number.isFinite(viewportHeightPx) ? viewportHeightPx : 900));
+
+	let rawPx = deltaY;
+	if (deltaMode === 1) {
+		rawPx = deltaY * safeLine;
+	} else if (deltaMode === 2) {
+		rawPx = deltaY * safeVh * 0.85;
+	}
+
+	const isFinePixelScroll = deltaMode === 0 && Math.abs(rawPx) < 32;
+	const damped = rawPx * (isFinePixelScroll ? 0.65 : 0.42);
+	const maxStep = Math.round(safeLine * 2.2);
+	return Math.max(-maxStep, Math.min(maxStep, damped));
+}
+
+export function clusterVisualLineTops(
+	rawTops: readonly number[],
+	minGapPx = 12,
+): number[] {
+	const safeMinGap = Number.isFinite(minGapPx) && minGapPx >= 0 ? minGapPx : 12;
+	const sorted = rawTops.filter((value) => Number.isFinite(value)).sort((a, b) => a - b);
+	const lines: number[] = [];
+	for (const top of sorted) {
+		if (lines.length === 0 || top - lines[lines.length - 1] > safeMinGap) {
+			lines.push(top);
+		}
+	}
+	return lines;
+}
+
+export function findAdjacentLineTop(
+	lineTops: readonly number[],
+	referenceTopPx: number,
+	direction: 1 | -1,
+	tolerancePx = 6,
+): number | null {
+	if (!Number.isFinite(referenceTopPx) || lineTops.length === 0) return null;
+	const safeTolerance = Number.isFinite(tolerancePx) && tolerancePx >= 0 ? tolerancePx : 6;
+
+	if (direction > 0) {
+		for (let i = 0; i < lineTops.length; i += 1) {
+			const top = lineTops[i];
+			if (Number.isFinite(top) && top > referenceTopPx + safeTolerance) {
+				return top;
+			}
+		}
+		return null;
+	}
+
+	for (let i = lineTops.length - 1; i >= 0; i -= 1) {
+		const top = lineTops[i];
+		if (Number.isFinite(top) && top < referenceTopPx - safeTolerance) {
+			return top;
+		}
+	}
+	return null;
+}

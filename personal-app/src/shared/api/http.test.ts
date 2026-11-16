@@ -71,6 +71,15 @@ describe('getJson — reads that must never be cached (spec S7)', () => {
 		expect(fetchStub).toHaveBeenCalledTimes(2);
 	});
 
+	it('cookie-authenticated SSR reads forward the cookie and bypass the cache', async () => {
+		await getJson('/books/7', { cookie: 'session=abc' });
+		await getJson('/books/7', { cookie: 'session=abc' });
+
+		expect(fetchStub).toHaveBeenCalledTimes(2);
+		const headers = fetchStub.mock.calls[0][1].headers as Headers;
+		expect(headers.get('cookie')).toBe('session=abc');
+	});
+
 	it('drafts are fetched fresh on every read', async () => {
 		await getJson('/blogs/drafts');
 		await getJson('/blogs/drafts');

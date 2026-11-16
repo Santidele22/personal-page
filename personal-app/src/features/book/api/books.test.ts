@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getJson, putJson } from '../../../shared/api/http';
+import { getJson } from '../../../shared/api/http';
+import { putJson as authorizedPutJson } from '../../../shared/api/authorizedHttp';
 import {
 	fetchBookById,
 	fetchBookReading,
@@ -17,9 +18,10 @@ import {
  */
 
 vi.mock('../../../shared/api/http', () => ({ getJson: vi.fn(), putJson: vi.fn() }));
+vi.mock('../../../shared/api/authorizedHttp', () => ({ putJson: vi.fn() }));
 
 const getJsonMock = vi.mocked(getJson);
-const putJsonMock = vi.mocked(putJson);
+const authorizedPutJsonMock = vi.mocked(authorizedPutJson);
 
 const row = (overrides: Record<string, unknown> = {}) => ({
 	id: 1,
@@ -35,7 +37,7 @@ const row = (overrides: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
 	getJsonMock.mockReset();
-	putJsonMock.mockReset();
+	authorizedPutJsonMock.mockReset();
 });
 
 describe('fetchBooksPage — paginated envelope with the published filter', () => {
@@ -129,7 +131,11 @@ describe('immersive reader API helpers (issue 50)', () => {
 			],
 		};
 		getJsonMock.mockResolvedValueOnce(doc);
-		await expect(fetchBookReading(7, 'https://example.test')).resolves.toEqual(doc);
+		await expect(fetchBookReading(7, { serverOrigin: 'https://example.test', bearerToken: 'jwt-1' })).resolves.toEqual(doc);
+		expect(getJsonMock).toHaveBeenCalledWith('/books/7/reading', {
+			serverOrigin: 'https://example.test',
+			bearerToken: 'jwt-1',
+		});
 
 		const state = {
 			bookId: '7',
@@ -138,11 +144,15 @@ describe('immersive reader API helpers (issue 50)', () => {
 			progress: { page: 118, pct: 38 },
 		};
 		getJsonMock.mockResolvedValueOnce(state);
-		await expect(fetchBookReadingState(7, 'https://example.test')).resolves.toEqual(state);
+		await expect(fetchBookReadingState(7, { serverOrigin: 'https://example.test', cookie: 's=1' })).resolves.toEqual(state);
+		expect(getJsonMock).toHaveBeenCalledWith('/books/7/reading-state', {
+			serverOrigin: 'https://example.test',
+			cookie: 's=1',
+		});
 
-		putJsonMock.mockResolvedValueOnce();
+		authorizedPutJsonMock.mockResolvedValueOnce();
 		await saveBookReadingState(7, { progress: { page: 120, pct: 40 } });
-		expect(putJsonMock).toHaveBeenCalledWith('/books/7/reading-state', {
+		expect(authorizedPutJsonMock).toHaveBeenCalledWith('/books/7/reading-state', {
 			progress: { page: 120, pct: 40 },
 		});
 	});

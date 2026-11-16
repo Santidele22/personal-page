@@ -22,6 +22,8 @@ export type RequestOptions = {
 	serverOrigin?: string;
 	/** JWT for cross-origin API calls when Managed Neon Auth is active. */
 	bearerToken?: string;
+	/** Browser Cookie header forwarded during SSR for authenticated reads. */
+	cookie?: string;
 };
 
 /** Builds the request URL, resolving the relative base against `serverOrigin`. */
@@ -56,6 +58,9 @@ async function request(path: string, init: RequestInit, options: RequestOptions 
 	try {
 		const headers = new Headers(init.headers);
 		if (options.bearerToken) headers.set('Authorization', `Bearer ${options.bearerToken}`);
+		if (import.meta.env.SSR && options.cookie && !headers.has('cookie')) {
+			headers.set('cookie', options.cookie);
+		}
 		const url = await resolveApiUrl(path, options.serverOrigin);
 		response = await fetch(url, {
 			credentials: 'include',
@@ -162,7 +167,7 @@ export async function getJson<T>(path: string, options: RequestOptions = {}): Pr
  * collide in the same cache.
  */
 async function cacheKeyFor(path: string, options: RequestOptions): Promise<string | null> {
-	if (!import.meta.env.SSR || options.bearerToken) return null;
+	if (!import.meta.env.SSR || options.bearerToken || options.cookie) return null;
 	if (!cacheablePath(path)) return null;
 
 	let url = resolveUrl(path, options.serverOrigin);
