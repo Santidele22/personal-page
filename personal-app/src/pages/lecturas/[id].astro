@@ -1,0 +1,1091 @@
+---
+import { Font } from 'astro:assets';
+import { SITE_NAME } from '../../app/config/site';
+import {
+	fetchBookById,
+	fetchBookReading,
+	fetchBookReadingState,
+} from '../../features/book/api/books';
+
+const rawId = Astro.params.id ?? '';
+const bookId = Number(rawId);
+const serverOrigin = Astro.url.origin;
+
+if (!Number.isInteger(bookId) || bookId <= 0) {
+	return Astro.redirect('/lecturas/');
+}
+
+const [book, reading, initialState] = await Promise.all([
+	fetchBookById(bookId, serverOrigin),
+	fetchBookReading(bookId, serverOrigin),
+	fetchBookReadingState(bookId, serverOrigin),
+]);
+
+if (!book) {
+	Astro.response.status = 404;
+}
+
+const chunks = reading?.chunks ?? [];
+const pdfPages = Math.max(1, reading?.pdfPages ?? 1);
+const ocrPending = !reading || reading.ocrPending || chunks.length === 0;
+const initialPage = Math.min(pdfPages, Math.max(1, initialState?.progress?.page ?? 1));
+const initialPct =
+	initialState?.progress?.pct !== undefined
+		? Math.min(100, Math.max(0, Math.round(initialState.progress.pct)))
+		: chunks.length > 0
+			? Math.min(100, Math.max(1, Math.round((initialPage / pdfPages) * 100)))
+			: 0;
+const initialWords = initialState?.words ?? [];
+const initialMarks = initialState?.marks ?? [];
+const downloadUrl = `/api/books/${bookId}/download`;
+
+const pageTitle = book
+	? `${book.title} — Vigilia de lectura — ${SITE_NAME}`
+	: `Libro no encontrado — ${SITE_NAME}`;
+const pageDescription = book
+	? `Lectura inmersiva de ${book.title} (${book.author}).`
+	: 'El libro solicitado no está disponible.';
+
+let firstParaAssigned = false;
+---
+
+<!doctype html>
+<html lang="es">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+	<link rel="icon" href="/favicon.ico" />
+	<title>{pageTitle}</title>
+	<meta name="description" content={pageDescription} />
+	<Font cssVariable="--font-shippori" preload />
+	<Font cssVariable="--font-zen" preload />
+	<Font cssVariable="--font-geist-mono" />
+	<style is:global>
+		:root {
+			--background:#f4efe4; --foreground:#23201a; --card:#fbf8f0;
+			--muted-foreground:#6f6657;
+			--border:#ddd2bc; --aka:#c73e3a; --aka-deep:#a02f2b; --ink-soft:#57503f;
+			--font-mincho:var(--font-shippori),'Shippori Mincho','Hiragino Mincho ProN','Yu Mincho',serif;
+			--font-zen-stack:var(--font-zen),'Zen Kaku Gothic New','Hiragino Kaku Gothic ProN','Yu Gothic',system-ui,sans-serif;
+			--font-mono:var(--font-geist-mono),'Geist Mono',ui-monospace,'SF Mono',monospace;
+		}
+		* { margin:0; padding:0; box-sizing:border-box; }
+		html, body { height:100%; }
+		body.vigilia-body {
+			font-family:var(--font-zen-stack);
+			--w-foreground:#eae3d3; --w-body:#cfc5ac; --w-faint:#8a7d66; --w-ghost:#786c57;
+			--w-border:#322b20; --w-panel:rgba(20,17,13,.96);
+			--bronce:#b98a44; --niebla:#8c96a0;
+			--glow:rgba(201,62,58,.15); --eq-speed:1.1s;
+			background:#080604; color:var(--w-body); overflow:hidden;
+		}
+		body.vigilia-body::after {
+			content:""; position:fixed; inset:0; pointer-events:none; opacity:.05; z-index:60;
+			background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+		}
+		:focus-visible { outline:2px solid var(--aka); outline-offset:3px; }
+
+		/* La luz ambiental cambia de temperatura con el mood del pasaje */
+		.glow {
+			position:fixed; top:-180px; left:50%; transform:translateX(-50%);
+			width:820px; height:700px; pointer-events:none;
+			background:radial-gradient(circle, var(--glow) 0%, transparent 66%);
+			animation:breathe 9s ease-in-out infinite;
+			transition:background 1.6s ease, opacity 1.2s ease;
+		}
+		@keyframes breathe { 0%,100%{opacity:.85} 50%{opacity:1} }
+		@media (prefers-reduced-motion: reduce) { .glow { animation:none; transition:none; } }
+		body.vigilia-body[data-power="off"] .glow { opacity:.4; }
+
+		/* ===== Top bar: identidad + progreso susurrado ===== */
+		.topbar {
+			position:fixed; top:0; left:0; right:0; z-index:20;
+			display:grid; grid-template-columns:1fr auto 1fr; align-items:center;
+			padding:16px 28px 18px;
+			background:linear-gradient(to bottom, rgba(8,6,4,.96) 55%, rgba(8,6,4,.75) 75%, rgba(8,6,4,0));
+		}
+		.topbar .crumb {
+			font:400 10px/1 var(--font-mono); letter-spacing:.22em; text-transform:uppercase;
+			color:var(--w-faint); text-decoration:none; justify-self:start;
+		}
+		.topbar .crumb:hover { color:var(--w-foreground); }
+		.topbar .ident { text-align:center; }
+		.topbar .ident h1 { font:600 13px/1 var(--font-mincho); letter-spacing:.06em; color:var(--w-foreground); }
+		.topbar .ident p { margin-top:6px; font:400 9px/1 var(--font-mono); letter-spacing:.28em; text-transform:uppercase; color:var(--w-faint); }
+		/* El progreso: un hilo de 1px y un número mono a plena opacidad */
+		.topbar .prog { justify-self:end; display:flex; align-items:center; gap:10px; }
+		.topbar .prog .pg { font:400 9px/1 var(--font-mono); letter-spacing:.2em; color:var(--w-ghost); }
+		.topbar .prog .pg b { color:var(--w-faint); font-weight:400; }
+		.topbar .prog .wire { width:52px; height:2px; background:#3f3628; position:relative; }
+		.topbar .prog .wire i {
+			position:absolute; inset:0 auto 0 0; width:var(--prog-pct, 0%);
+			background:linear-gradient(90deg, var(--aka-deep), var(--aka));
+			box-shadow:0 0 5px rgba(201,62,58,.5);
+			opacity:1;
+			transition:width .4s ease;
+		}
+		.topbar .prog .pct { font:400 9px/1 var(--font-mono); letter-spacing:.12em; color:var(--w-faint); width:34px; text-align:right; }
+		/* Hilo de capítulo bajo el top bar: el único gesto de progreso que cruza la pantalla */
+		.topthread { position:fixed; top:64px; left:0; right:0; height:1px; background:rgba(74,62,44,.55); z-index:19; }
+		.topthread i {
+			display:block; height:100%; width:var(--prog-pct, 0%);
+			background:linear-gradient(90deg, var(--aka-deep), var(--aka));
+			box-shadow:0 0 6px rgba(201,62,58,.5);
+			opacity:1;
+			transition:width .6s ease;
+		}
+		@media (prefers-reduced-motion: reduce) {
+			.topbar .prog .wire i, .topthread i { transition:none; }
+		}
+
+		/* Salir de la vigilia: guardar progreso y volver al inicio, con intención */
+		.session {
+			position:fixed; bottom:22px; left:26px; z-index:30;
+			display:inline-flex; gap:8px;
+		}
+		.session button, .session a {
+			display:inline-flex; align-items:center; gap:8px; height:32px; padding:0 14px;
+			border:1px solid var(--w-border); background:rgba(20,17,13,.85); cursor:pointer;
+			border-radius:999px; color:var(--w-faint); text-decoration:none;
+			white-space:nowrap; flex:none;
+			font:500 9px/1 var(--font-mono); letter-spacing:.16em; text-transform:uppercase;
+		}
+		.session button svg, .session a svg { width:12px; height:12px; stroke:currentColor; fill:none; stroke-width:1.6; flex:none; }
+		.session button:hover, .session a:hover { color:var(--w-foreground); border-color:#b3a78e; }
+		.session button.save:hover { color:var(--aka); border-color:rgba(201,62,58,.5); }
+		.session button.save.saved { color:var(--aka); border-color:rgba(201,62,58,.5); }
+
+		/* ===== El texto, directo sobre la noche ===== */
+		.stage {
+			position:fixed; inset:0; overflow-y:auto; scrollbar-width:none;
+			display:flex; align-items:flex-start; justify-content:center;
+			padding:168px 8vw 160px;
+		}
+		.stage::-webkit-scrollbar { display:none; }
+		.text { width:min(760px, 82vw); }
+		.text h2 {
+			font:600 clamp(24px, 2.8vw, 36px)/1.45 var(--font-mincho);
+			color:var(--w-foreground); margin:32px 0 38px;
+		}
+		.text h2:first-child { margin-top:0; }
+		.text p {
+			font:400 clamp(16px, 1.4vw, 19px)/2.15 var(--font-zen-stack);
+			margin-bottom:34px; text-align:justify; color:var(--w-body);
+			transition:opacity .8s ease, color .8s ease;
+		}
+		.text p.verse {
+			font-style:italic; text-align:left; padding-left:24px;
+			border-left:1px solid var(--w-border);
+		}
+		.text .dropcap::first-letter {
+			font:600 84px/.82 var(--font-mincho); color:var(--aka);
+			float:left; margin:12px 16px 0 0;
+		}
+		@media (prefers-reduced-motion: reduce) { .text p { transition:none; } }
+		body.vigilia-body[data-past="on"] .text p:not(.reading) { opacity:.55; }
+		.text p.reading { color:var(--w-foreground); }
+
+		/* Subrayados ya hechos + keywords */
+		.sub { border-bottom:2px solid; padding-bottom:1px; }
+		.sub-aka { border-color:var(--aka); }
+		.sub-bronce { border-color:var(--bronce); }
+		.sub-tinta { border-color:var(--w-faint); }
+		.kw { border-bottom:1px dashed rgba(138,125,102,.55); padding-bottom:1px; color:var(--w-foreground); }
+		.kw::after { content:"◇"; font-size:.6em; vertical-align:.4em; margin-left:3px; color:var(--w-faint); }
+
+		/* ===== Píldora de selección: tintas + keyword, nada más ===== */
+		.selbar {
+			position:fixed; z-index:40; display:none;
+			align-items:center; gap:3px; padding:5px 6px;
+			border:1px solid var(--w-border); background:var(--w-panel); border-radius:999px;
+			box-shadow:0 18px 44px -18px rgba(0,0,0,.95);
+		}
+		.selbar.on { display:inline-flex; }
+		.selbar .ink {
+			width:26px; height:26px; border-radius:50%; border:none; background:none;
+			cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+		}
+		.selbar .ink:hover { background:rgba(216,205,180,.08); }
+		.selbar .ink i { width:11px; height:11px; border-radius:50%; display:block; }
+		.selbar .sep { width:1px; height:16px; background:var(--w-border); margin:0 3px; }
+		.selbar .kwbtn {
+			height:26px; border:none; background:none; cursor:pointer; border-radius:999px;
+			padding:0 12px; font:500 9px/1 var(--font-mono); letter-spacing:.14em; text-transform:uppercase;
+			color:var(--w-faint); white-space:nowrap;
+		}
+		.selbar .kwbtn:hover { color:var(--aka); background:rgba(201,62,58,.1); }
+
+		/* Riel de keywords: el margen derecho recoge lo capturado */
+		.rail {
+			position:fixed; right:22px; top:50%; transform:translateY(-50%); z-index:15;
+			display:flex; flex-direction:column; align-items:flex-end; gap:12px; max-width:190px;
+		}
+		.rail .rt {
+			font:400 8px/1 var(--font-mono); letter-spacing:.26em; text-transform:uppercase;
+			color:var(--w-faint); margin-bottom:2px;
+		}
+		.rail button {
+			background:none; border:none; cursor:pointer; text-align:right;
+			font:400 9px/1.5 var(--font-mono); letter-spacing:.16em; text-transform:uppercase;
+			color:var(--w-ghost); padding:0;
+		}
+		.rail button:hover { color:var(--w-foreground); }
+		.rail button::before { content:"— "; color:var(--w-faint); }
+		.rail button.fresh { color:var(--aka); }
+		@media (max-width: 1180px) { .rail { display:none; } }
+
+		/* ===== El tocadiscos: disco que sigue la lectura ===== */
+		.station {
+			position:fixed; bottom:22px; right:26px; z-index:30;
+			display:inline-flex; align-items:center; gap:10px;
+			background:none; border:none; cursor:pointer; padding:8px 4px;
+			font:500 10px/1 var(--font-zen-stack); letter-spacing:.14em; text-transform:uppercase; color:var(--w-faint);
+		}
+		.station:hover { color:var(--w-foreground); }
+		.station .bars { display:flex; align-items:flex-end; gap:2px; height:11px; }
+		.station .bars i { width:2px; background:var(--aka); animation:eq var(--eq-speed) ease-in-out infinite; display:block; }
+		.station .bars i:nth-child(1){ height:5px; } .station .bars i:nth-child(2){ height:10px; animation-delay:.2s; }
+		.station .bars i:nth-child(3){ height:7px; animation-delay:.4s; } .station .bars i:nth-child(4){ height:4px; animation-delay:.1s; }
+		@keyframes eq { 0%,100%{transform:scaleY(.6)} 50%{transform:scaleY(1)} }
+		@media (prefers-reduced-motion: reduce) { .station .bars i { animation:none; } }
+		.station .bpm { font:400 9px/1 var(--font-mono); letter-spacing:.14em; color:var(--w-ghost); }
+		body.vigilia-body[data-power="off"] .station .bars i { animation:none; background:#4a3e2c; }
+		body.vigilia-body[data-power="off"] .station { color:var(--w-ghost); }
+
+		/* La bandeja del tocadiscos */
+		.deck {
+			position:fixed; z-index:35; bottom:64px; right:26px; width:336px;
+			border:1px solid var(--w-border); background:var(--w-panel);
+			box-shadow:0 24px 60px -20px rgba(0,0,0,.95);
+			opacity:0; transform:translateY(8px); pointer-events:none;
+			transition:opacity .3s ease, transform .3s ease;
+		}
+		.deck.open { opacity:1; transform:none; pointer-events:auto; }
+		@media (prefers-reduced-motion: reduce) { .deck { transition:none; } }
+		.deck header { display:flex; align-items:baseline; justify-content:space-between; padding:16px 20px 12px; border-bottom:1px solid var(--w-border); }
+		.deck h2 { font:600 15px/1.4 var(--font-mincho); color:var(--w-foreground); }
+		.deck h2 span { color:var(--aka); }
+		.deck header p { font:400 8px/1 var(--font-mono); letter-spacing:.2em; text-transform:uppercase; color:var(--w-faint); }
+
+		.deck .platter { display:flex; gap:16px; padding:18px 20px 8px; align-items:center; }
+		.vinyl { width:104px; height:104px; flex:none; position:relative; }
+		.vinyl svg.rotor { width:100%; height:100%; display:block; }
+		.vinyl .disc { transform-origin:52px 52px; animation:spin 2.8s linear infinite; animation-play-state:paused; }
+		body.vigilia-body[data-power="on"] .vinyl .disc { animation-play-state:running; }
+		@keyframes spin { to { transform:rotate(360deg); } }
+		@media (prefers-reduced-motion: reduce) { .vinyl .disc { animation:none; } }
+		.vinyl .lbl {
+			position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+			width:48px; height:48px; margin:auto;
+			font:600 8px/1.2 var(--font-mono); letter-spacing:.16em; text-transform:uppercase;
+			color:#f4e8d8; pointer-events:none; text-align:center;
+		}
+		.vinyl .arm { position:absolute; right:-4px; top:0; width:46px; height:96px; transform-origin:76% 14%; transform:rotate(-28deg); transition:transform .8s ease; pointer-events:none; }
+		body.vigilia-body[data-power="on"] .vinyl .arm { transform:rotate(0deg); }
+		@media (prefers-reduced-motion: reduce) { .vinyl .arm { transition:none; } }
+
+		.deck .nowplay { min-width:0; }
+		.deck .nowplay .n { font:600 14px/1.5 var(--font-mincho); color:var(--w-foreground); }
+		.deck .nowplay .bpm { font:400 9px/1 var(--font-mono); letter-spacing:.16em; color:var(--aka); margin-top:5px; }
+		.deck .nowplay .why { font:400 11px/1.7 var(--font-zen-stack); color:var(--w-faint); margin-top:7px; }
+		.deck .nowplay .why em { font-style:normal; color:var(--w-body); }
+
+		.deck .vol { display:flex; align-items:center; gap:12px; padding:12px 20px 6px; }
+		.deck .vol .flame { width:24px; height:12px; position:relative; flex:none; }
+		.deck .vol input[type="range"] { flex:1; appearance:none; height:2px; background:var(--w-border); cursor:pointer; }
+		.deck .vol input[type="range"]::-webkit-slider-thumb {
+			appearance:none; width:9px; height:14px; border-radius:2px 2px 3px 3px;
+			background:linear-gradient(to top, #4a3e2c, #d8cdb4);
+		}
+		.deck .vol .pct { font:400 10px/1 var(--font-mono); color:var(--w-faint); width:32px; text-align:right; }
+
+		.deck .auto { display:flex; align-items:center; justify-content:space-between; margin:8px 20px 0; padding-top:12px; border-top:1px solid var(--w-border); }
+		.deck .auto span { font:500 9px/1 var(--font-mono); letter-spacing:.18em; text-transform:uppercase; color:var(--w-faint); }
+		.deck .auto .sw { width:34px; height:16px; border:1px solid var(--w-border); border-radius:999px; position:relative; background:none; cursor:pointer; }
+		.deck .auto .sw i { position:absolute; top:2px; left:2px; width:10px; height:10px; border-radius:50%; background:var(--aka); transition:left .25s ease; }
+		.deck .auto .sw[aria-checked="true"] i { left:20px; }
+		.deck .manual { display:none; flex-wrap:wrap; gap:6px; margin:12px 20px 0; }
+		body.vigilia-body[data-auto="off"] .deck .manual { display:flex; }
+		.deck .manual button {
+			height:26px; padding:0 10px; border:1px solid var(--w-border); background:none;
+			border-radius:999px; cursor:pointer; color:var(--w-faint);
+			font:500 9px/1 var(--font-mono); letter-spacing:.12em; text-transform:uppercase;
+		}
+		.deck .manual button:hover { color:var(--w-foreground); }
+		.deck .manual button[aria-pressed="true"] { border-color:rgba(201,62,58,.5); color:var(--aka); }
+		.deck footer { display:flex; border-top:1px solid var(--w-border); margin-top:14px; }
+		.deck footer button {
+			flex:1; height:42px; border:none; border-right:1px solid var(--w-border);
+			background:none; cursor:pointer; color:var(--w-faint);
+			font:500 10px/1 var(--font-mono); letter-spacing:.14em; text-transform:uppercase;
+			display:inline-flex; align-items:center; justify-content:center; gap:8px;
+		}
+		.deck footer button:last-child { border-right:none; }
+		.deck footer button:hover { color:var(--w-foreground); }
+		.deck footer button.on { color:var(--aka); }
+		.deck footer svg { width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:1.6; }
+
+		/* Aviso de resintonía: aparece y se va, no pide nada */
+		.toast {
+			position:fixed; top:84px; left:50%; transform:translateX(-50%); z-index:25;
+			font:400 9px/1 var(--font-mono); letter-spacing:.22em; text-transform:uppercase;
+			color:var(--w-faint); opacity:0; transition:opacity .5s ease; pointer-events:none;
+		}
+		.toast.on { opacity:1; }
+		.toast b { color:var(--aka); font-weight:400; }
+		@media (prefers-reduced-motion: reduce) { .toast { transition:none; } }
+
+		/* Ayuda mínima: mínimo --w-faint (#8a7d66) para legibilidad sobre noche */
+		.hint {
+			position:fixed; bottom:64px; left:26px; z-index:14;
+			font:400 9px/1.8 var(--font-mono); letter-spacing:.18em; text-transform:uppercase;
+			color:var(--w-faint);
+		}
+		@media (max-width: 760px) { .hint { display:none; } }
+
+		/* Fallback honesto para PDF escaneado sin OCR (07-del-horno-al-visor) */
+		.fallback-box {
+			border:1px dashed var(--w-border); background:rgba(20,17,13,.88);
+			padding:22px 24px; margin-bottom:28px;
+		}
+		.fallback-box .head { display:flex; align-items:baseline; gap:14px; margin-bottom:14px; flex-wrap:wrap; }
+		.fallback-box .seal {
+			font:600 10px/1 var(--font-mono); letter-spacing:.18em; text-transform:uppercase;
+			color:var(--aka); border:1px solid rgba(201,62,58,.5); padding:5px 8px; white-space:nowrap;
+		}
+		.fallback-box p {
+			font:400 13px/1.8 var(--font-zen-stack) !important;
+			color:var(--w-faint) !important; margin:0 !important; text-align:left !important;
+		}
+		.fallback-frame {
+			width:100%; height:68vh; border:1px solid var(--w-border); background:#0d0b08;
+		}
+	</style>
+</head>
+<body
+	class="vigilia-body"
+	data-mood="espera"
+	data-auto="on"
+	data-past="off"
+	data-power="on"
+	data-book-id={String(bookId)}
+	data-pdf-pages={String(pdfPages)}
+	data-initial-state={JSON.stringify(
+		initialState ?? {
+			bookId: String(bookId),
+			marks: initialMarks,
+			words: initialWords,
+			progress: { page: initialPage, pct: initialPct },
+		},
+	)}
+	style={`--prog-pct: ${initialPct}%`}
+>
+	<div class="glow" aria-hidden="true"></div>
+
+	<header class="topbar">
+		<a class="crumb" href="/lecturas/">← lecturas</a>
+		<div class="ident">
+			<h1>{book ? book.title : 'Vigilia de lectura'}</h1>
+			<p>{book ? book.author : 'No encontrado'}</p>
+		</div>
+		<div
+			class="prog"
+			id="progSummary"
+			aria-label={`Progreso de lectura: página ${initialPage} de ${pdfPages}, ${initialPct} por ciento`}
+		>
+			<span class="pg">PÁG <b id="progPage">{initialPage}</b> · {pdfPages}</span>
+			<span class="wire" aria-hidden="true"><i id="progWire"></i></span>
+			<span class="pct" id="progPct">{initialPct}%</span>
+		</div>
+	</header>
+	<div class="topthread" aria-hidden="true"><i id="topThreadBar"></i></div>
+
+	<main class="stage" id="stage" tabindex="-1">
+		<article class="text" id="readerArticle" aria-label={book ? book.title : 'Lectura'}>
+			{!book && (
+				<div class="fallback-box">
+					<div class="head">
+						<span class="seal">404 · No disponible</span>
+						<p>Este libro no existe o todavía no fue publicado en la estantería.</p>
+					</div>
+				</div>
+			)}
+
+			{book && ocrPending && (
+				<>
+					<h2>{book.title}</h2>
+					<div class="fallback-box">
+						<div class="head">
+							<span class="seal">Fallback · ocr_pending</span>
+							<p>
+								Este PDF es escaneado o aún no tiene capa de texto extraída. La vigilia abre el documento original dentro del mundo nocturno mientras el proceso de OCR está pendiente — también podés <a href={downloadUrl} target="_blank" rel="noreferrer" style="color:var(--aka);text-decoration:underline">descargar el PDF original</a>.
+							</p>
+						</div>
+					</div>
+					<iframe class="fallback-frame" src={downloadUrl} title={book.title}></iframe>
+				</>
+			)}
+
+			{book && !ocrPending && chunks.map((chunk) => {
+				if (chunk.type === 'heading') {
+					return (
+						<h2
+							data-chunk-id={chunk.id}
+							data-page={String(chunk.page)}
+						>
+							{chunk.text}
+						</h2>
+					);
+				}
+				const isFirstPara = !firstParaAssigned;
+				firstParaAssigned = true;
+				const cls = [
+					isFirstPara ? 'dropcap' : '',
+					chunk.type === 'verse' ? 'verse' : '',
+				]
+					.filter(Boolean)
+					.join(' ');
+				return (
+					<p
+						class={cls || undefined}
+						data-chunk-id={chunk.id}
+						data-page={String(chunk.page)}
+						data-mood={chunk.mood}
+						data-cues={chunk.cues.join(', ')}
+					>
+						{chunk.text}
+					</p>
+				);
+			})}
+		</article>
+	</main>
+
+	<!-- Píldora de selección: tintas y keyword comparten espacio -->
+	<div class="selbar" id="selbar" role="toolbar" aria-label="Subrayar o marcar como palabra clave">
+		<button class="ink" type="button" data-ink="sub-aka" aria-label="Subrayar en rojo"><i style="background:var(--aka)"></i></button>
+		<button class="ink" type="button" data-ink="sub-bronce" aria-label="Subrayar en bronce"><i style="background:var(--bronce)"></i></button>
+		<button class="ink" type="button" data-ink="sub-tinta" aria-label="Subrayar en tinta"><i style="background:#8a7d66"></i></button>
+		<span class="sep" aria-hidden="true"></span>
+		<button class="kwbtn" type="button" id="kwBtn">◇ keyword</button>
+	</div>
+
+	<!-- Riel de keywords del capítulo -->
+	<aside class="rail" id="rail" aria-label="Palabras clave del libro">
+		<span class="rt">Keywords · margen</span>
+		{initialWords.map((w) => (
+			<button type="button" data-target={w.term}>
+				{w.term.length > 30 ? `${w.term.slice(0, 30)}…` : w.term}
+			</button>
+		))}
+	</aside>
+
+	<!-- El tocadiscos -->
+	<aside class="deck" id="deck" aria-label="Tocadiscos">
+		<header>
+			<h2>Tocadiscos del taller<span>.</span></h2>
+			<p>sigue el pasaje que leés</p>
+		</header>
+		<div class="platter">
+			<div class="vinyl">
+				<svg class="rotor" viewBox="0 0 104 104" aria-hidden="true">
+					<g class="disc">
+						<circle cx="52" cy="52" r="50" fill="#0d0b08" stroke="#322b20" stroke-width="1"/>
+						<circle cx="52" cy="52" r="45" fill="none" stroke="#1c1812" stroke-width="1"/>
+						<circle cx="52" cy="52" r="40" fill="none" stroke="#191510" stroke-width="1"/>
+						<circle cx="52" cy="52" r="35" fill="none" stroke="#1c1812" stroke-width="1"/>
+						<circle cx="52" cy="52" r="30" fill="none" stroke="#191510" stroke-width="1"/>
+						<circle cx="52" cy="52" r="24" fill="#a02f2b" stroke="#c73e3a" stroke-width="1"/>
+						<circle cx="52" cy="52" r="3" fill="#0d0b08"/>
+						<line x1="52" y1="8" x2="52" y2="20" stroke="#322b20" stroke-width="1.5"/>
+					</g>
+				</svg>
+				<span class="lbl" id="vinylLbl" aria-hidden="true">espera</span>
+				<svg class="arm" viewBox="0 0 46 96" aria-hidden="true">
+					<circle cx="35" cy="14" r="8" fill="#241f17" stroke="#4a3e2c" stroke-width="1.5"/>
+					<circle cx="35" cy="14" r="2.5" fill="#4a3e2c"/>
+					<line x1="35" y1="14" x2="13" y2="72" stroke="#8a7d66" stroke-width="2.5" stroke-linecap="round"/>
+					<circle cx="13" cy="74" r="4.5" fill="#4a3e2c" stroke="#8a7d66" stroke-width="1"/>
+				</svg>
+			</div>
+			<div class="nowplay">
+				<p class="n" id="nowName">Espera · piano lejano</p>
+				<p class="bpm" id="nowBpm">62 BPM · LOOP 48 MIN</p>
+				<p class="why" id="popWhy">Pasaje: <em>«espera», «silencio»</em> — sin voz, sin letra: nada que compita con el mincho.</p>
+			</div>
+		</div>
+		<div class="vol">
+			<span class="flame" aria-hidden="true">
+				<svg viewBox="0 0 24 12"><ellipse cx="12" cy="6" rx="4" ry="6" fill="none" stroke="#8a7d66" stroke-width="1"/></svg>
+			</span>
+			<input type="range" id="volRange" min="0" max="100" value="62" aria-label="Volumen" />
+			<span class="pct" id="volPct">62</span>
+		</div>
+		<div class="auto">
+			<span>Sintonía automática</span>
+			<button class="sw" type="button" id="autoSw" role="switch" aria-checked="true" aria-label="Sintonía automática"><i></i></button>
+		</div>
+		<div class="manual" role="group" aria-label="Elegir mood a mano">
+			<button type="button" data-mood="espera" aria-pressed="true">espera</button>
+			<button type="button" data-mood="polvo" aria-pressed="false">polvo</button>
+			<button type="button" data-mood="alerta" aria-pressed="false">alerta</button>
+			<button type="button" data-mood="niebla" aria-pressed="false">niebla</button>
+		</div>
+		<footer>
+			<button type="button" id="powerBtn" class="on">
+				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v6"/><path d="M4.5 4.5a5 5 0 1 0 7 0"/></svg>
+				<span id="powerLabel">Apagar</span>
+			</button>
+			<button type="button" id="deckClose">Cerrar</button>
+		</footer>
+	</aside>
+
+	<button class="station" type="button" id="stationBtn" aria-expanded="false" aria-label="Tocadiscos, abrir bandeja">
+		<span class="bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+		<span id="stationName">espera · piano lejano</span>
+		<span class="bpm" id="stationBpm">62 bpm</span>
+	</button>
+
+	<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+	<div class="session" aria-label="Sesión de lectura">
+		<button class="save" type="button" id="saveBtn">
+			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2h8l2 2v10H3z"/><path d="M5 2v4h6V2M5 14v-5h6v5"/></svg>
+			<span id="saveLabel">Guardar progreso</span>
+		</button>
+		<a href="/#lectura" aria-label="Volver al inicio">
+			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>
+			Volver al inicio
+		</a>
+	</div>
+
+	<p class="hint">seleccioná una frase para subrayar o marcarla como keyword<br/>la emisora sintoniza lo que estás leyendo</p>
+
+	<script>
+		import type { BookReadingState, ReadingMood } from '../../entities/book/types';
+		import { saveBookReadingState } from '../../features/book/api/books';
+
+		type MoodConfig = {
+			name: string;
+			bpm: number;
+			glow: string;
+			eq: string;
+			cues: string[];
+			set: string;
+			freqs: number[];
+		};
+
+		const moods: Record<ReadingMood, MoodConfig> = {
+			espera: {
+				name: 'espera · piano lejano',
+				bpm: 62,
+				glow: 'rgba(201,62,58,.15)',
+				eq: '1.1s',
+				cues: ['invierno', 'espera'],
+				set: 'piano lejano, viento seco contra los muros, pulso de vinilo con humedad',
+				freqs: [146.83, 220.0, 261.63],
+			},
+			polvo: {
+				name: 'polvo · vinilo y guitarra',
+				bpm: 58,
+				glow: 'rgba(185,138,68,.14)',
+				eq: '1.3s',
+				cues: ['polvo', 'años', 'costumbre'],
+				set: 'guitarra suave, aguja que cruje, polvo levantando en un haz de luz',
+				freqs: [130.81, 196.0, 246.94],
+			},
+			alerta: {
+				name: 'alerta · bajo pulsante',
+				bpm: 84,
+				glow: 'rgba(201,62,58,.22)',
+				eq: '.55s',
+				cues: ['noches', 'moverse', 'centinelas'],
+				set: 'bajo pulsante, metales lejanos, respiración contenida',
+				freqs: [110.0, 164.81, 233.08],
+			},
+			niebla: {
+				name: 'niebla · drone y gotas',
+				bpm: 50,
+				glow: 'rgba(140,150,160,.13)',
+				eq: '1.6s',
+				cues: ['marzo', 'relevos', 'país lejano'],
+				set: 'drone grave, gotas en un tanque, estática amable',
+				freqs: [123.47, 185.0, 220.0],
+			},
+		};
+
+		const body = document.body;
+		const bookId = Number(body.dataset.bookId || 0);
+		const pdfPages = Math.max(1, Number(body.dataset.pdfPages || 1));
+		let parsedInitial: Partial<BookReadingState> = {};
+		try {
+			parsedInitial = JSON.parse(body.dataset.initialState || '{}') as Partial<BookReadingState>;
+		} catch {}
+
+		const stationName = document.getElementById('stationName');
+		const stationBpm = document.getElementById('stationBpm');
+		const nowName = document.getElementById('nowName');
+		const nowBpm = document.getElementById('nowBpm');
+		const vinylLbl = document.getElementById('vinylLbl');
+		const popWhy = document.getElementById('popWhy');
+		const toast = document.getElementById('toast');
+		const progPage = document.getElementById('progPage');
+		const progPct = document.getElementById('progPct');
+		const progSummary = document.getElementById('progSummary');
+
+		const storageKey = `vigilia:book:${bookId}`;
+		const state: BookReadingState = {
+			bookId: String(bookId),
+			marks: Array.isArray(parsedInitial.marks) ? [...parsedInitial.marks] : [],
+			words: Array.isArray(parsedInitial.words) ? [...parsedInitial.words] : [],
+			progress: parsedInitial.progress ?? { page: 1, pct: 0 },
+		};
+
+		try {
+			const localRaw = localStorage.getItem(storageKey);
+			if (localRaw) {
+				const localParsed = JSON.parse(localRaw) as Partial<BookReadingState>;
+				if ((localParsed.progress?.pct ?? 0) > (state.progress?.pct ?? 0) && localParsed.progress) {
+					state.progress = localParsed.progress;
+				}
+				if (Array.isArray(localParsed.marks) && localParsed.marks.length > state.marks.length) {
+					state.marks = localParsed.marks;
+				}
+				if (Array.isArray(localParsed.words) && localParsed.words.length > state.words.length) {
+					state.words = localParsed.words;
+				}
+			}
+		} catch {}
+
+		// ===== Sintetizador Web Audio artesanal (sin dependencias externas) =====
+		let audioCtx: AudioContext | null = null;
+		let masterGain: GainNode | null = null;
+		let oscNodes: OscillatorNode[] = [];
+
+		function syncAudioToMood(moodKey: ReadingMood) {
+			if (!audioCtx || !masterGain) return;
+			const m = moods[moodKey] ?? moods.espera;
+			const now = audioCtx.currentTime;
+			oscNodes.forEach((osc, idx) => {
+				const targetFreq = m.freqs[idx % m.freqs.length];
+				try {
+					osc.frequency.setTargetAtTime(targetFreq, now, 0.8);
+				} catch {}
+			});
+		}
+
+		function syncAudioGain() {
+			if (!audioCtx || !masterGain) return;
+			const volEl = document.getElementById('volRange') as HTMLInputElement | null;
+			const rawVol = Number(volEl ? volEl.value : 62) / 100;
+			const powered = body.dataset.power === 'on';
+			const target = powered ? rawVol * 0.045 : 0;
+			try {
+				masterGain.gain.setTargetAtTime(target, audioCtx.currentTime, 0.25);
+			} catch {}
+		}
+
+		function ensureAudioStarted() {
+			if (audioCtx || body.dataset.power !== 'on') return;
+			const Ctx =
+				window.AudioContext ||
+				(window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+			if (!Ctx) return;
+			try {
+				audioCtx = new Ctx();
+				masterGain = audioCtx.createGain();
+				masterGain.gain.value = 0;
+
+				const filter = audioCtx.createBiquadFilter();
+				filter.type = 'lowpass';
+				filter.frequency.value = 420;
+
+				filter.connect(masterGain);
+				masterGain.connect(audioCtx.destination);
+
+				const currentMoodKey = (body.dataset.mood as ReadingMood) || 'espera';
+				const currentMood = moods[currentMoodKey] ?? moods.espera;
+				oscNodes = currentMood.freqs.map((freq, idx) => {
+					const osc = audioCtx!.createOscillator();
+					osc.type = idx === 0 ? 'sine' : 'triangle';
+					osc.frequency.value = freq;
+					osc.detune.value = (idx - 1) * 4;
+					osc.connect(filter);
+					osc.start();
+					return osc;
+				});
+				syncAudioGain();
+			} catch {}
+		}
+
+		let toastTimer: ReturnType<typeof setTimeout> | undefined;
+		function announce(html: string) {
+			if (!toast) return;
+			toast.innerHTML = html;
+			toast.classList.add('on');
+			if (toastTimer) clearTimeout(toastTimer);
+			toastTimer = setTimeout(() => toast.classList.remove('on'), 2600);
+		}
+
+		function updateWhyText(moodKey: ReadingMood, customCues?: string[]) {
+			const m = moods[moodKey];
+			if (!m || !popWhy) return;
+			const cuesList =
+				Array.isArray(customCues) && customCues.length > 0 ? customCues : m.cues;
+			popWhy.innerHTML =
+				'Pasaje: <em>«' + cuesList.join('», «') + '»</em> — ' + m.set + '.';
+		}
+
+		let lastMoodSwitchAt = 0;
+		let pendingMoodCandidate: ReadingMood | null = null;
+		let pendingMoodHits = 0;
+
+		function setMood(key: ReadingMood, announceIt: boolean, customCues?: string[]) {
+			const m = moods[key];
+			if (!m) return;
+			if (body.dataset.mood === key) {
+				updateWhyText(key, customCues);
+				return;
+			}
+			body.dataset.mood = key;
+			body.style.setProperty('--glow', m.glow);
+			body.style.setProperty('--eq-speed', m.eq);
+			if (stationName) stationName.textContent = m.name;
+			if (stationBpm) stationBpm.textContent = m.bpm + ' bpm';
+			if (nowName) nowName.textContent = m.name.charAt(0).toUpperCase() + m.name.slice(1);
+			if (nowBpm) nowBpm.textContent = m.bpm + ' BPM · LOOP 48 MIN';
+			if (vinylLbl) vinylLbl.textContent = m.name.split(' · ')[0];
+			updateWhyText(key, customCues);
+			document
+				.querySelectorAll<HTMLButtonElement>('.deck .manual button')
+				.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mood === key)));
+			syncAudioToMood(key);
+			lastMoodSwitchAt = Date.now();
+			if (announceIt) {
+				announce('el disco gira con · <b>' + m.name.split(' · ')[0] + '</b> — ' + m.bpm + ' bpm');
+			}
+		}
+
+		function updateProgressDisplay(page: number, pct: number, chunkId?: string) {
+			const cleanPage = Math.min(pdfPages, Math.max(1, Number(page) || 1));
+			const cleanPct = Math.min(100, Math.max(0, Math.round(Number(pct) || 0)));
+			state.progress = { page: cleanPage, pct: cleanPct, chunkId };
+			if (progPage) progPage.textContent = String(cleanPage);
+			if (progPct) progPct.textContent = cleanPct + '%';
+			body.style.setProperty('--prog-pct', cleanPct + '%');
+			if (progSummary) {
+				progSummary.setAttribute(
+					'aria-label',
+					`Progreso de lectura: página ${cleanPage} de ${pdfPages}, ${cleanPct} por ciento`,
+				);
+			}
+			try {
+				localStorage.setItem(storageKey, JSON.stringify(state));
+			} catch {}
+		}
+
+		function applySavedAnnotations() {
+			const rail = document.getElementById('rail');
+			state.marks.forEach((mark) => {
+				const chunkId = String(mark.anchor || '').split('+')[0];
+				const targetPara = document.querySelector<HTMLElement>(`[data-chunk-id="${chunkId}"]`);
+				if (!targetPara || !mark.text) return;
+				const text = mark.text;
+				const idx = targetPara.innerHTML.indexOf(text);
+				if (idx >= 0) {
+					const cls = `sub sub-${mark.ink || 'aka'}`;
+					targetPara.innerHTML =
+						targetPara.innerHTML.slice(0, idx) +
+						`<span class="${cls}">${text}</span>` +
+						targetPara.innerHTML.slice(idx + text.length);
+				}
+			});
+			state.words.forEach((w) => {
+				if (!w.term) return;
+				if (w.anchor) {
+					const targetPara = document.querySelector<HTMLElement>(`[data-chunk-id="${w.anchor}"]`);
+					if (targetPara) {
+						const idx = targetPara.innerHTML.indexOf(w.term);
+						if (idx >= 0) {
+							targetPara.innerHTML =
+								targetPara.innerHTML.slice(0, idx) +
+								`<span class="kw">${w.term}</span>` +
+								targetPara.innerHTML.slice(idx + w.term.length);
+						}
+					}
+				}
+				if (rail && !rail.querySelector(`button[data-target="${CSS.escape(w.term)}"]`)) {
+					const short = w.term.length > 30 ? w.term.slice(0, 30) + '…' : w.term;
+					const b = document.createElement('button');
+					b.type = 'button';
+					b.textContent = short;
+					b.dataset.target = w.term;
+					rail.appendChild(b);
+				}
+			});
+		}
+
+		applySavedAnnotations();
+
+		const paras = Array.from(document.querySelectorAll<HTMLElement>('.text p[data-mood]'));
+		if (state.progress?.chunkId) {
+			const savedEl = document.querySelector<HTMLElement>(
+				`[data-chunk-id="${state.progress.chunkId}"]`,
+			);
+			if (savedEl) {
+				setTimeout(() => savedEl.scrollIntoView({ behavior: 'instant', block: 'center' }), 40);
+			}
+		} else if ((state.progress?.page ?? 1) > 1) {
+			const pageEl = document.querySelector<HTMLElement>(`[data-page="${state.progress.page}"]`);
+			if (pageEl) {
+				setTimeout(() => pageEl.scrollIntoView({ behavior: 'instant', block: 'center' }), 40);
+			}
+		}
+
+		const io = new IntersectionObserver(
+			(entries) => {
+				entries.forEach((e) => {
+					const target = e.target as HTMLElement;
+					target.classList.toggle('reading', e.isIntersecting);
+					if (e.isIntersecting) {
+						body.dataset.past = 'on';
+						const idx = paras.indexOf(target);
+						const page = Number(target.dataset.page || 1);
+						const pct =
+							paras.length > 0
+								? Math.round(((idx + 1) / paras.length) * 100)
+								: Math.round((page / pdfPages) * 100);
+						updateProgressDisplay(page, pct, target.dataset.chunkId);
+
+						const cues = (target.dataset.cues || '')
+							.split(',')
+							.map((s) => s.trim())
+							.filter(Boolean);
+						const targetMood = ((target.dataset.mood as ReadingMood) || 'espera');
+						const activeMood = ((body.dataset.mood as ReadingMood) || 'espera');
+
+						if (body.dataset.auto === 'on') {
+							if (targetMood === activeMood) {
+								pendingMoodCandidate = null;
+								pendingMoodHits = 0;
+								updateWhyText(targetMood, cues);
+							} else {
+								if (pendingMoodCandidate === targetMood) {
+									pendingMoodHits += 1;
+								} else {
+									pendingMoodCandidate = targetMood;
+									pendingMoodHits = 1;
+								}
+								const elapsed = Date.now() - lastMoodSwitchAt;
+								if (pendingMoodHits >= 2 || elapsed > 4500 || lastMoodSwitchAt === 0) {
+									pendingMoodCandidate = null;
+									pendingMoodHits = 0;
+									setMood(targetMood, lastMoodSwitchAt !== 0, cues);
+								} else {
+									updateWhyText(activeMood, cues);
+								}
+							}
+						}
+					}
+				});
+			},
+			{ rootMargin: '-42% 0px -42% 0px', threshold: 0 },
+		);
+		paras.forEach((p) => io.observe(p));
+
+		const deck = document.getElementById('deck');
+		const stationBtn = document.getElementById('stationBtn');
+		stationBtn?.addEventListener('click', () => {
+			ensureAudioStarted();
+			if (!deck) return;
+			const open = !deck.classList.contains('open');
+			deck.classList.toggle('open', open);
+			stationBtn.setAttribute('aria-expanded', String(open));
+		});
+		document.getElementById('deckClose')?.addEventListener('click', () => {
+			deck?.classList.remove('open');
+			stationBtn?.setAttribute('aria-expanded', 'false');
+		});
+
+		const vol = document.getElementById('volRange') as HTMLInputElement | null;
+		const volPct = document.getElementById('volPct');
+		vol?.addEventListener('input', () => {
+			ensureAudioStarted();
+			if (volPct) volPct.textContent = vol.value;
+			syncAudioGain();
+			if (Number(vol.value) === 0 && body.dataset.power === 'on') {
+				announce('volumen en silencio — el disco sigue girando');
+			}
+		});
+
+		const powerBtn = document.getElementById('powerBtn');
+		const powerLabel = document.getElementById('powerLabel');
+		powerBtn?.addEventListener('click', () => {
+			ensureAudioStarted();
+			const on = body.dataset.power !== 'on';
+			body.dataset.power = on ? 'on' : 'off';
+			powerBtn.classList.toggle('on', on);
+			if (powerLabel) powerLabel.textContent = on ? 'Apagar' : 'Encender';
+			syncAudioGain();
+			announce(on ? 'el tocadiscos vuelve a girar' : 'tocadiscos apagado — <b>el brazo descansa</b>');
+		});
+
+		const autoSw = document.getElementById('autoSw');
+		autoSw?.addEventListener('click', () => {
+			ensureAudioStarted();
+			const on = body.dataset.auto !== 'on';
+			body.dataset.auto = on ? 'on' : 'off';
+			autoSw.setAttribute('aria-checked', String(on));
+			if (on) {
+				const reading = document.querySelector<HTMLElement>('.text p.reading');
+				if (reading) {
+					const cues = (reading.dataset.cues || '')
+						.split(',')
+						.map((s) => s.trim())
+						.filter(Boolean);
+					setMood((reading.dataset.mood as ReadingMood) || 'espera', true, cues);
+				}
+			}
+		});
+		document.querySelectorAll<HTMLButtonElement>('.deck .manual button').forEach((b) => {
+			b.addEventListener('click', () => {
+				ensureAudioStarted();
+				setMood((b.dataset.mood as ReadingMood) || 'espera', false);
+			});
+		});
+
+		async function persistReadingState() {
+			try {
+				localStorage.setItem(storageKey, JSON.stringify(state));
+			} catch {}
+			try {
+				await saveBookReadingState(bookId, {
+					progress: state.progress,
+					marks: state.marks,
+					words: state.words,
+				});
+			} catch {}
+		}
+
+		const saveBtn = document.getElementById('saveBtn');
+		const saveLabel = document.getElementById('saveLabel');
+		saveBtn?.addEventListener('click', async () => {
+			const pg = progPage ? progPage.textContent : String(state.progress.page || 1);
+			const pct = state.progress.pct || 0;
+			await persistReadingState();
+			if (saveLabel) saveLabel.textContent = 'Guardado · pág ' + pg;
+			saveBtn.classList.add('saved');
+			announce(`progreso sellado · <b>pág ${pg} · ${pct}%</b> — te espera donde lo dejaste`);
+			setTimeout(() => {
+				if (saveLabel) saveLabel.textContent = 'Guardar progreso';
+				saveBtn.classList.remove('saved');
+			}, 3000);
+		});
+
+		const selbar = document.getElementById('selbar');
+		const rail = document.getElementById('rail');
+		let selRange: Range | null = null;
+		function positionSelbar() {
+			const s = window.getSelection();
+			if (!s || s.isCollapsed || s.rangeCount === 0 || !selbar) {
+				selbar?.classList.remove('on');
+				return;
+			}
+			const r = s.getRangeAt(0).getBoundingClientRect();
+			if (!r.width) {
+				selbar.classList.remove('on');
+				return;
+			}
+			selRange = s.getRangeAt(0);
+			selbar.classList.add('on');
+			const bw = selbar.offsetWidth;
+			selbar.style.left =
+				Math.max(20, Math.min(r.left + r.width / 2 - bw / 2, innerWidth - bw - 20)) + 'px';
+			selbar.style.top = Math.max(70, r.top - 46) + 'px';
+		}
+		document.addEventListener('selectionchange', positionSelbar);
+		addEventListener(
+			'scroll',
+			() => {
+				if (selbar?.classList.contains('on')) positionSelbar();
+			},
+			true,
+		);
+
+		function wrapSelection(cls: string): { text: string; chunkId: string } | null {
+			if (!selRange) return null;
+			try {
+				const node = selRange.commonAncestorContainer;
+				const hostPara =
+					node.nodeType === 1
+						? (node as Element).closest<HTMLElement>('[data-chunk-id]')
+						: node.parentElement?.closest<HTMLElement>('[data-chunk-id]');
+				const chunkId = hostPara?.dataset?.chunkId || 'p0001.0000';
+				const span = document.createElement('span');
+				span.className = cls;
+				span.appendChild(selRange.extractContents());
+				selRange.insertNode(span);
+				const text = (span.textContent || '').trim();
+				return { text, chunkId };
+			} catch {
+				return null;
+			}
+		}
+
+		selbar?.querySelectorAll<HTMLButtonElement>('.ink').forEach((btn) => {
+			btn.addEventListener('click', () => {
+				const inkAttr = btn.dataset.ink || 'sub-aka';
+				const inkName = inkAttr.replace(/^sub-/, '') as 'aka' | 'bronce' | 'tinta';
+				const wrapped = wrapSelection('sub ' + inkAttr);
+				if (wrapped && wrapped.text) {
+					state.marks.push({
+						id: 'm-' + Date.now(),
+						kind: 'underline',
+						ink: inkName,
+						anchor: `${wrapped.chunkId}+[0,${wrapped.text.length}]`,
+						text: wrapped.text,
+					});
+					void persistReadingState();
+					announce('subrayado en tinta · <b>cuaderno de márgenes</b>');
+				}
+				window.getSelection()?.removeAllRanges();
+				selbar.classList.remove('on');
+			});
+		});
+
+		document.getElementById('kwBtn')?.addEventListener('click', () => {
+			const wrapped = wrapSelection('kw');
+			if (wrapped && wrapped.text) {
+				const t = wrapped.text;
+				const short = t.length > 30 ? t.slice(0, 30) + '…' : t;
+				const b = document.createElement('button');
+				b.type = 'button';
+				b.textContent = short;
+				b.classList.add('fresh');
+				b.dataset.target = t;
+				rail?.appendChild(b);
+				setTimeout(() => b.classList.remove('fresh'), 3000);
+				state.words.push({
+					term: t,
+					anchor: wrapped.chunkId,
+				});
+				void persistReadingState();
+				announce('◇ keyword · <b>' + short + '</b> → riel del capítulo');
+			}
+			window.getSelection()?.removeAllRanges();
+			selbar?.classList.remove('on');
+		});
+
+		rail?.addEventListener('click', (e) => {
+			const target = e.target as Element | null;
+			const b = target?.closest<HTMLButtonElement>('button[data-target]');
+			if (!b) return;
+			const targetText = (b.dataset.target || '').slice(0, 10);
+			const kw = Array.from(document.querySelectorAll('.kw')).find((k) =>
+				(k.textContent || '').trim().startsWith(targetText),
+			);
+			if (kw) kw.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		});
+	</script>
+</body>
+</html>
