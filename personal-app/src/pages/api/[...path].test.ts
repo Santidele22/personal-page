@@ -10,7 +10,11 @@ import { cachedEntryCount, cachedRead, invalidateContentCache } from '../../shar
 
 // The proxy talks to `BACKEND_URL` (a Cloudflare-only import); the unit tests
 // replace it so no virtual workers module is needed.
-vi.mock('../../shared/api/serverEnvironment', () => ({ backendUrl: 'https://render.example', neonAuthUrl: undefined }));
+vi.mock('../../shared/api/serverEnvironment', () => ({
+	backendUrl: 'https://render.example',
+	neonAuthUrl: undefined,
+	contentCacheKv: undefined,
+}));
 
 const ok = () => Promise.resolve(new Response('{"ok":true}', { status: 200 }));
 const notFound = () => Promise.resolve(new Response('{"message":"nope"}', { status: 404 }));

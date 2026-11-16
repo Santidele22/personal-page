@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { invalidateContentCache } from './contentCache';
-import { getJson, postJsonReturning, resolveApiUrl } from './http';
+import { getJson, postJsonReturning, resolveApiUrl, SSR_READ_TIMEOUT_MS } from './http';
 
 /**
  * The cache gate lives in `getJson` (issue 44, spec S7): every reachable
@@ -44,9 +44,12 @@ describe('getJson — SSR direct reads share one backend call', () => {
 		expect(fetchStub).toHaveBeenCalledTimes(2);
 	});
 
-	it('bounds SSR reads so a sleeping backend cannot hang the page render', async () => {
+	it('bounds SSR reads with 20s timeout so Neon cold starts do not trip 503 at 8s', async () => {
+		const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
 		await getJson('/profile');
 
+		expect(SSR_READ_TIMEOUT_MS).toBe(20_000);
+		expect(timeoutSpy).toHaveBeenCalledWith(20_000);
 		expect(fetchStub.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
 	});
 });

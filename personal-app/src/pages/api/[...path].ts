@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
-import { backendUrl, neonAuthUrl } from '../../shared/api/serverEnvironment';
-import { invalidateContentCache } from '../../shared/api/contentCache';
+import { backendUrl, contentCacheKv, neonAuthUrl } from '../../shared/api/serverEnvironment';
+import { invalidateContentCache, setEdgeCacheStore } from '../../shared/api/contentCache';
 
 /**
  * Same-origin API proxy for the deployed SSR server. With Neon Auth configured,
@@ -274,7 +274,8 @@ async function forwardApi(request: Request, clientAddress?: string): Promise<Res
 		// surface immediately; other isolates refresh at most one TTL later.
 		// Auth mutations only change sessions, never content.
 		if (MUTATING_METHODS.has(request.method) && response.status < 400) {
-			invalidateContentCache();
+			setEdgeCacheStore(contentCacheKv);
+			await invalidateContentCache();
 		}
 
 		return response;

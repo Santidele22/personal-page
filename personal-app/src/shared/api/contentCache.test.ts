@@ -1,5 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cachedRead, cacheablePath, invalidateContentCache, setWaitUntil, cachedEntryCount } from './contentCache';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  cachedRead,
+  cacheablePath,
+  invalidateContentCache,
+  setEdgeCacheStore,
+  setWaitUntil,
+  cachedEntryCount,
+  type EdgeCacheStore,
+} from './contentCache';
 
 /**
  * Shared cache for every public SSR read (issue 44, specs S3/S4/S7). The
@@ -14,6 +22,8 @@ const nowSource = () => now;
 
 beforeEach(() => {
   now = 1_000_000;
+  setWaitUntil(undefined);
+  setEdgeCacheStore(undefined);
   invalidateContentCache();
 });
 
@@ -161,3 +171,92 @@ describe('cacheablePath — public read whitelist (spec S7)', () => {
 function parse(raw: string): Promise<unknown> {
   return Promise.resolve(JSON.parse(raw));
 }
+
+function makeMemoryKv(): EdgeCacheStore & { map: Map<string, string>; puts: string[] } {
+  const map = new Map<string, string>();
+  const puts: string[] = [];
+  return {
+    map,
+    puts,
+    async get(key: string) {
+      return map.get(key) ?? null;
+    },
+    async put(key: string, value: string) {
+      puts.push(key);
+      map.set(key, value);
+    },
+  };
+}
+
+describe('cachedRead — Cloudflare KV L2 edge cache', () => {
+  it('persists cold read to KV and serves stale KV copy immediately in a cold isolate while revalidating', async () => {
+    const kv = makeMemoryKv();
+    setEdgeCacheStore(kv);
+    const backgrounds: Promise<unknown>[] = [];
+    setWaitUntil((p) => backgrounds.push(p));
+
+    await cachedRead('https://render.example/profile', jsonBody({ v: 1 }), { now: nowSource });
+    await Promise.all(backgrounds);
+    backgrounds.length = 0;
+
+    // Simulate isolate eviction (clear L1 only, keep KV intact) + 8 hours overnight
+    setEdgeCacheStore(undefined);
+    await invalidateContentCache();
+    setEdgeCacheStore(kv);
+    now += 8 * 60 * 60 * 1000;
+
+    // Even if Render is sleeping right now, visitor gets the KV snapshot immediately
+    const sleepingBackend = vi.fn(() => Promise.reject(new Error('Render sleeping')));
+    const served = await cachedRead('https://render.example/profile', sleepingBackend, { now: nowSource });
+    expect(served).toContain('"v":1');
+    expect(backgrounds).toHaveLength(1);
+    await expect(backgrounds[0]).resolves.toBeUndefined();
+  });
+
+  it('skips KV writes during background revalidation when payload is unchanged', async () => {
+    const kv = makeMemoryKv();
+    setEdgeCacheStore(kv);
+    const backgrounds: Promise<unknown>[] = [];
+    setWaitUntil((p) => backgrounds.push(p));
+
+    const sameBody = jsonBody({ name: 'Santi' });
+    await cachedRead('https://render.example/profile', sameBody, { now: nowSource });
+    await Promise.all(backgrounds);
+    backgrounds.length = 0;
+    const putsAfterCold = kv.puts.length;
+
+    now += 61_000;
+    await cachedRead('https://render.example/profile', sameBody, { now: nowSource });
+    await Promise.all(backgrounds);
+
+    expect(kv.puts.length).toBe(putsAfterCold);
+  });
+
+  it('invalidates KV entries across isolates via version bump on admin mutation', async () => {
+    const kv = makeMemoryKv();
+    setEdgeCacheStore(kv);
+    const backgrounds: Promise<unknown>[] = [];
+    setWaitUntil((p) => backgrounds.push(p));
+
+    await cachedRead('https://render.example/profile', jsonBody({ v: 1 }), { now: nowSource });
+    await Promise.all(backgrounds);
+    backgrounds.length = 0;
+
+    // Admin mutation bumps KV version + clears L1
+    await invalidateContentCache();
+
+    const fresh = await cachedRead('https://render.example/profile', jsonBody({ v: 2 }), { now: nowSource });
+    expect(fresh).toContain('"v":2');
+  });
+
+  it('falls back to live fetcher when KV throws on read', async () => {
+    const brokenKv: EdgeCacheStore = {
+      get: vi.fn().mockRejectedValue(new Error('KV unavailable')),
+      put: vi.fn().mockRejectedValue(new Error('KV unavailable')),
+    };
+    setEdgeCacheStore(brokenKv);
+
+    const res = await cachedRead('https://render.example/profile', jsonBody({ live: true }), { now: nowSource });
+    expect(res).toContain('"live":true');
+  });
+});

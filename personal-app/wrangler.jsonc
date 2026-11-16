@@ -7,6 +7,18 @@
     "BACKEND_URL": "https://personal-page-backend-ahbb.onrender.com",
     "NEON_AUTH_BASE_URL": "https://ep-proud-king-b5wjw6eg.neonauth.c-7.us-east-2.aws.neon.tech/personal_page/auth"
   },
+  "kv_namespaces": [
+    {
+      "binding": "CONTENT_CACHE",
+      "id": "d31caa39dcc145d5adef48498fc9842b"
+    }
+  ],
+  "observability": {
+    // The cold-start failure used to surface as an opaque browser 500; with
+    // persisted logs the middleware's `console.error` keeps the real stack
+    // (path, phase, kind) queryable for the next diagnosis.
+    "enabled": true
+  },
   "env": {
     "preview": {
       "vars": {
