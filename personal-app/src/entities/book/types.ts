@@ -18,7 +18,7 @@ export type Book = {
 	hasFile?: boolean;
 };
 
-export type ReadingChunkType = 'para' | 'heading' | 'verse';
+export type ReadingChunkType = 'para' | 'heading' | 'verse' | 'toc';
 export type ReadingMood = 'espera' | 'polvo' | 'alerta' | 'niebla';
 
 export type ReadingChunk = {
