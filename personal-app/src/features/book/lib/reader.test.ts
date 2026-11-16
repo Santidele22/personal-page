@@ -61,6 +61,17 @@ describe('reader helpers', () => {
 		expect(parseTocChunk(prose)).toBeNull();
 	});
 
+	it('scans long narrative paragraphs with ellipses in linear time without backtracking', () => {
+		const longProse =
+			`${'La fortaleza permanecía en silencio bajo la niebla de la tarde, con las ventanas cerradas. '.repeat(30)}` +
+			'Y entonces... miró hacia el desierto........................................ sin ver nada.';
+		const t0 = performance.now();
+		for (let i = 0; i < 300; i++) {
+			expect(parseTocChunk(longProse)).toBeNull();
+		}
+		expect(performance.now() - t0).toBeLessThan(100);
+	});
+
 	it('removes an underline mark by id or fallback anchor/text', () => {
 		const marks = [
 			{ id: 'm-1', kind: 'underline' as const, ink: 'aka' as const, anchor: 'p0001.0000+[0,13]', text: 'modificaciones' },

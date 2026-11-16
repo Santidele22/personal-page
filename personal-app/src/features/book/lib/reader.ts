@@ -15,7 +15,7 @@ export type ParsedToc = {
 	entries: TocEntry[];
 };
 
-const TOC_ENTRY_GLOBAL_RE = /(.+?)\s*(?:(?:\.\s*){3,}|\.{3,})\s*(\d+)(?=\s|$)/g;
+const TOC_LEADER_RE = /\.(?:[ \t]*\.){2,}[ \t]*(\d+)(?=\s|$)/g;
 const TOC_RELAXED_LINE_RE = /^(.+?)\s*(?:\.\s*)+\s*(\d+)\s*$/;
 const TOC_HEADING_PREFIX_RE = /^(Índice|Indice|Tabla de contenidos|Contenido|Sumario|Index|Table of contents)(?:\s*[:\-–—]?\s+|\s*$)/i;
 
@@ -28,6 +28,7 @@ const TOC_HEADING_PREFIX_RE = /^(Índice|Indice|Tabla de contenidos|Contenido|Su
 export function parseTocChunk(text: string): ParsedToc | null {
 	const trimmed = text.trim();
 	if (!trimmed) return null;
+	if (!trimmed.includes('..') && !/\.\s+\./.test(trimmed)) return null;
 
 	const lines = trimmed
 		.split('\n')
@@ -39,12 +40,14 @@ export function parseTocChunk(text: string): ParsedToc | null {
 	let heading: string | undefined;
 
 	const extractFromLine = (segment: string, isFirst: boolean, allowRelaxed: boolean) => {
-		TOC_ENTRY_GLOBAL_RE.lastIndex = 0;
+		TOC_LEADER_RE.lastIndex = 0;
 		let match: RegExpExecArray | null;
 		let countInSegment = 0;
-		while ((match = TOC_ENTRY_GLOBAL_RE.exec(segment)) !== null) {
-			let label = match[1].replace(/\s+/g, ' ').trim();
-			const page = Number(match[2]);
+		let prevEnd = 0;
+		while ((match = TOC_LEADER_RE.exec(segment)) !== null) {
+			let label = segment.slice(prevEnd, match.index).replace(/\s+/g, ' ').trim();
+			prevEnd = match.index + match[0].length;
+			const page = Number(match[1]);
 			if (!label || !Number.isFinite(page)) continue;
 
 			if (isFirst && countInSegment === 0 && !heading) {
@@ -85,20 +88,21 @@ export function parseTocChunk(text: string): ParsedToc | null {
 
 	if (lines.length >= 2) {
 		const strictLineCount = lines.filter((line) => {
-			TOC_ENTRY_GLOBAL_RE.lastIndex = 0;
-			return TOC_ENTRY_GLOBAL_RE.test(line);
+			TOC_LEADER_RE.lastIndex = 0;
+			const m = TOC_LEADER_RE.exec(line);
+			return Boolean(m && line.slice(0, m.index).trim().length > 0);
 		}).length;
 		const allowRelaxed = strictLineCount >= 2;
 
 		lines.forEach((line, index) => {
-			TOC_ENTRY_GLOBAL_RE.lastIndex = 0;
-			if (index === 0 && TOC_HEADING_PREFIX_RE.test(line) && !TOC_ENTRY_GLOBAL_RE.test(line)) {
+			TOC_LEADER_RE.lastIndex = 0;
+			const firstMatch = index === 0 ? TOC_LEADER_RE.exec(line) : null;
+			const hasEntry = Boolean(firstMatch && line.slice(0, firstMatch.index).trim().length > 0);
+			if (index === 0 && TOC_HEADING_PREFIX_RE.test(line) && !hasEntry) {
 				const hm = line.match(TOC_HEADING_PREFIX_RE);
 				heading = hm ? hm[1] : line;
-				TOC_ENTRY_GLOBAL_RE.lastIndex = 0;
 				return;
 			}
-			TOC_ENTRY_GLOBAL_RE.lastIndex = 0;
 			extractFromLine(line, index === 0, allowRelaxed);
 		});
 	} else {
