@@ -216,7 +216,7 @@ const headlineValues = [...new Set(headlineVariants.map((variant) => variant.pro
 			<div data-project-grid class="mt-6 grid gap-6 lg:grid-cols-2">
 			{rest.map((project, index) => (
 				<Reveal delay={0.1 * index} class="h-full">
-					<ProjectCard project={project} transitionName={showFilter ? false : undefined} />
+					<ProjectCard project={project} transition={showFilter ? false : undefined} />
 				</Reveal>
 			))}
 			</div>
