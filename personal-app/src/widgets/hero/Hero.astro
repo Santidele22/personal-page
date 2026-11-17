@@ -28,10 +28,10 @@ const commitments = profile?.commitments ?? [];
 >
 	<div
 		id="duneStage"
-		class="absolute inset-0 z-[1] touch-pan-y select-none cursor-grab active:cursor-grabbing lg:touch-none"
+		class="absolute inset-0 z-[1] select-none cursor-pointer"
 		tabindex="0"
-		role="img"
-		aria-label="Escena 3D a pantalla completa: dunas de arena en movimiento, un umbral brutalista colosal partido por la mitad con cicatrices kintsugi e inscripciones talladas en la piedra, un haz de luz roja derramándose sobre la escalinata ceremonial, la sombra larga de los monolitos sobre las crestas y una silueta humana diminuta sosteniendo su códice abierto al pie del monumento. Arrastrá para orbitar o hacé clic para abrir el umbral y calmar la tormenta."
+		role="button"
+		aria-label="Escena 3D a pantalla completa: dunas de arena en movimiento, un umbral brutalista colosal partido por la mitad con cicatrices kintsugi e inscripciones talladas en la piedra, un haz de luz roja derramándose sobre la escalinata ceremonial, la sombra larga de los monolitos sobre las crestas y una silueta humana diminuta sosteniendo su códice abierto al pie del monumento. Hacé clic para abrir el umbral y calmar la tormenta."
 	>
 		<canvas id="duneCanvas" class="block size-full"></canvas>
 	</div>
@@ -95,7 +95,7 @@ const commitments = profile?.commitments ?? [];
 			<span id="telemetryState" aria-live="polite">TORMENTA EN LA ARENA · UMBRAL EN PIE</span>
 		</div>
 		<div class="inline-flex flex-wrap items-center gap-3.5">
-			<span>ARRASTRÁ PARA ORBITAR · CLIC PARA ABRIR</span>
+			<span>CLIC PARA ABRIR EL UMBRAL</span>
 			<button
 				type="button"
 				id="holdHelmBtn"

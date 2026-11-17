@@ -1,13 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+	advanceCameraMotion,
 	createDuneState,
 	duneHeight,
 	getTelemetryLabel,
 	hexToRgb,
 	makeSlab,
 	mixRgb,
-	releaseInteraction,
-	resetCamera,
 	rgba,
 	toggleSanctuary,
 	vAdd,
@@ -82,39 +81,28 @@ describe('duneScene 3D geometry', () => {
 });
 
 describe('duneScene interaction and telemetry state', () => {
-	it('toggles sanctuary calm on click (dragDist < 7) and preserves it on real drag', () => {
+	it('toggles sanctuary via toggleSanctuary without drag state', () => {
 		const state = createDuneState();
 		expect(getTelemetryLabel(state)).toBe('TORMENTA EN LA ARENA · UMBRAL EN PIE');
 
-		state.isDragging = true;
-		state.isPointerHold = true;
-		state.dragDist = 3;
-		releaseInteraction(state);
+		toggleSanctuary(state);
 		expect(state.shieldLocked).toBe(true);
 		expect(state.pulse).toBe(1);
 		expect(getTelemetryLabel(state)).toBe('UMBRAL ABIERTO · ARENA EN CALMA');
 
-		state.isDragging = true;
-		state.isPointerHold = true;
-		state.dragDist = 24;
-		releaseInteraction(state);
-		expect(state.shieldLocked).toBe(true);
+		toggleSanctuary(state);
+		expect(state.shieldLocked).toBe(false);
 	});
 
-	it('toggles sanctuary via button/keyboard and resets camera cleanly', () => {
+	it('continues autonomous camera yaw oscillation while keeping pitch fixed', () => {
 		const state = createDuneState();
-		toggleSanctuary(state);
-		expect(state.shieldLocked).toBe(true);
-		expect(state.pulse).toBe(1);
+		const initialPitch = state.rotX;
+		const initialYaw = state.rotY;
 
-		state.rotX = 0.35;
-		state.rotY = 0.9;
-		state.velX = 0.1;
-		state.velY = -0.2;
-		resetCamera(state);
-		expect(state.rotX).toBe(0.14);
-		expect(state.rotY).toBe(-0.32);
-		expect(state.velX).toBe(0);
-		expect(state.velY).toBe(0);
+		state.time = 2;
+		advanceCameraMotion(state);
+
+		expect(state.rotX).toBe(initialPitch);
+		expect(state.rotY).not.toBe(initialYaw);
 	});
 });

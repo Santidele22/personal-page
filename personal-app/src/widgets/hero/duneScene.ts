@@ -23,16 +23,7 @@ export interface DunePalette {
 export interface DuneState {
 	rotX: number;
 	rotY: number;
-	velX: number;
-	velY: number;
-	hoverX: number;
-	hoverY: number;
-	isDragging: boolean;
-	isPointerHold: boolean;
 	shieldLocked: boolean;
-	dragDist: number;
-	lastPtrX: number;
-	lastPtrY: number;
 	shieldStrength: number;
 	pulse: number;
 	time: number;
@@ -40,8 +31,6 @@ export interface DuneState {
 
 const DEFAULT_ROT_X = 0.14;
 const DEFAULT_ROT_Y = -0.32;
-const MIN_ROT_X = -0.22;
-const MAX_ROT_X = 0.42;
 
 export function hexToRgb(hex: string): RGB {
 	const clean = hex.trim().replace('#', '');
@@ -182,27 +171,18 @@ export function createDuneState(): DuneState {
 	return {
 		rotX: DEFAULT_ROT_X,
 		rotY: DEFAULT_ROT_Y,
-		velX: 0,
-		velY: 0,
-		hoverX: 0,
-		hoverY: 0,
-		isDragging: false,
-		isPointerHold: false,
 		shieldLocked: false,
-		dragDist: 0,
-		lastPtrX: 0,
-		lastPtrY: 0,
 		shieldStrength: 0,
 		pulse: 0,
 		time: 0,
 	};
 }
 
-export function isSanctuaryActive(state: Pick<DuneState, 'shieldLocked' | 'isPointerHold' | 'pulse'>): boolean {
-	return state.shieldLocked || state.isPointerHold || state.pulse > 0.15;
+export function isSanctuaryActive(state: Pick<DuneState, 'shieldLocked' | 'pulse'>): boolean {
+	return state.shieldLocked || state.pulse > 0.15;
 }
 
-export function getTelemetryLabel(state: Pick<DuneState, 'shieldLocked' | 'isPointerHold' | 'pulse'>): string {
+export function getTelemetryLabel(state: Pick<DuneState, 'shieldLocked' | 'pulse'>): string {
 	return isSanctuaryActive(state)
 		? 'UMBRAL ABIERTO · ARENA EN CALMA'
 		: 'TORMENTA EN LA ARENA · UMBRAL EN PIE';
@@ -215,22 +195,10 @@ export function toggleSanctuary(state: DuneState): void {
 	}
 }
 
-export function releaseInteraction(state: DuneState): boolean {
-	if (!state.isDragging) return false;
-	state.isDragging = false;
-	state.isPointerHold = false;
-	if (state.dragDist < 7) {
-		state.shieldLocked = !state.shieldLocked;
-		state.pulse = 1;
-	}
-	return true;
-}
-
-export function resetCamera(state: DuneState): void {
-	state.rotX = DEFAULT_ROT_X;
-	state.rotY = DEFAULT_ROT_Y;
-	state.velX = 0;
-	state.velY = 0;
+export function advanceCameraMotion(state: Pick<DuneState, 'rotX' | 'rotY' | 'time'>): void {
+	const targetYaw = DEFAULT_ROT_Y + Math.sin(state.time * 0.28) * 0.16;
+	state.rotY += (targetYaw - state.rotY) * 0.015;
+	state.rotX += (DEFAULT_ROT_X - state.rotX) * 0.02;
 }
 
 function readPalette(): DunePalette {
@@ -412,10 +380,6 @@ export function initDuneHero(): () => void {
 	let lastTs = performance.now();
 	let rafId = 0;
 	let isVisible = true;
-	let pointerStartX = 0;
-	let pointerStartY = 0;
-	let activePointerId: number | null = null;
-	let capturedPointer = false;
 
 	function syncTelemetry(): void {
 		if (telemetryState) {
@@ -483,12 +447,12 @@ export function initDuneHero(): () => void {
 			return [cx + p[0] * scale * zFactor, cy + p[1] * scale * zFactor, p[2], zFactor];
 		}
 
-		const effRx = state.rotX + state.hoverX;
-		const effRy = state.rotY + state.hoverY;
+		const effRx = state.rotX;
+		const effRy = state.rotY;
 
 		// 1. Arrakis Low Red Sun behind the Split Monolith Gate
 		const sunCenterWorld: Vec3 = [anchorX + 0.15, -0.35, -2.6];
-		const sunScreen = project(rotateXYZ(sunCenterWorld, effRx * 0.15, state.hoverY * 0.12, 0));
+		const sunScreen = project(rotateXYZ(sunCenterWorld, effRx * 0.15, 0, 0));
 		const sunR = Math.min(w, h) * (isDesktop ? 0.19 : 0.145);
 
 		const sunHalo = ctx.createRadialGradient(
@@ -1170,14 +1134,7 @@ export function initDuneHero(): () => void {
 		if (!reducedMotion) {
 			state.time += dt;
 			updateSand(dt);
-			if (!state.isDragging) {
-				const targetYaw = DEFAULT_ROT_Y + Math.sin(state.time * 0.28) * 0.16;
-				state.rotY += (targetYaw - state.rotY) * 0.015 + state.velY;
-				state.rotX += state.velX;
-				state.velX *= 0.9;
-				state.velY *= 0.9;
-				state.rotX += (DEFAULT_ROT_X - state.rotX) * 0.02;
-			}
+			advanceCameraMotion(state);
 		} else if (state.pulse > 0 || state.shieldStrength > 0.01) {
 			updateSand(dt);
 		}
@@ -1186,7 +1143,7 @@ export function initDuneHero(): () => void {
 		scheduleNextFrame();
 	}
 
-	const onHoldHelmClick = () => {
+	const triggerSanctuaryToggle = () => {
 		toggleSanctuary(state);
 		syncTelemetry();
 		if (reducedMotion) {
@@ -1198,139 +1155,10 @@ export function initDuneHero(): () => void {
 		}
 	};
 
-	const onPointerDown = (e: PointerEvent) => {
-		if (e.button !== 0 && e.pointerType === 'mouse') return;
-		state.isDragging = true;
-		state.isPointerHold = true;
-		state.dragDist = 0;
-		state.lastPtrX = e.clientX;
-		state.lastPtrY = e.clientY;
-		pointerStartX = e.clientX;
-		pointerStartY = e.clientY;
-		activePointerId = e.pointerId;
-		capturedPointer = false;
-		if (e.pointerType !== 'touch') {
-			try {
-				stage.setPointerCapture(e.pointerId);
-				capturedPointer = true;
-			} catch {
-				capturedPointer = false;
-			}
-		}
-		syncTelemetry();
-	};
-
-	const onPointerMove = (e: PointerEvent) => {
-		const rect = stage.getBoundingClientRect();
-		if (rect.width > 0 && rect.height > 0) {
-			const nx = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
-			const ny = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
-			state.hoverY = nx * 0.12;
-			state.hoverX = ny * 0.06;
-		}
-
-		if (!state.isDragging || (activePointerId !== null && e.pointerId !== activePointerId)) {
-			if (reducedMotion) renderFrame();
-			return;
-		}
-
-		const dx = e.clientX - state.lastPtrX;
-		const dy = e.clientY - state.lastPtrY;
-
-		// On touch devices with pan-y, yield vertical gestures to page scrolling unless horizontal orbit clearly wins.
-		if (e.pointerType === 'touch' && !capturedPointer) {
-			const totalDx = Math.abs(e.clientX - pointerStartX);
-			const totalDy = Math.abs(e.clientY - pointerStartY);
-			if (totalDy > 10 && totalDy > totalDx * 1.2) {
-				state.isDragging = false;
-				state.isPointerHold = false;
-				activePointerId = null;
-				syncTelemetry();
-				return;
-			}
-			if (totalDx > 8 && totalDx > totalDy) {
-				try {
-					stage.setPointerCapture(e.pointerId);
-					capturedPointer = true;
-				} catch {
-					capturedPointer = false;
-				}
-			}
-		}
-
-		state.dragDist += Math.hypot(dx, dy);
-		state.lastPtrX = e.clientX;
-		state.lastPtrY = e.clientY;
-		state.rotY += dx * 0.0085;
-		state.rotX = Math.max(MIN_ROT_X, Math.min(MAX_ROT_X, state.rotX + dy * 0.0055));
-		state.velY = dx * 0.0028;
-		state.velX = dy * 0.0018;
-		if (reducedMotion) renderFrame();
-	};
-
-	const onPointerRelease = (e: PointerEvent) => {
-		if (activePointerId !== null && e.pointerId !== activePointerId) return;
-		if (capturedPointer) {
-			try {
-				stage.releasePointerCapture(e.pointerId);
-			} catch {
-				// Ignore if already released
-			}
-		}
-		activePointerId = null;
-		capturedPointer = false;
-		if (!releaseInteraction(state)) return;
-		syncTelemetry();
-		if (reducedMotion) {
-			state.shieldStrength = state.shieldLocked ? 1 : 0;
-			state.pulse = 0;
-			renderFrame();
-		} else {
-			scheduleNextFrame();
-		}
-	};
-
-	const onPointerCancel = (e: PointerEvent) => {
-		if (activePointerId !== null && e.pointerId !== activePointerId) return;
-		activePointerId = null;
-		capturedPointer = false;
-		state.isDragging = false;
-		state.isPointerHold = false;
-		syncTelemetry();
-	};
-
-	const onPointerLeave = () => {
-		state.hoverX = 0;
-		state.hoverY = 0;
-		if (reducedMotion) renderFrame();
-	};
-
 	const onKeyDown = (e: KeyboardEvent) => {
-		if (e.key === 'ArrowLeft') {
-			state.rotY -= 0.16;
+		if (e.key === ' ' || e.key === 'Enter') {
 			e.preventDefault();
-		} else if (e.key === 'ArrowRight') {
-			state.rotY += 0.16;
-			e.preventDefault();
-		} else if (e.key === 'ArrowUp') {
-			state.rotX = Math.max(MIN_ROT_X, state.rotX - 0.08);
-			e.preventDefault();
-		} else if (e.key === 'ArrowDown') {
-			state.rotX = Math.min(MAX_ROT_X, state.rotX + 0.08);
-			e.preventDefault();
-		} else if (e.key === ' ' || e.key === 'Enter') {
-			toggleSanctuary(state);
-			syncTelemetry();
-			e.preventDefault();
-		} else if (e.key === 'r' || e.key === 'R') {
-			resetCamera(state);
-		}
-		if (reducedMotion) {
-			state.shieldStrength = state.shieldLocked ? 1 : 0;
-			state.pulse = 0;
-			renderFrame();
-		} else {
-			scheduleNextFrame();
+			triggerSanctuaryToggle();
 		}
 	};
 
@@ -1375,12 +1203,8 @@ export function initDuneHero(): () => void {
 		intersectionObserver.observe(stage);
 	}
 
-	holdHelmBtn?.addEventListener('click', onHoldHelmClick);
-	stage.addEventListener('pointerdown', onPointerDown);
-	stage.addEventListener('pointermove', onPointerMove);
-	stage.addEventListener('pointerup', onPointerRelease);
-	stage.addEventListener('pointercancel', onPointerCancel);
-	stage.addEventListener('pointerleave', onPointerLeave);
+	holdHelmBtn?.addEventListener('click', triggerSanctuaryToggle);
+	stage.addEventListener('click', triggerSanctuaryToggle);
 	stage.addEventListener('keydown', onKeyDown);
 	window.addEventListener('resize', onResize);
 	motionQuery.addEventListener('change', onMotionChange);
@@ -1396,12 +1220,8 @@ export function initDuneHero(): () => void {
 		if (rafId) cancelAnimationFrame(rafId);
 		themeObserver.disconnect();
 		intersectionObserver?.disconnect();
-		holdHelmBtn?.removeEventListener('click', onHoldHelmClick);
-		stage.removeEventListener('pointerdown', onPointerDown);
-		stage.removeEventListener('pointermove', onPointerMove);
-		stage.removeEventListener('pointerup', onPointerRelease);
-		stage.removeEventListener('pointercancel', onPointerCancel);
-		stage.removeEventListener('pointerleave', onPointerLeave);
+		holdHelmBtn?.removeEventListener('click', triggerSanctuaryToggle);
+		stage.removeEventListener('click', triggerSanctuaryToggle);
 		stage.removeEventListener('keydown', onKeyDown);
 		window.removeEventListener('resize', onResize);
 		motionQuery.removeEventListener('change', onMotionChange);
