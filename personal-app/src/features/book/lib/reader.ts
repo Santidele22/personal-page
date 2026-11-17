@@ -1,13 +1,16 @@
 import type {
 	BookReadingState,
 	ReadingChunk,
+	ReadingChunkType,
 	ReadingMark,
+	ReadingMood,
 	ReadingWord,
 } from '../../../entities/book/types';
 
 export type TocEntry = {
 	label: string;
 	page: number;
+	pageLabel?: string;
 };
 
 export type ParsedToc = {
@@ -15,101 +18,320 @@ export type ParsedToc = {
 	entries: TocEntry[];
 };
 
-const TOC_LEADER_RE = /\.(?:[ \t]*\.){2,}[ \t]*(\d+)(?=\s|$)/g;
-const TOC_RELAXED_LINE_RE = /^(.+?)\s*(?:\.\s*)+\s*(\d+)\s*$/;
-const TOC_HEADING_PREFIX_RE = /^(Índice|Indice|Tabla de contenidos|Contenido|Sumario|Index|Table of contents)(?:\s*[:\-–—]?\s+|\s*$)/i;
+export type ParseTocOptions = {
+	chunkType?: ReadingChunkType;
+	inTocContext?: boolean;
+};
+
+const TOC_LEADER_RE =
+	/(?:\.(?:[ \t]*\.){1,}|[-–—_·•](?:[ \t]*[-–—_·•]){1,}|[ \t]+[-–—·.][ \t]+)[ \t]*(\d{1,4}|[ivxlcdm]{1,7})(?=\s|$)/gi;
+const TOC_TAB_OR_MULTISPACE_RE =
+	/^(.+?)(?:\t+|[ ]{2,})(\d{1,4}|[ivxlcdm]{1,7})\s*$/i;
+const TOC_SINGLE_SPACE_RE = /^(.+?)[ ]+(\d{1,4})\s*$/;
+const TOC_PAGE_FIRST_RE =
+	/^(\d{1,4})(?:\t+|[ ]{2,}|[ \t]*[·|–—-][ \t]*)([A-ZÁÉÍÓÚÜÑ¿¡«"0-9].{1,140})$/;
+const TOC_HEADING_PREFIX_RE =
+	/^(Índice(?:\s+general|\s+de\s+contenidos)?|Indice(?:\s+general|\s+de\s+contenidos)?|Tabla de contenidos|Contenidos?|Sumario|Index|Table of contents|Contents)(?:\s*[:\-–—]?\s+|\s*$)/i;
+const TOC_STANDALONE_HEADING_RE =
+	/^(?:Índice(?:\s+general|\s+de\s+contenidos)?|Indice(?:\s+general|\s+de\s+contenidos)?|Tabla de contenidos|Contenidos?|Sumario|Index|Table of contents|Contents)\s*[:\-–—]?\s*$/i;
+
+function parseRomanNumeral(raw: string): number | null {
+	const upper = raw.trim().toUpperCase();
+	if (!/^[IVXLCDM]{1,7}$/.test(upper)) return null;
+	if (!/^M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})$/.test(upper)) {
+		return null;
+	}
+	const values: Record<string, number> = {
+		I: 1,
+		V: 5,
+		X: 10,
+		L: 50,
+		C: 100,
+		D: 500,
+		M: 1000,
+	};
+	let total = 0;
+	for (let i = 0; i < upper.length; i += 1) {
+		const cur = values[upper[i]];
+		const next = values[upper[i + 1]] ?? 0;
+		total += cur < next ? -cur : cur;
+	}
+	return total > 0 && total <= 500 ? total : null;
+}
+
+function parseTocPageToken(raw: string): { page: number; pageLabel?: string } | null {
+	const token = raw.trim();
+	if (!token) return null;
+	if (/^\d{1,4}$/.test(token)) {
+		const page = Number(token);
+		if (!Number.isFinite(page) || page < 1 || page > 5000) return null;
+		return { page };
+	}
+	const roman = parseRomanNumeral(token);
+	if (roman !== null) {
+		return { page: roman, pageLabel: token };
+	}
+	return null;
+}
+
+function cleanTocLabel(raw: string): string {
+	return stripInlineArtifacts(raw)
+		.replace(/(?:\s*[.\-–—_·•])+\s*$/, '')
+		.replace(/^(?:\s*[.\-–—_·•])+\s*/, '')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
+function isStandaloneTocHeading(text: string): boolean {
+	return TOC_STANDALONE_HEADING_RE.test(text.trim());
+}
+
+function extractStandaloneTocHeading(text: string): string {
+	const match = text.trim().match(TOC_HEADING_PREFIX_RE);
+	return match ? match[1].trim() : text.trim();
+}
+
+function isLikelyYearOnlySet(entries: readonly TocEntry[]): boolean {
+	return entries.length > 0 && entries.every((e) => !e.pageLabel && e.page >= 1800 && e.page <= 2100);
+}
+
+function lineMatchesExplicitLeaderOrGap(line: string): boolean {
+	TOC_LEADER_RE.lastIndex = 0;
+	const leaderMatch = TOC_LEADER_RE.exec(line);
+	if (leaderMatch && line.slice(0, leaderMatch.index).trim().length > 0) {
+		return parseTocPageToken(leaderMatch[1]) !== null;
+	}
+	const gapMatch = line.match(TOC_TAB_OR_MULTISPACE_RE);
+	if (gapMatch && gapMatch[1].trim().length > 0) {
+		return parseTocPageToken(gapMatch[2]) !== null;
+	}
+	return false;
+}
+
+const TOC_STANDALONE_PAGE_FRAGMENT_RE =
+	/^(?:[.\-–—_·•]+\s*)?(\d{1,4}|[ivxlcdm]{1,7})\s*$/i;
+
+function coalesceWrappedTocLines(
+	lines: readonly string[],
+	allowStandalonePageFragment: boolean,
+): string[] {
+	const merged: string[] = [];
+	let i = 0;
+	while (i < lines.length) {
+		const current = lines[i];
+		const next = lines[i + 1];
+		const nextIsExplicitFragment = Boolean(
+			next &&
+				TOC_STANDALONE_PAGE_FRAGMENT_RE.test(next) &&
+				(allowStandalonePageFragment || /^[.\-–—_·•]{2,}/.test(next.trim())),
+		);
+		if (
+			next &&
+			!isStandaloneTocHeading(current) &&
+			!lineMatchesExplicitLeaderOrGap(current) &&
+			!TOC_SINGLE_SPACE_RE.test(current) &&
+			!TOC_PAGE_FIRST_RE.test(current) &&
+			current.length <= 110 &&
+			!/[.!?;:»"]$/.test(current) &&
+			(lineMatchesExplicitLeaderOrGap(next) ||
+				TOC_SINGLE_SPACE_RE.test(next) ||
+				nextIsExplicitFragment)
+		) {
+			merged.push(`${current.trim()} ${next.trim()}`);
+			i += 2;
+			continue;
+		}
+		merged.push(current);
+		i += 1;
+	}
+	return merged;
+}
 
 /**
- * Parses either a newline-separated `toc` chunk or a legacy inline paragraph
- * where `pdftotext` fused multiple `Title . . . . 12` entries together.
+ * Parses a `toc` chunk, a multi-line TOC block (with dot/dash/tab/space
+ * leaders or Roman folios), a legacy inline `Title . . . . 12` paragraph, or
+ * a single-entry chunk inside an active TOC sequence.
  * Returns `null` for ordinary prose so normal sentences with an ellipsis are
  * never misclassified.
  */
-export function parseTocChunk(text: string): ParsedToc | null {
+export function parseTocChunk(text: string, options: ParseTocOptions = {}): ParsedToc | null {
 	const trimmed = text.trim();
 	if (!trimmed) return null;
-	if (!trimmed.includes('..') && !/\.\s+\./.test(trimmed)) return null;
 
-	const lines = trimmed
+	const isTypedToc = options.chunkType === 'toc';
+	const inTocContext = Boolean(options.inTocContext);
+
+	const rawLines = trimmed
 		.split('\n')
-		.map((line) => line.replace(/\s+/g, ' ').trim())
+		.map((line) => line.replace(/[ ]+/g, ' ').trim())
 		.filter(Boolean);
 
+	// Preserve tabs on the original split when needed for tab-aligned columns
+	const tabAwareLines = trimmed
+		.split('\n')
+		.map((line) => line.trim())
+		.filter(Boolean);
+
+	const hasAnyLeader =
+		trimmed.includes('..') ||
+		/\.\s+\./.test(trimmed) ||
+		/[-–—_·•]{2,}/.test(trimmed) ||
+		/\t/.test(trimmed) ||
+		/[ ]{2,}/.test(trimmed);
+	const hasHeadingPrefix = TOC_HEADING_PREFIX_RE.test(trimmed);
+
+	if (!isTypedToc && !inTocContext && !hasAnyLeader && !hasHeadingPrefix && rawLines.length < 2) {
+		return null;
+	}
+
 	const rawEntries: TocEntry[] = [];
-	let strictMatches = 0;
+	let strongMatches = 0;
 	let heading: string | undefined;
 
-	const extractFromLine = (segment: string, isFirst: boolean, allowRelaxed: boolean) => {
+	const consumeHeadingPrefix = (label: string, allowAssign: boolean): string => {
+		const headingMatch = label.match(TOC_HEADING_PREFIX_RE);
+		if (headingMatch && label.length > headingMatch[0].length) {
+			if (allowAssign && !heading) {
+				heading = headingMatch[1].trim();
+			}
+			return label.slice(headingMatch[0].length).trim();
+		}
+		return label;
+	};
+
+	const pushEntry = (rawLabel: string, rawPage: string, isStrong: boolean, allowHeadingStrip: boolean) => {
+		const pageInfo = parseTocPageToken(rawPage);
+		if (!pageInfo) return false;
+		let label = cleanTocLabel(rawLabel);
+		if (allowHeadingStrip && rawEntries.length === 0 && !heading) {
+			label = cleanTocLabel(consumeHeadingPrefix(label, true));
+		}
+		if (!label) return false;
+		const entry: TocEntry = pageInfo.pageLabel
+			? { label, page: pageInfo.page, pageLabel: pageInfo.pageLabel }
+			: { label, page: pageInfo.page };
+		rawEntries.push(entry);
+		if (isStrong) strongMatches += 1;
+		return true;
+	};
+
+	const extractFromLine = (segment: string, isFirst: boolean, allowSingleSpace: boolean, allowPageFirst: boolean) => {
 		TOC_LEADER_RE.lastIndex = 0;
 		let match: RegExpExecArray | null;
 		let countInSegment = 0;
 		let prevEnd = 0;
 		while ((match = TOC_LEADER_RE.exec(segment)) !== null) {
-			let label = segment.slice(prevEnd, match.index).replace(/\s+/g, ' ').trim();
+			const rawLabel = segment.slice(prevEnd, match.index);
 			prevEnd = match.index + match[0].length;
-			const page = Number(match[1]);
-			if (!label || !Number.isFinite(page)) continue;
-
-			if (isFirst && countInSegment === 0 && !heading) {
-				const headingMatch = label.match(TOC_HEADING_PREFIX_RE);
-				if (headingMatch && label.length > headingMatch[0].length) {
-					heading = headingMatch[1];
-					label = label.slice(headingMatch[0].length).trim();
-				}
+			if (pushEntry(rawLabel, match[1], true, isFirst && countInSegment === 0)) {
+				countInSegment += 1;
 			}
-
-			label = label.replace(/(?:\s*\.)+\s*$/, '').trim();
-			if (!label) continue;
-			rawEntries.push({ label, page });
-			strictMatches += 1;
-			countInSegment += 1;
 		}
 
-		if (countInSegment === 0 && allowRelaxed) {
-			const relaxed = segment.match(TOC_RELAXED_LINE_RE);
-			if (relaxed) {
-				let label = relaxed[1].replace(/(?:\s*\.)+\s*$/, '').replace(/\s+/g, ' ').trim();
-				const page = Number(relaxed[2]);
-				if (label && Number.isFinite(page)) {
-					if (isFirst && !heading) {
-						const headingMatch = label.match(TOC_HEADING_PREFIX_RE);
-						if (headingMatch && label.length > headingMatch[0].length) {
-							heading = headingMatch[1];
-							label = label.slice(headingMatch[0].length).trim();
-						}
-					}
-					if (label) {
-						rawEntries.push({ label, page });
-					}
+		if (countInSegment > 0) return;
+
+		const tabGapMatch = segment.match(TOC_TAB_OR_MULTISPACE_RE);
+		if (tabGapMatch) {
+			if (pushEntry(tabGapMatch[1], tabGapMatch[2], true, isFirst)) {
+				return;
+			}
+		}
+
+		if (allowPageFirst) {
+			const pfMatch = segment.match(TOC_PAGE_FIRST_RE);
+			if (pfMatch) {
+				const ok = pushEntry(pfMatch[2], pfMatch[1], true, false);
+				if (ok) return;
+			}
+		}
+
+		if (allowSingleSpace) {
+			const singleMatch = segment.match(TOC_SINGLE_SPACE_RE);
+			if (singleMatch) {
+				const candidateLabel = singleMatch[1].trim();
+				if (candidateLabel && !/[.!?;:,(]$/.test(candidateLabel)) {
+					pushEntry(candidateLabel, singleMatch[2], isTypedToc || inTocContext || hasHeadingPrefix, isFirst);
 				}
 			}
 		}
 	};
 
-	if (lines.length >= 2) {
-		const strictLineCount = lines.filter((line) => {
-			TOC_LEADER_RE.lastIndex = 0;
-			const m = TOC_LEADER_RE.exec(line);
-			return Boolean(m && line.slice(0, m.index).trim().length > 0);
-		}).length;
-		const allowRelaxed = strictLineCount >= 2;
+	if (tabAwareLines.length >= 2) {
+		const workingLines = [...tabAwareLines];
+		if (isStandaloneTocHeading(workingLines[0])) {
+			heading = extractStandaloneTocHeading(workingLines[0]);
+			workingLines.shift();
+		} else if (TOC_HEADING_PREFIX_RE.test(workingLines[0])) {
+			const m = workingLines[0].match(TOC_HEADING_PREFIX_RE);
+			if (m && !lineMatchesExplicitLeaderOrGap(workingLines[0])) {
+				const rest = workingLines[0].slice(m[0].length).trim();
+				if (!rest) {
+					heading = m[1].trim();
+					workingLines.shift();
+				}
+			}
+		}
 
-		lines.forEach((line, index) => {
-			TOC_LEADER_RE.lastIndex = 0;
-			const firstMatch = index === 0 ? TOC_LEADER_RE.exec(line) : null;
-			const hasEntry = Boolean(firstMatch && line.slice(0, firstMatch.index).trim().length > 0);
-			if (index === 0 && TOC_HEADING_PREFIX_RE.test(line) && !hasEntry) {
-				const hm = line.match(TOC_HEADING_PREFIX_RE);
-				heading = hm ? hm[1] : line;
+		const coalesced = coalesceWrappedTocLines(
+			workingLines,
+			isTypedToc || inTocContext || Boolean(heading) || hasHeadingPrefix,
+		);
+		const strongLineCount = coalesced.filter((line) => lineMatchesExplicitLeaderOrGap(line)).length;
+		const pageFirstCount = coalesced.filter((line) => TOC_PAGE_FIRST_RE.test(line)).length;
+		const allowSingleSpace =
+			isTypedToc || inTocContext || Boolean(heading) || hasHeadingPrefix || strongLineCount >= 2;
+		const allowPageFirst =
+			isTypedToc || inTocContext || Boolean(heading) || hasHeadingPrefix || pageFirstCount >= 2;
+
+		coalesced.forEach((line, index) => {
+			if (isStandaloneTocHeading(line)) {
+				if (!heading) heading = extractStandaloneTocHeading(line);
 				return;
 			}
-			extractFromLine(line, index === 0, allowRelaxed);
+			extractFromLine(line, index === 0, allowSingleSpace, allowPageFirst);
 		});
-	} else {
-		extractFromLine(trimmed, true, false);
+	} else if (tabAwareLines.length === 1) {
+		const single = tabAwareLines[0];
+		extractFromLine(single, true, isTypedToc || inTocContext || hasHeadingPrefix, isTypedToc || inTocContext);
+
+		// Inline space-separated TOC (e.g. type:'toc' or headed inline block without dots)
+		if (rawEntries.length < 2 && (isTypedToc || inTocContext || hasHeadingPrefix)) {
+			let body = single;
+			if (hasHeadingPrefix && !heading) {
+				const hm = body.match(TOC_HEADING_PREFIX_RE);
+				if (hm && body.length > hm[0].length) {
+					heading = hm[1].trim();
+					body = body.slice(hm[0].length).trim();
+				}
+			}
+			const inlineEntries: TocEntry[] = [];
+			const inlineRe = /\s+(\d{1,4})(?=\s+[A-ZÁÉÍÓÚÜÑ¿¡«"0-9]|\s*$)/g;
+			let m: RegExpExecArray | null;
+			let prev = 0;
+			while ((m = inlineRe.exec(body)) !== null) {
+				const segLabel = cleanTocLabel(body.slice(prev, m.index));
+				prev = m.index + m[0].length;
+				const pageInfo = parseTocPageToken(m[1]);
+				if (segLabel && pageInfo) {
+					inlineEntries.push({ label: segLabel, page: pageInfo.page });
+				}
+			}
+			if (inlineEntries.length >= 2) {
+				rawEntries.length = 0;
+				rawEntries.push(...inlineEntries);
+				strongMatches = inlineEntries.length;
+			}
+		}
 	}
 
-	if (strictMatches < 2 || rawEntries.length < 2) {
+	const minRequired = isTypedToc || inTocContext ? 1 : 2;
+	if (rawEntries.length < minRequired) {
+		return null;
+	}
+	if (!isTypedToc && !inTocContext && strongMatches < 2) {
+		return null;
+	}
+	if (!isTypedToc && !inTocContext && !hasHeadingPrefix && !hasAnyLeader && isLikelyYearOnlySet(rawEntries)) {
 		return null;
 	}
 
@@ -476,7 +698,9 @@ export function prepareChunkDisplay(
 	}
 
 	if (effectiveChunk.type === 'toc' || effectiveChunk.type === 'para') {
-		const parsedToc = parseTocChunk(effectiveChunk.text);
+		const parsedToc = parseTocChunk(effectiveChunk.text, {
+			chunkType: effectiveChunk.type,
+		});
 		if (parsedToc) {
 			return { kind: 'toc', parsed: parsedToc };
 		}
@@ -521,6 +745,362 @@ export function prepareChunkDisplay(
 		text: effectiveChunk.text,
 		verse: effectiveChunk.type === 'verse',
 	};
+}
+
+export type BookDisplayItem =
+	| { kind: 'toc'; chunkId: string; chunkIds: string[]; page: number; parsed: ParsedToc }
+	| { kind: 'opener'; chunkId: string; page: number; author: string; title: string }
+	| { kind: 'heading'; chunkId: string; page: number; text: string }
+	| {
+			kind: 'para';
+			chunkId: string;
+			page: number;
+			mood: ReadingMood;
+			cues: string[];
+			text: string;
+			verse: boolean;
+			chapterMarker?: string;
+			paraIndex: number;
+			isFirstPara: boolean;
+	  };
+
+export type PreparedBookDisplay = {
+	items: BookDisplayItem[];
+	totalParas: number;
+};
+
+/**
+ * Normalizes a full book's raw chunks in one linear pass: filters repeated
+ * noise, recognizes dotted and non-dotted TOCs (including single-entry or
+ * multi-page split TOCs), merges adjacent TOC blocks into one unified list,
+ * and assigns global paragraph indices for accurate progressive scroll progress.
+ */
+export function prepareBookDisplayItems(
+	chunks: readonly ReadingChunk[],
+	pdfPages: number,
+	book?: { title?: string; author?: string } | null,
+): PreparedBookDisplay {
+	const repeatedNoiseKeys = collectRepeatedEdgeNoise([...chunks], pdfPages, book);
+	const context: ReaderDisplayContext = { repeatedNoiseKeys, totalPages: pdfPages };
+
+	const activeChunks: ReadingChunk[] = [];
+	for (const chunk of chunks) {
+		const cleanedText =
+			chunk.type === 'toc' ? chunk.text.trim() : stripInlineArtifacts(chunk.text);
+		if (!cleanedText || cleanedText.length < 2) continue;
+		const effective = cleanedText === chunk.text ? chunk : { ...chunk, text: cleanedText };
+		if (isNoiseChunk(effective, book, context)) continue;
+		activeChunks.push(effective);
+	}
+
+	const items: BookDisplayItem[] = [];
+	let totalParas = 0;
+	let firstParaAssigned = false;
+	let inTocContext = false;
+	let pendingTocHeading: { text: string; chunkId: string; page: number } | undefined;
+
+	const flushPendingTocHeading = () => {
+		if (!pendingTocHeading) return;
+		items.push({
+			kind: 'heading',
+			chunkId: pendingTocHeading.chunkId,
+			page: pendingTocHeading.page,
+			text: pendingTocHeading.text,
+		});
+		pendingTocHeading = undefined;
+	};
+
+	const pushToc = (chunk: ReadingChunk, parsed: ParsedToc) => {
+		if (pendingTocHeading) {
+			if (!parsed.heading) parsed.heading = pendingTocHeading.text;
+			pendingTocHeading = undefined;
+		}
+		const prev = items[items.length - 1];
+		if (prev && prev.kind === 'toc') {
+			prev.chunkIds.push(chunk.id);
+			if (!prev.parsed.heading && parsed.heading) {
+				prev.parsed.heading = parsed.heading;
+			}
+			for (const entry of parsed.entries) {
+				const lastEntry = prev.parsed.entries[prev.parsed.entries.length - 1];
+				if (
+					lastEntry &&
+					lastEntry.label === entry.label &&
+					lastEntry.page === entry.page &&
+					lastEntry.pageLabel === entry.pageLabel
+				) {
+					continue;
+				}
+				prev.parsed.entries.push(entry);
+			}
+			return;
+		}
+		items.push({
+			kind: 'toc',
+			chunkId: chunk.id,
+			chunkIds: [chunk.id],
+			page: chunk.page,
+			parsed: {
+				heading: parsed.heading,
+				entries: [...parsed.entries],
+			},
+		});
+	};
+
+	for (let i = 0; i < activeChunks.length; i += 1) {
+		const chunk = activeChunks[i];
+		const prevIsToc = items.length > 0 && items[items.length - 1].kind === 'toc';
+
+		if (
+			(chunk.type === 'heading' || chunk.type === 'para') &&
+			isStandaloneTocHeading(chunk.text)
+		) {
+			const nextChunk = activeChunks[i + 1];
+			const nextLooksToc = Boolean(
+				nextChunk &&
+					(nextChunk.type === 'toc' ||
+						parseTocChunk(nextChunk.text, {
+							chunkType: nextChunk.type,
+							inTocContext: true,
+						})),
+			);
+			if (prevIsToc) {
+				// Repeated "Índice" header on continuation page of the same TOC
+				inTocContext = true;
+				continue;
+			}
+			if (nextLooksToc) {
+				pendingTocHeading = {
+					text: extractStandaloneTocHeading(chunk.text),
+					chunkId: chunk.id,
+					page: chunk.page,
+				};
+				inTocContext = true;
+				continue;
+			}
+		}
+
+		let forceSingleEntryToc = false;
+		if (!inTocContext && !prevIsToc && chunk.type === 'para' && lineMatchesExplicitLeaderOrGap(chunk.text)) {
+			const nextChunk = activeChunks[i + 1];
+			if (
+				nextChunk &&
+				(nextChunk.type === 'toc' ||
+					(nextChunk.type === 'para' && lineMatchesExplicitLeaderOrGap(nextChunk.text)))
+			) {
+				forceSingleEntryToc = true;
+			}
+		}
+
+		if (chunk.type === 'toc' || chunk.type === 'para') {
+			const parsedToc = parseTocChunk(chunk.text, {
+				chunkType: chunk.type,
+				inTocContext: inTocContext || prevIsToc || forceSingleEntryToc,
+			});
+			if (parsedToc) {
+				pushToc(chunk, parsedToc);
+				inTocContext = true;
+				continue;
+			}
+		}
+
+		flushPendingTocHeading();
+		inTocContext = false;
+
+		if (chunk.type === 'heading') {
+			if (chunk.page <= 5) {
+				const opener = parseBookOpenerHeading(chunk.text, book);
+				if (opener) {
+					items.push({
+						kind: 'opener',
+						chunkId: chunk.id,
+						page: chunk.page,
+						author: opener.author,
+						title: opener.title,
+					});
+					continue;
+				}
+			}
+			if (isLikelyFalseHeading(chunk.text)) {
+				const chapter = extractLeadingChapterMarker(chunk.text);
+				const isFirstPara = !firstParaAssigned;
+				firstParaAssigned = true;
+				items.push({
+					kind: 'para',
+					chunkId: chunk.id,
+					page: chunk.page,
+					mood: chunk.mood,
+					cues: chunk.cues,
+					text: chapter ? chapter.rest : chunk.text,
+					verse: false,
+					chapterMarker: chapter?.marker,
+					paraIndex: totalParas,
+					isFirstPara,
+				});
+				totalParas += 1;
+				continue;
+			}
+			items.push({
+				kind: 'heading',
+				chunkId: chunk.id,
+				page: chunk.page,
+				text: chunk.text,
+			});
+			continue;
+		}
+
+		const isVerse = chunk.type === 'verse';
+		const chapter = !isVerse ? extractLeadingChapterMarker(chunk.text) : null;
+		const isFirstPara = !firstParaAssigned && !isVerse;
+		if (!isVerse) {
+			firstParaAssigned = true;
+		}
+		items.push({
+			kind: 'para',
+			chunkId: chunk.id,
+			page: chunk.page,
+			mood: chunk.mood,
+			cues: chunk.cues,
+			text: chapter ? chapter.rest : chunk.text,
+			verse: isVerse,
+			chapterMarker: chapter?.marker,
+			paraIndex: totalParas,
+			isFirstPara,
+		});
+		totalParas += 1;
+	}
+
+	flushPendingTocHeading();
+
+	return { items, totalParas };
+}
+
+export function computeInitialRenderWindow(
+	totalItems: number,
+	targetIndex: number,
+	batchSize = 60,
+): { start: number; end: number } {
+	if (totalItems <= 0) return { start: 0, end: 0 };
+	const safeBatch = Math.max(10, batchSize);
+	const clampedTarget = Math.min(totalItems - 1, Math.max(0, targetIndex));
+	if (clampedTarget <= safeBatch * 2) {
+		return {
+			start: 0,
+			end: Math.min(totalItems, Math.max(safeBatch, clampedTarget + Math.ceil(safeBatch * 0.6))),
+		};
+	}
+	const start = Math.max(0, clampedTarget - Math.floor(safeBatch * 0.5));
+	const end = Math.min(totalItems, clampedTarget + Math.ceil(safeBatch * 0.7));
+	return { start, end };
+}
+
+export function findSavedProgressItemIndex(
+	items: readonly BookDisplayItem[],
+	progress?: { chunkId?: string; page?: number } | null,
+): number {
+	if (items.length === 0 || !progress) return 0;
+	if (progress.chunkId) {
+		const byChunk = items.findIndex((item) =>
+			item.kind === 'toc'
+				? item.chunkId === progress.chunkId || item.chunkIds.includes(progress.chunkId!)
+				: item.chunkId === progress.chunkId,
+		);
+		if (byChunk >= 0) return byChunk;
+	}
+	if (progress.page && progress.page > 1) {
+		const byPage = items.findIndex((item) => item.page >= progress.page!);
+		if (byPage >= 0) return byPage;
+	}
+	return 0;
+}
+
+function normalizeJumpTargetText(value: string): string {
+	return value
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.toLowerCase()
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
+export function findTocJumpTargetIndex(
+	items: readonly BookDisplayItem[],
+	targetLabel: string,
+	targetPage: number,
+): number | null {
+	if (items.length === 0) return null;
+	const cleanTarget = normalizeJumpTargetText(targetLabel);
+
+	if (cleanTarget) {
+		const headingMatch = items.findIndex((item) => {
+			if (item.kind !== 'heading' && item.kind !== 'opener' && !(item.kind === 'para' && item.chapterMarker)) {
+				return false;
+			}
+			const raw =
+				item.kind === 'heading'
+					? item.text
+					: item.kind === 'opener'
+						? item.title
+						: item.chapterMarker ?? '';
+			const candidate = normalizeJumpTargetText(raw);
+			if (!candidate) return false;
+			if (candidate === cleanTarget) return true;
+			if (cleanTarget.length >= 4 && candidate.length >= 4) {
+				return candidate.includes(cleanTarget) || cleanTarget.includes(candidate);
+			}
+			const escaped = cleanTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+			return new RegExp(`(?:^|\\b)${escaped}(?:\\b|$)`).test(candidate);
+		});
+		if (headingMatch >= 0) return headingMatch;
+
+		if (cleanTarget.length >= 4) {
+			const paraMatch = items.findIndex((item) => {
+				if (item.kind === 'toc' || item.kind === 'opener') return false;
+				return normalizeJumpTargetText(item.text).startsWith(cleanTarget);
+			});
+			if (paraMatch >= 0) return paraMatch;
+		}
+	}
+
+	if (targetPage > 0) {
+		const exactPage = items.findIndex((item) => item.kind !== 'toc' && item.page === targetPage);
+		if (exactPage >= 0) return exactPage;
+		const nextPage = items.findIndex((item) => item.kind !== 'toc' && item.page >= targetPage);
+		if (nextPage >= 0) return nextPage;
+		for (let i = items.length - 1; i >= 0; i -= 1) {
+			if (items[i].kind !== 'toc') return i;
+		}
+	}
+
+	return null;
+}
+
+export function findKeywordJumpTargetIndex(
+	items: readonly BookDisplayItem[],
+	term: string,
+	anchor?: string,
+): number | null {
+	if (items.length === 0) return null;
+	if (anchor) {
+		const byAnchor = items.findIndex((item) =>
+			item.kind === 'toc'
+				? item.chunkId === anchor || item.chunkIds.includes(anchor)
+				: item.chunkId === anchor,
+		);
+		if (byAnchor >= 0) return byAnchor;
+	}
+	const cleanTerm = term.trim().toLowerCase();
+	if (!cleanTerm) return null;
+	const byText = items.findIndex((item) => {
+		if (item.kind === 'toc') {
+			return item.parsed.entries.some((e) => e.label.toLowerCase().includes(cleanTerm));
+		}
+		if (item.kind === 'opener') {
+			return item.title.toLowerCase().includes(cleanTerm);
+		}
+		return item.text.toLowerCase().includes(cleanTerm);
+	});
+	return byText >= 0 ? byText : null;
 }
 
 export type ReaderFont = 'serif' | 'sans';

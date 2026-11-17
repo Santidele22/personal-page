@@ -4,13 +4,18 @@ import {
 	collectRepeatedEdgeNoise,
 	computeDampedWheelDelta,
 	computeFovealBandMetrics,
+	computeInitialRenderWindow,
 	DEFAULT_READER_PREFS,
 	extractLeadingChapterMarker,
 	findAdjacentLineTop,
+	findKeywordJumpTargetIndex,
+	findSavedProgressItemIndex,
+	findTocJumpTargetIndex,
 	isLikelyFalseHeading,
 	parseBookOpenerHeading,
 	parseReaderPrefs,
 	parseTocChunk,
+	prepareBookDisplayItems,
 	prepareChunkDisplay,
 	removeMarkFromState,
 	removeWordFromState,
@@ -442,5 +447,160 @@ describe('reader helpers', () => {
 		expect(findAdjacentLineTop(lines, 314, 1)).toBeNull();
 		expect(findAdjacentLineTop(lines, 100, 1)).toBe(156);
 		expect(findAdjacentLineTop(lines, 360, -1)).toBe(314);
+	});
+
+	it('parses non-dotted TOCs (tabs, multi-space, single-space after heading, dashes, Roman numerals)', () => {
+		const tabAndSpaces = [
+			'Tabla de contenidos',
+			'Prefacio\tiv',
+			'Capítulo 1. Fundamentos    12',
+			'Capítulo 2. Arquitectura --- 35',
+			'Epílogo ··· 118',
+		].join('\n');
+
+		expect(parseTocChunk(tabAndSpaces)).toEqual({
+			heading: 'Tabla de contenidos',
+			entries: [
+				{ label: 'Prefacio', page: 4, pageLabel: 'iv' },
+				{ label: 'Capítulo 1. Fundamentos', page: 12 },
+				{ label: 'Capítulo 2. Arquitectura', page: 35 },
+				{ label: 'Epílogo', page: 118 },
+			],
+		});
+
+		const singleSpaceToc = [
+			'Contenido',
+			'Prólogo 5',
+			'La ciudad de los inmortales 11',
+			'Notas finales 89',
+		].join('\n');
+
+		expect(parseTocChunk(singleSpaceToc)).toEqual({
+			heading: 'Contenido',
+			entries: [
+				{ label: 'Prólogo', page: 5 },
+				{ label: 'La ciudad de los inmortales', page: 11 },
+				{ label: 'Notas finales', page: 89 },
+			],
+		});
+	});
+
+	it('does not misclassify numbered prose lists or years as non-dotted TOCs', () => {
+		const prose = [
+			'En aquel año pasaron varias cosas:',
+			'Los hechos de 1984',
+			'Las reformas de 1992',
+		].join('\n');
+		expect(parseTocChunk(prose)).toBeNull();
+
+		const numberedList = [
+			'1. Introducción al tema',
+			'2. Desarrollo de la idea',
+		].join('\n');
+		expect(parseTocChunk(numberedList)).toBeNull();
+	});
+
+	it('handles wrapped two-line TOC titles, page-first TOC rows, and inline TOCs marked type=toc', () => {
+		const wrapped = [
+			'Índice',
+			'La estructura de las revoluciones',
+			'científicas y su legado . . . . . . 42',
+			'Capítulo separado',
+			'77',
+			'Conclusiones . . . . . . 108',
+		].join('\n');
+
+		expect(parseTocChunk(wrapped)).toEqual({
+			heading: 'Índice',
+			entries: [
+				{ label: 'La estructura de las revoluciones científicas y su legado', page: 42 },
+				{ label: 'Capítulo separado', page: 77 },
+				{ label: 'Conclusiones', page: 108 },
+			],
+		});
+
+		const pageFirst = [
+			'Sumario',
+			'12  Capítulo primero',
+			'45  Capítulo segundo',
+		].join('\n');
+
+		expect(parseTocChunk(pageFirst)).toEqual({
+			heading: 'Sumario',
+			entries: [
+				{ label: 'Capítulo primero', page: 12 },
+				{ label: 'Capítulo segundo', page: 45 },
+			],
+		});
+
+		const typedInline = 'Nota de la traducción 1 Presentación 2 Conclusiones 13';
+		expect(parseTocChunk(typedInline, { chunkType: 'toc' })).toEqual({
+			heading: undefined,
+			entries: [
+				{ label: 'Nota de la traducción', page: 1 },
+				{ label: 'Presentación', page: 2 },
+				{ label: 'Conclusiones', page: 13 },
+			],
+		});
+	});
+
+	it('merges split TOC pages, standalone TOC headings, and single-entry TOC chunks into one unified TOC', () => {
+		const chunks = [
+			{ id: 'p0001.0000', type: 'heading' as const, page: 1, offset: 0, text: 'Índice', mood: 'espera' as const, cues: [] },
+			{ id: 'p0001.0020', type: 'para' as const, page: 1, offset: 20, text: 'Nota de la traducción . . . . . 1 www.lectulandia.com - Página 1', mood: 'espera' as const, cues: [] },
+			{ id: 'p0001.0080', type: 'para' as const, page: 1, offset: 80, text: 'Presentación . . . . . 1', mood: 'espera' as const, cues: [] },
+			{ id: 'p0001.0900', type: 'para' as const, page: 1, offset: 900, text: '1', mood: 'espera' as const, cues: [] },
+			{ id: 'p0002.0000', type: 'heading' as const, page: 2, offset: 0, text: 'Índice', mood: 'espera' as const, cues: [] },
+			{ id: 'p0002.0020', type: 'toc' as const, page: 2, offset: 20, text: 'Conclusiones . . . . . 13\nAplicando teoría . . . . . 14', mood: 'espera' as const, cues: [] },
+			{ id: 'p0003.0000', type: 'heading' as const, page: 3, offset: 0, text: 'Presentación', mood: 'espera' as const, cues: [] },
+			{ id: 'p0003.0020', type: 'para' as const, page: 3, offset: 20, text: 'Primer párrafo real del texto.', mood: 'espera' as const, cues: [] },
+		];
+
+		const prepared = prepareBookDisplayItems(chunks, 20);
+		expect(prepared.totalParas).toBe(1);
+		expect(prepared.items).toHaveLength(3);
+		expect(prepared.items[0]).toMatchObject({
+			kind: 'toc',
+			parsed: {
+				heading: 'Índice',
+				entries: [
+					{ label: 'Nota de la traducción', page: 1 },
+					{ label: 'Presentación', page: 1 },
+					{ label: 'Conclusiones', page: 13 },
+					{ label: 'Aplicando teoría', page: 14 },
+				],
+			},
+		});
+		expect(prepared.items[1]).toMatchObject({ kind: 'heading', text: 'Presentación' });
+		expect(prepared.items[2]).toMatchObject({
+			kind: 'para',
+			text: 'Primer párrafo real del texto.',
+			paraIndex: 0,
+			isFirstPara: true,
+		});
+	});
+
+	it('computes bounded progressive render windows and resolves TOC / progress / keyword jumps across the full book', () => {
+		const chunks = Array.from({ length: 300 }, (_, idx) => ({
+			id: `p${String(idx + 1).padStart(4, '0')}.0000`,
+			type: (idx === 0 || idx === 250 ? 'heading' : 'para') as 'heading' | 'para',
+			page: idx + 1,
+			offset: 0,
+			text: idx === 0 ? 'Introducción' : idx === 250 ? 'Capítulo final' : `Párrafo ${idx + 1} del libro con contenido suficiente.`,
+			mood: 'espera' as const,
+			cues: [],
+		}));
+
+		const prepared = prepareBookDisplayItems(chunks, 300);
+		expect(computeInitialRenderWindow(prepared.items.length, 0, 60)).toEqual({ start: 0, end: 60 });
+		expect(computeInitialRenderWindow(prepared.items.length, 250, 60)).toEqual({ start: 220, end: 292 });
+
+		expect(findSavedProgressItemIndex(prepared.items, { chunkId: 'p0251.0000', page: 251 })).toBe(250);
+		expect(findSavedProgressItemIndex(prepared.items, { page: 180 })).toBe(179);
+
+		// Short label "I" must NOT falsely match "Introducción"
+		expect(findTocJumpTargetIndex(prepared.items, 'I', 251)).toBe(250);
+		expect(findTocJumpTargetIndex(prepared.items, 'Capítulo final', 251)).toBe(250);
+		expect(findKeywordJumpTargetIndex(prepared.items, 'Párrafo 200', 'p0200.0000')).toBe(199);
 	});
 });

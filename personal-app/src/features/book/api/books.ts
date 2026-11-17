@@ -6,7 +6,10 @@ import type {
 	ReadingStatus,
 } from '../../../entities/book/types';
 import { getJson, type RequestOptions } from '../../../shared/api/http';
-import { putJson as authorizedPutJson } from '../../../shared/api/authorizedHttp';
+import {
+	getJson as authorizedGetJson,
+	putJson as authorizedPutJson,
+} from '../../../shared/api/authorizedHttp';
 import type { Paged } from '../../../shared/api/pagination';
 
 const READING_STATUSES: ReadingStatus[] = ['reading', 'finished', 'queued'];
@@ -133,6 +136,10 @@ export async function fetchBookReading(
 	} catch {
 		return null;
 	}
+}
+
+export async function fetchBookClientReading(id: number): Promise<BookReadingDocument> {
+	return authorizedGetJson<BookReadingDocument>(`/books/${id}/reading`);
 }
 
 export async function fetchBookReadingState(

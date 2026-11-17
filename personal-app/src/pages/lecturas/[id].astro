@@ -5,13 +5,8 @@ import { getServerAdminAuth } from '../../features/auth/api/serverSession';
 import { LOGIN_PATH } from '../../features/auth/paths';
 import {
 	fetchBookById,
-	fetchBookReading,
 	fetchBookReadingState,
 } from '../../features/book/api/books';
-import {
-	collectRepeatedEdgeNoise,
-	prepareChunkDisplay,
-} from '../../features/book/lib/reader';
 
 const rawId = Astro.params.id ?? '';
 const bookId = Number(rawId);
@@ -33,9 +28,8 @@ const readerAuthOptions = {
 	cookie: adminAuth.cookie,
 };
 
-const [book, reading, initialState] = await Promise.all([
+const [book, initialState] = await Promise.all([
 	fetchBookById(bookId, serverOrigin),
-	fetchBookReading(bookId, readerAuthOptions),
 	fetchBookReadingState(bookId, readerAuthOptions),
 ]);
 
@@ -43,18 +37,11 @@ if (!book) {
 	Astro.response.status = 404;
 }
 
-const chunks = reading?.chunks ?? [];
-const pdfPages = Math.max(1, reading?.pdfPages ?? 1);
-const repeatedNoiseKeys = collectRepeatedEdgeNoise(chunks, pdfPages, book);
-const readerDisplayContext = { repeatedNoiseKeys, totalPages: pdfPages };
-const ocrPending = !reading || reading.ocrPending || chunks.length === 0;
-const initialPage = Math.min(pdfPages, Math.max(1, initialState?.progress?.page ?? 1));
+const initialPage = Math.max(1, initialState?.progress?.page ?? 1);
 const initialPct =
 	initialState?.progress?.pct !== undefined
 		? Math.min(100, Math.max(0, Math.round(initialState.progress.pct)))
-		: chunks.length > 0
-			? Math.min(100, Math.max(1, Math.round((initialPage / pdfPages) * 100)))
-			: 0;
+		: 0;
 const initialWords = initialState?.words ?? [];
 const initialMarks = initialState?.marks ?? [];
 const downloadUrl = `/api/books/${bookId}/download`;
@@ -65,8 +52,6 @@ const pageTitle = book
 const pageDescription = book
 	? `Lectura inmersiva de ${book.title} (${book.author}).`
 	: 'El libro solicitado no está disponible.';
-
-let firstParaAssigned = false;
 ---
 
 <!doctype html>
@@ -379,6 +364,9 @@ let firstParaAssigned = false;
 		}
 
 		/* ===== Índice estético ===== */
+		.toc-heading {
+			margin-bottom:20px !important;
+		}
 		.toc {
 			margin:18px 0 46px;
 			border-top:1px solid var(--w-border);
@@ -407,6 +395,7 @@ let firstParaAssigned = false;
 		.toc-page {
 			font:400 11px/1 var(--font-mono); letter-spacing:.12em;
 			color:var(--w-faint); flex:none;
+			font-variant-numeric:tabular-nums; white-space:nowrap;
 		}
 		.toc-item:hover .toc-page { color:var(--aka); }
 
@@ -553,6 +542,36 @@ let firstParaAssigned = false;
 		.fallback-frame {
 			width:100%; height:68vh; border:1px solid var(--w-border); background:#0d0b08;
 		}
+		.fallback-link {
+			color:var(--aka); text-decoration:underline;
+		}
+		.reader-loading {
+			display:flex; align-items:center; justify-content:center; gap:12px;
+			min-height:42vh;
+			font:400 10px/1 var(--font-mono); letter-spacing:.22em; text-transform:uppercase;
+			color:var(--w-faint);
+		}
+		.reader-loading .loader-dot {
+			width:6px; height:6px; border-radius:50%; background:var(--aka);
+			animation:loaderPulse 1.4s ease-in-out infinite;
+		}
+		@keyframes loaderPulse {
+			0%, 100% { opacity:.25; transform:scale(.85); }
+			50% { opacity:1; transform:scale(1.1); }
+		}
+		@media (prefers-reduced-motion: reduce) {
+			.reader-loading .loader-dot { animation:none; opacity:.8; }
+		}
+		.retry-btn {
+			margin-top:12px; height:30px; padding:0 14px; border-radius:999px;
+			border:1px solid var(--w-border); background:rgba(20,17,13,.88);
+			color:var(--w-foreground); cursor:pointer;
+			font:500 10px/1 var(--font-mono); letter-spacing:.16em; text-transform:uppercase;
+		}
+		.retry-btn:hover { border-color:var(--aka); color:var(--aka); }
+		.scroll-sentinel {
+			height:1px; width:100%; pointer-events:none;
+		}
 	</style>
 </head>
 <body
@@ -562,8 +581,12 @@ let firstParaAssigned = false;
 	data-align="left"
 	data-focus="wide"
 	data-zen="off"
+	data-has-book={book ? '1' : '0'}
 	data-book-id={String(bookId)}
-	data-pdf-pages={String(pdfPages)}
+	data-book-title={book?.title ?? ''}
+	data-book-author={book?.author ?? ''}
+	data-download-url={downloadUrl}
+	data-pdf-pages={String(initialPage)}
 	data-initial-state={JSON.stringify(
 		initialState ?? {
 			bookId: String(bookId),
@@ -588,9 +611,9 @@ let firstParaAssigned = false;
 		<div
 			class="prog"
 			id="progSummary"
-			aria-label={`Progreso de lectura: página ${initialPage} de ${pdfPages}, ${initialPct} por ciento`}
+			aria-label={`Progreso de lectura: página ${initialPage}, ${initialPct} por ciento`}
 		>
-			<span class="pg">PÁG <b id="progPage">{initialPage}</b> · {pdfPages}</span>
+			<span class="pg">PÁG <b id="progPage">{initialPage}</b> · <span id="progTotalPages">…</span></span>
 			<span class="wire" aria-hidden="true"><i id="progWire"></i></span>
 			<span class="pct" id="progPct">{initialPct}%</span>
 		</div>
@@ -609,119 +632,12 @@ let firstParaAssigned = false;
 				</div>
 			)}
 
-			{book && ocrPending && (
-				<>
-					<h2>{book.title}</h2>
-					<div class="fallback-box">
-						<div class="head">
-							<span class="seal">Fallback · ocr_pending</span>
-							<p>
-								Este PDF es escaneado o aún no tiene capa de texto extraída. La vigilia abre el documento original dentro del mundo nocturno mientras el proceso de OCR está pendiente — también podés <a href={downloadUrl} target="_blank" rel="noreferrer" style="color:var(--aka);text-decoration:underline">descargar el PDF original</a>.
-							</p>
-						</div>
-					</div>
-					<iframe class="fallback-frame" src={downloadUrl} title={book.title}></iframe>
-				</>
+			{book && (
+				<div class="reader-loading" id="readerLoading" role="status" aria-live="polite">
+					<span class="loader-dot" aria-hidden="true"></span>
+					<span>Abriendo páginas…</span>
+				</div>
 			)}
-
-			{book && !ocrPending && chunks.map((chunk) => {
-				const display = prepareChunkDisplay(chunk, book, readerDisplayContext);
-				if (display.kind === 'hidden') {
-					return null;
-				}
-				if (display.kind === 'toc') {
-					const parsedToc = display.parsed;
-					return (
-						<>
-							{parsedToc.heading && (
-								<h2
-									class="toc-heading"
-									data-chunk-id={chunk.id}
-									data-page={String(chunk.page)}
-								>
-									{parsedToc.heading}
-								</h2>
-							)}
-							<nav
-								class="toc"
-								aria-label={parsedToc.heading || 'Índice'}
-								data-chunk-id={chunk.id}
-								data-page={String(chunk.page)}
-							>
-								<ul class="toc-list">
-									{parsedToc.entries.map((entry) => (
-										<li>
-											<button
-												type="button"
-												class="toc-item"
-												data-toc-page={String(entry.page)}
-												data-toc-label={entry.label}
-											>
-												<span class="toc-label">{entry.label}</span>
-												<span class="toc-dots" aria-hidden="true"></span>
-												<span class="toc-page">{entry.page}</span>
-											</button>
-										</li>
-									))}
-								</ul>
-							</nav>
-						</>
-					);
-				}
-				if (display.kind === 'opener') {
-					return (
-						<header
-							class="book-opener"
-							data-chunk-id={chunk.id}
-							data-page={String(chunk.page)}
-						>
-							<p class="opener-author">{display.author}</p>
-							<span class="opener-rule" aria-hidden="true"></span>
-							<h2 class="opener-title">{display.title}</h2>
-						</header>
-					);
-				}
-				if (display.kind === 'heading') {
-					return (
-						<h2
-							data-chunk-id={chunk.id}
-							data-page={String(chunk.page)}
-						>
-							{display.text}
-						</h2>
-					);
-				}
-				const isFirstPara = !firstParaAssigned && !display.verse;
-				if (!display.verse) {
-					firstParaAssigned = true;
-				}
-				const cls = [
-					isFirstPara || (display.chapterMarker && !display.verse) ? 'dropcap' : '',
-					display.verse ? 'verse' : '',
-				]
-					.filter(Boolean)
-					.join(' ');
-				return (
-					<>
-						{display.chapterMarker && (
-							<div class="chapter-break" data-page={String(chunk.page)}>
-								<span class="chapter-rule" aria-hidden="true"></span>
-								<span class="chapter-num">{display.chapterMarker}</span>
-								<span class="chapter-rule" aria-hidden="true"></span>
-							</div>
-						)}
-						<p
-							class={cls || undefined}
-							data-chunk-id={chunk.id}
-							data-page={String(chunk.page)}
-							data-mood={chunk.mood}
-							data-cues={chunk.cues.join(', ')}
-						>
-							{display.text}
-						</p>
-					</>
-				);
-			})}
 		</article>
 	</main>
 
@@ -817,17 +733,26 @@ let firstParaAssigned = false;
 
 	<script>
 		import type { BookReadingState, ReadingMood } from '../../entities/book/types';
-		import { saveBookReadingState } from '../../features/book/api/books';
+		import {
+			fetchBookClientReading,
+			saveBookReadingState,
+		} from '../../features/book/api/books';
 		import {
 			clusterVisualLineTops,
 			computeDampedWheelDelta,
 			computeFovealBandMetrics,
+			computeInitialRenderWindow,
 			findAdjacentLineTop,
+			findKeywordJumpTargetIndex,
+			findSavedProgressItemIndex,
+			findTocJumpTargetIndex,
 			parseReaderPrefs,
+			prepareBookDisplayItems,
 			removeMarkFromState,
 			removeWordFromState,
 			resolvePreferredReadingState,
 			stepReaderScale,
+			type BookDisplayItem,
 			type ReaderAlign,
 			type ReaderFocusMode,
 			type ReaderFont,
@@ -844,8 +769,12 @@ let firstParaAssigned = false;
 		const body = document.body;
 		const stage = document.getElementById('stage') as HTMLElement | null;
 		const readerArticle = document.getElementById('readerArticle');
+		const hasBook = body.dataset.hasBook === '1';
 		const bookId = Number(body.dataset.bookId || 0);
-		const pdfPages = Math.max(1, Number(body.dataset.pdfPages || 1));
+		const bookTitle = body.dataset.bookTitle || '';
+		const bookAuthor = body.dataset.bookAuthor || '';
+		const downloadUrl = body.dataset.downloadUrl || `/api/books/${bookId}/download`;
+		let pdfPages = Math.max(1, Number(body.dataset.pdfPages || 1));
 		let parsedInitial: Partial<BookReadingState> = {};
 		try {
 			parsedInitial = JSON.parse(body.dataset.initialState || '{}') as Partial<BookReadingState>;
@@ -853,6 +782,7 @@ let firstParaAssigned = false;
 
 		const toast = document.getElementById('toast');
 		const progPage = document.getElementById('progPage');
+		const progTotalPages = document.getElementById('progTotalPages');
 		const progPct = document.getElementById('progPct');
 		const progSummary = document.getElementById('progSummary');
 
@@ -931,6 +861,14 @@ let firstParaAssigned = false;
 		applyReaderPrefs(false);
 		window.addEventListener('resize', updateFovealGeometry);
 
+		function escapeHtml(value: string): string {
+			return value
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')
+				.replace(/"/g, '&quot;');
+		}
+
 		let toastTimer: ReturnType<typeof setTimeout> | undefined;
 		function announce(html: string) {
 			if (!toast) return;
@@ -957,6 +895,9 @@ let firstParaAssigned = false;
 			const cleanPct = Math.min(100, Math.max(0, Math.round(Number(pct) || 0)));
 			state.progress = { page: cleanPage, pct: cleanPct, chunkId };
 			if (progPage) progPage.textContent = String(cleanPage);
+			if (progTotalPages && body.dataset.readingLoaded === '1') {
+				progTotalPages.textContent = String(pdfPages);
+			}
 			if (progPct) progPct.textContent = cleanPct + '%';
 			body.style.setProperty('--prog-pct', cleanPct + '%');
 			if (progSummary) {
@@ -1094,7 +1035,7 @@ let firstParaAssigned = false;
 			}
 		}
 
-		function stepLine(direction: 1 | -1) {
+		function stepLine(direction: 1 | -1, allowExpand = true) {
 			if (!stage || lineBlocks.length === 0) return;
 			const focusTop = getFocalBandTopPx();
 			const lineHeightPx = getReaderLineHeightPx();
@@ -1152,6 +1093,12 @@ let firstParaAssigned = false;
 			const behavior: ScrollBehavior = reducedMotion ? 'auto' : 'smooth';
 
 			if (nextScrollTop === null) {
+				if (allowExpand) {
+					const expanded = direction > 0 ? appendNextBatch() : prependPrevBatch();
+					if (expanded) {
+						return stepLine(direction, false);
+					}
+				}
 				if (direction < 0 && referenceScrollTop > 0) {
 					cancelSmoothScroll();
 					stage.scrollTo({ top: 0, behavior });
@@ -1226,48 +1173,40 @@ let firstParaAssigned = false;
 			if (fresh) setTimeout(() => jump.classList.remove('fresh'), 3000);
 		}
 
-		function applySavedAnnotations() {
+		function applySavedAnnotationsToHost(host: HTMLElement, chunkIds: readonly string[]) {
+			const idSet = new Set(chunkIds);
 			state.marks.forEach((mark) => {
 				const chunkId = String(mark.anchor || '').split('+')[0];
-				const targetPara = document.querySelector<HTMLElement>(`[data-chunk-id="${chunkId}"]`);
-				if (!targetPara || !mark.text) return;
-				highlightTextInContainer(targetPara, mark.text, `sub sub-${mark.ink || 'aka'}`, {
+				if (!idSet.has(chunkId) || !mark.text) return;
+				highlightTextInContainer(host, mark.text, `sub sub-${mark.ink || 'aka'}`, {
 					markId: mark.id,
 				});
 			});
 			state.words.forEach((w) => {
 				if (!w.term) return;
-				if (w.anchor) {
-					const targetPara = document.querySelector<HTMLElement>(`[data-chunk-id="${w.anchor}"]`);
-					if (targetPara) {
-						highlightTextInContainer(targetPara, w.term, 'kw', { wordTerm: w.term });
-					}
+				if (w.anchor && idSet.has(w.anchor)) {
+					highlightTextInContainer(host, w.term, 'kw', { wordTerm: w.term });
 				}
-				appendRailWordItem(w.term, false);
 			});
 		}
 
-		applySavedAnnotations();
-
-		const paras = Array.from(document.querySelectorAll<HTMLElement>('.text p[data-mood]'));
-		const lineBlocks = Array.from(
-			document.querySelectorAll<HTMLElement>(
-				'#readerArticle p[data-mood], #readerArticle h2, #readerArticle .toc-item .toc-label, #readerArticle .chapter-num',
-			),
-		);
-		if (state.progress?.chunkId) {
-			const savedEl = document.querySelector<HTMLElement>(
-				`[data-chunk-id="${CSS.escape(state.progress.chunkId)}"]`,
-			);
-			if (savedEl) {
-				setTimeout(() => scrollElementToFocalBand(savedEl, 'instant'), 40);
-			}
-		} else if ((state.progress?.page ?? 1) > 1) {
-			const pageEl = document.querySelector<HTMLElement>(`[data-page="${state.progress.page}"]`);
-			if (pageEl) {
-				setTimeout(() => scrollElementToFocalBand(pageEl, 'instant'), 40);
-			}
+		function syncInitialRailWords() {
+			state.words.forEach((w) => {
+				if (w.term) appendRailWordItem(w.term, false);
+			});
 		}
+		syncInitialRailWords();
+
+		const BATCH_SIZE = 50;
+		let displayItems: BookDisplayItem[] = [];
+		let totalParas = 0;
+		let renderedStart = 0;
+		let renderedEnd = 0;
+		let lineBlocks: HTMLElement[] = [];
+		let topSentinel: HTMLDivElement | null = null;
+		let bottomSentinel: HTMLDivElement | null = null;
+		let sentinelObserver: IntersectionObserver | null = null;
+		let isBatchMutating = false;
 
 		const io = new IntersectionObserver(
 			(entries) => {
@@ -1275,11 +1214,11 @@ let firstParaAssigned = false;
 					const target = e.target as HTMLElement;
 					target.classList.toggle('reading', e.isIntersecting);
 					if (e.isIntersecting) {
-						const idx = paras.indexOf(target);
+						const paraIdx = Number(target.dataset.paraIndex ?? -1);
 						const page = Number(target.dataset.page || 1);
 						const pct =
-							paras.length > 0
-								? Math.round(((idx + 1) / paras.length) * 100)
+							totalParas > 0 && paraIdx >= 0
+								? Math.round(((paraIdx + 1) / totalParas) * 100)
 								: Math.round((page / pdfPages) * 100);
 						updateProgressDisplay(page, pct, target.dataset.chunkId);
 
@@ -1308,16 +1247,418 @@ let firstParaAssigned = false;
 			},
 			{ rootMargin: '-20% 0px -52% 0px', threshold: 0 },
 		);
-		paras.forEach((p) => io.observe(p));
 
-		function normalizeTextForJump(value: string): string {
-			return value
-				.normalize('NFD')
-				.replace(/[\u0300-\u036f]/g, '')
-				.toLowerCase()
-				.replace(/\s+/g, ' ')
-				.trim();
+		function refreshLineBlocks() {
+			lineBlocks = Array.from(
+				document.querySelectorAll<HTMLElement>(
+					'#readerArticle p[data-mood], #readerArticle h2, #readerArticle .toc-item .toc-label, #readerArticle .chapter-num',
+				),
+			);
 		}
+
+		function buildDisplayItemFragment(item: BookDisplayItem): DocumentFragment {
+			const frag = document.createDocumentFragment();
+			if (item.kind === 'toc') {
+				if (item.parsed.heading) {
+					const h2 = document.createElement('h2');
+					h2.className = 'toc-heading';
+					h2.dataset.chunkId = item.chunkId;
+					h2.dataset.page = String(item.page);
+					h2.textContent = item.parsed.heading;
+					frag.appendChild(h2);
+				}
+				const nav = document.createElement('nav');
+				nav.className = 'toc';
+				nav.setAttribute('aria-label', item.parsed.heading || 'Índice');
+				nav.dataset.chunkId = item.chunkId;
+				nav.dataset.chunkIds = item.chunkIds.join(',');
+				nav.dataset.page = String(item.page);
+
+				const ul = document.createElement('ul');
+				ul.className = 'toc-list';
+				for (const entry of item.parsed.entries) {
+					const li = document.createElement('li');
+					const btn = document.createElement('button');
+					btn.type = 'button';
+					btn.className = 'toc-item';
+					btn.dataset.tocPage = String(entry.page);
+					btn.dataset.tocLabel = entry.label;
+
+					const lbl = document.createElement('span');
+					lbl.className = 'toc-label';
+					lbl.textContent = entry.label;
+
+					const dots = document.createElement('span');
+					dots.className = 'toc-dots';
+					dots.setAttribute('aria-hidden', 'true');
+
+					const pg = document.createElement('span');
+					pg.className = 'toc-page';
+					pg.textContent = entry.pageLabel ?? String(entry.page);
+
+					btn.appendChild(lbl);
+					btn.appendChild(dots);
+					btn.appendChild(pg);
+					li.appendChild(btn);
+					ul.appendChild(li);
+				}
+				nav.appendChild(ul);
+				applySavedAnnotationsToHost(nav, item.chunkIds);
+				frag.appendChild(nav);
+				return frag;
+			}
+
+			if (item.kind === 'opener') {
+				const header = document.createElement('header');
+				header.className = 'book-opener';
+				header.dataset.chunkId = item.chunkId;
+				header.dataset.page = String(item.page);
+
+				const authorEl = document.createElement('p');
+				authorEl.className = 'opener-author';
+				authorEl.textContent = item.author;
+
+				const rule = document.createElement('span');
+				rule.className = 'opener-rule';
+				rule.setAttribute('aria-hidden', 'true');
+
+				const titleEl = document.createElement('h2');
+				titleEl.className = 'opener-title';
+				titleEl.textContent = item.title;
+
+				header.appendChild(authorEl);
+				header.appendChild(rule);
+				header.appendChild(titleEl);
+				applySavedAnnotationsToHost(header, [item.chunkId]);
+				frag.appendChild(header);
+				return frag;
+			}
+
+			if (item.kind === 'heading') {
+				const h2 = document.createElement('h2');
+				h2.dataset.chunkId = item.chunkId;
+				h2.dataset.page = String(item.page);
+				h2.textContent = item.text;
+				applySavedAnnotationsToHost(h2, [item.chunkId]);
+				frag.appendChild(h2);
+				return frag;
+			}
+
+			if (item.chapterMarker) {
+				const chBreak = document.createElement('div');
+				chBreak.className = 'chapter-break';
+				chBreak.dataset.page = String(item.page);
+
+				const r1 = document.createElement('span');
+				r1.className = 'chapter-rule';
+				r1.setAttribute('aria-hidden', 'true');
+
+				const chNum = document.createElement('span');
+				chNum.className = 'chapter-num';
+				chNum.textContent = item.chapterMarker;
+
+				const r2 = document.createElement('span');
+				r2.className = 'chapter-rule';
+				r2.setAttribute('aria-hidden', 'true');
+
+				chBreak.appendChild(r1);
+				chBreak.appendChild(chNum);
+				chBreak.appendChild(r2);
+				frag.appendChild(chBreak);
+			}
+
+			const p = document.createElement('p');
+			const classes: string[] = [];
+			if (item.isFirstPara || (item.chapterMarker && !item.verse)) classes.push('dropcap');
+			if (item.verse) classes.push('verse');
+			if (classes.length > 0) p.className = classes.join(' ');
+			p.dataset.chunkId = item.chunkId;
+			p.dataset.page = String(item.page);
+			p.dataset.mood = item.mood;
+			p.dataset.cues = item.cues.join(', ');
+			p.dataset.paraIndex = String(item.paraIndex);
+			p.textContent = item.text;
+			applySavedAnnotationsToHost(p, [item.chunkId]);
+			io.observe(p);
+			frag.appendChild(p);
+			return frag;
+		}
+
+		function updateSentinelVisibility() {
+			if (topSentinel) topSentinel.hidden = renderedStart <= 0;
+			if (bottomSentinel) bottomSentinel.hidden = renderedEnd >= displayItems.length;
+		}
+
+		function appendNextBatch(count = BATCH_SIZE): boolean {
+			if (isBatchMutating || !bottomSentinel || renderedEnd >= displayItems.length) {
+				return false;
+			}
+			isBatchMutating = true;
+			try {
+				const nextEnd = Math.min(displayItems.length, renderedEnd + Math.max(1, count));
+				const frag = document.createDocumentFragment();
+				for (let i = renderedEnd; i < nextEnd; i += 1) {
+					frag.appendChild(buildDisplayItemFragment(displayItems[i]));
+				}
+				readerArticle?.insertBefore(frag, bottomSentinel);
+				renderedEnd = nextEnd;
+				updateSentinelVisibility();
+				refreshLineBlocks();
+				return true;
+			} finally {
+				isBatchMutating = false;
+			}
+		}
+
+		function prependPrevBatch(count = BATCH_SIZE): boolean {
+			if (isBatchMutating || !topSentinel || !stage || renderedStart <= 0) {
+				return false;
+			}
+			isBatchMutating = true;
+			try {
+				const nextStart = Math.max(0, renderedStart - Math.max(1, count));
+				const prevScrollHeight = stage.scrollHeight;
+				const prevScrollTop = stage.scrollTop;
+
+				const frag = document.createDocumentFragment();
+				for (let i = nextStart; i < renderedStart; i += 1) {
+					frag.appendChild(buildDisplayItemFragment(displayItems[i]));
+				}
+				readerArticle?.insertBefore(frag, topSentinel.nextSibling);
+				renderedStart = nextStart;
+				updateSentinelVisibility();
+				refreshLineBlocks();
+
+				const heightDelta = stage.scrollHeight - prevScrollHeight;
+				if (heightDelta > 0) {
+					stage.scrollTop = prevScrollTop + heightDelta;
+					if (smoothTargetTop !== null) smoothTargetTop += heightDelta;
+					if (lastAppliedScrollTop !== null) lastAppliedScrollTop += heightDelta;
+					if (pendingLineJump) pendingLineJump.targetTop += heightDelta;
+				}
+				return true;
+			} finally {
+				isBatchMutating = false;
+			}
+		}
+
+		function mountRenderWindow(start: number, end: number) {
+			if (!readerArticle) return;
+			io.disconnect();
+			sentinelObserver?.disconnect();
+			readerArticle.replaceChildren();
+
+			topSentinel = document.createElement('div');
+			topSentinel.className = 'scroll-sentinel';
+			topSentinel.id = 'topSentinel';
+			topSentinel.setAttribute('aria-hidden', 'true');
+
+			bottomSentinel = document.createElement('div');
+			bottomSentinel.className = 'scroll-sentinel';
+			bottomSentinel.id = 'bottomSentinel';
+			bottomSentinel.setAttribute('aria-hidden', 'true');
+
+			const frag = document.createDocumentFragment();
+			for (let i = start; i < end; i += 1) {
+				frag.appendChild(buildDisplayItemFragment(displayItems[i]));
+			}
+			readerArticle.appendChild(topSentinel);
+			readerArticle.appendChild(frag);
+			readerArticle.appendChild(bottomSentinel);
+			renderedStart = start;
+			renderedEnd = end;
+			updateSentinelVisibility();
+			refreshLineBlocks();
+			updateFovealGeometry();
+
+			if (stage) {
+				sentinelObserver = new IntersectionObserver(
+					(entries) => {
+						for (const entry of entries) {
+							if (!entry.isIntersecting) continue;
+							if (entry.target === bottomSentinel) {
+								appendNextBatch();
+							} else if (entry.target === topSentinel) {
+								prependPrevBatch();
+							}
+						}
+					},
+					{ root: stage, rootMargin: '900px 0px', threshold: 0 },
+				);
+				sentinelObserver.observe(topSentinel);
+				sentinelObserver.observe(bottomSentinel);
+			}
+		}
+
+		function findRenderedElementForItem(item: BookDisplayItem): HTMLElement | null {
+			if (!readerArticle) return null;
+			return readerArticle.querySelector<HTMLElement>(
+				`[data-chunk-id="${CSS.escape(item.chunkId)}"]`,
+			);
+		}
+
+		function ensureItemRenderedAndScroll(
+			targetIdx: number,
+			behavior: ScrollBehavior = 'smooth',
+		): HTMLElement | null {
+			if (targetIdx < 0 || targetIdx >= displayItems.length) return null;
+			const targetItem = displayItems[targetIdx];
+
+			if (targetIdx >= renderedStart && targetIdx < renderedEnd) {
+				const el = findRenderedElementForItem(targetItem);
+				if (el) scrollElementToFocalBand(el, behavior);
+				return el;
+			}
+
+			if (targetIdx >= renderedEnd && targetIdx - renderedEnd <= 120) {
+				appendNextBatch(targetIdx - renderedEnd + 30);
+			} else if (targetIdx < renderedStart && renderedStart - targetIdx <= 120) {
+				prependPrevBatch(renderedStart - targetIdx + 30);
+			} else {
+				const win = computeInitialRenderWindow(displayItems.length, targetIdx, BATCH_SIZE);
+				mountRenderWindow(win.start, win.end);
+			}
+
+			const el = findRenderedElementForItem(targetItem);
+			if (el) {
+				scrollElementToFocalBand(el, behavior);
+			}
+			return el;
+		}
+
+		function renderOcrFallback() {
+			if (!readerArticle) return;
+			readerArticle.replaceChildren();
+			const h2 = document.createElement('h2');
+			h2.textContent = bookTitle;
+
+			const box = document.createElement('div');
+			box.className = 'fallback-box';
+			const head = document.createElement('div');
+			head.className = 'head';
+			const seal = document.createElement('span');
+			seal.className = 'seal';
+			seal.textContent = 'Fallback · ocr_pending';
+			const msg = document.createElement('p');
+			msg.appendChild(
+				document.createTextNode(
+					'Este PDF es escaneado o aún no tiene capa de texto extraída. La vigilia abre el documento original dentro del mundo nocturno mientras el proceso de OCR está pendiente — también podés ',
+				),
+			);
+			const link = document.createElement('a');
+			link.className = 'fallback-link';
+			link.href = downloadUrl;
+			link.target = '_blank';
+			link.rel = 'noreferrer';
+			link.textContent = 'descargar el PDF original';
+			msg.appendChild(link);
+			msg.appendChild(document.createTextNode('.'));
+			head.appendChild(seal);
+			head.appendChild(msg);
+			box.appendChild(head);
+
+			const frame = document.createElement('iframe');
+			frame.className = 'fallback-frame';
+			frame.src = downloadUrl;
+			frame.title = bookTitle;
+
+			readerArticle.appendChild(h2);
+			readerArticle.appendChild(box);
+			readerArticle.appendChild(frame);
+		}
+
+		function renderReadingError(message: string) {
+			if (!readerArticle) return;
+			readerArticle.replaceChildren();
+			const box = document.createElement('div');
+			box.className = 'fallback-box';
+			const head = document.createElement('div');
+			head.className = 'head';
+			const seal = document.createElement('span');
+			seal.className = 'seal';
+			seal.textContent = 'Error de carga';
+			const p = document.createElement('p');
+			p.textContent = message;
+			head.appendChild(seal);
+			head.appendChild(p);
+			box.appendChild(head);
+
+			const retry = document.createElement('button');
+			retry.type = 'button';
+			retry.className = 'retry-btn';
+			retry.textContent = 'Reintentar';
+			retry.addEventListener('click', () => {
+				const loader = document.createElement('div');
+				loader.className = 'reader-loading';
+				loader.setAttribute('role', 'status');
+				loader.setAttribute('aria-live', 'polite');
+				const dot = document.createElement('span');
+				dot.className = 'loader-dot';
+				dot.setAttribute('aria-hidden', 'true');
+				const txt = document.createElement('span');
+				txt.textContent = 'Abriendo páginas…';
+				loader.appendChild(dot);
+				loader.appendChild(txt);
+				readerArticle.replaceChildren(loader);
+				void loadReadingDocument();
+			});
+			box.appendChild(retry);
+			readerArticle.appendChild(box);
+		}
+
+		async function loadReadingDocument() {
+			if (!hasBook || !readerArticle) return;
+			try {
+				const reading = await fetchBookClientReading(bookId);
+				pdfPages = Math.max(1, reading.pdfPages || 1);
+				body.dataset.pdfPages = String(pdfPages);
+				body.dataset.readingLoaded = '1';
+				if (progTotalPages) progTotalPages.textContent = String(pdfPages);
+
+				const chunks = Array.isArray(reading.chunks) ? reading.chunks : [];
+				if (reading.ocrPending || chunks.length === 0) {
+					updateProgressDisplay(state.progress.page || 1, state.progress.pct || 0, state.progress.chunkId);
+					renderOcrFallback();
+					return;
+				}
+
+				const prepared = prepareBookDisplayItems(chunks, pdfPages, {
+					title: bookTitle,
+					author: bookAuthor,
+				});
+				displayItems = prepared.items;
+				totalParas = prepared.totalParas;
+
+				if (displayItems.length === 0) {
+					renderOcrFallback();
+					return;
+				}
+
+				const startTargetIdx = findSavedProgressItemIndex(displayItems, state.progress);
+				const win = computeInitialRenderWindow(displayItems.length, startTargetIdx, BATCH_SIZE);
+				mountRenderWindow(win.start, win.end);
+
+				const hasSavedPosition =
+					Boolean(state.progress?.chunkId) || (state.progress?.page ?? 1) > 1;
+				if (hasSavedPosition) {
+					const savedItem = displayItems[startTargetIdx];
+					const savedEl = savedItem ? findRenderedElementForItem(savedItem) : null;
+					if (savedEl) {
+						setTimeout(() => scrollElementToFocalBand(savedEl, 'instant'), 30);
+					}
+				} else {
+					updateProgressDisplay(1, totalParas > 0 ? Math.max(1, Math.round((1 / totalParas) * 100)) : 1, displayItems[0]?.chunkId);
+				}
+			} catch (err) {
+				const msg =
+					err instanceof Error && err.message
+						? err.message
+						: 'No se pudo cargar el texto del libro. Intentá nuevamente.';
+				renderReadingError(msg);
+			}
+		}
+
+		void loadReadingDocument();
 
 		const viewDeck = document.getElementById('viewDeck');
 		const viewBtn = document.getElementById('viewBtn');
@@ -1427,6 +1768,15 @@ let firstParaAssigned = false;
 			() => {
 				if (pendingLineJump && Math.abs(stage.scrollTop - pendingLineJump.targetTop) <= 4) {
 					pendingLineJump = null;
+				}
+				if (renderedEnd < displayItems.length) {
+					const remainingBottom = stage.scrollHeight - (stage.scrollTop + stage.clientHeight);
+					if (remainingBottom < 1200) {
+						appendNextBatch();
+					}
+				}
+				if (renderedStart > 0 && stage.scrollTop < 900) {
+					prependPrevBatch();
 				}
 				if (!initialLoadSettled) return;
 				if (!hasActiveOverlay() && !pointerOverChrome) {
@@ -1716,58 +2066,23 @@ let firstParaAssigned = false;
 		}
 
 		readerArticle?.addEventListener('click', (e) => {
+			const sel = window.getSelection();
+			if (sel && !sel.isCollapsed) return;
+
 			const target = e.target as Element | null;
 			const tocBtn = target?.closest<HTMLButtonElement>('.toc-item');
 			if (tocBtn) {
-				const targetLabel = normalizeTextForJump(tocBtn.dataset.tocLabel || '');
+				const targetLabel = tocBtn.dataset.tocLabel || '';
 				const targetPage = Number(tocBtn.dataset.tocPage || 0);
-				const headings = Array.from(
-					readerArticle.querySelectorAll<HTMLElement>('h2:not(.toc-heading)'),
-				);
-				let destEl =
-					headings.find((h) => {
-						const hText = normalizeTextForJump(h.textContent || '');
-						return (
-							Boolean(targetLabel) &&
-							(hText === targetLabel ||
-								hText.includes(targetLabel) ||
-								targetLabel.includes(hText))
-						);
-					}) || null;
-
-				if (!destEl && targetLabel) {
-					const contentEls = Array.from(
-						readerArticle.querySelectorAll<HTMLElement>('[data-chunk-id]:not(.toc):not(.toc-heading)'),
-					);
-					destEl =
-						contentEls.find((el) => {
-							const t = normalizeTextForJump(el.textContent || '');
-							return t.startsWith(targetLabel);
-						}) || null;
-				}
-
-				if (!destEl && targetPage > 0) {
-					destEl =
-						readerArticle.querySelector<HTMLElement>(
-							`[data-chunk-id][data-page="${targetPage}"]:not(.toc):not(.toc-heading)`,
-						) ||
-						Array.from(
-							readerArticle.querySelectorAll<HTMLElement>(
-								'[data-chunk-id]:not(.toc):not(.toc-heading)',
-							),
-						).find((el) => Number(el.dataset.page || 0) >= targetPage) ||
-						null;
-				}
-
-				if (destEl) {
-					scrollElementToFocalBand(destEl, 'smooth');
-					announce(`saltando a · <b>${tocBtn.dataset.tocLabel || ''}</b>`);
+				const targetIdx = findTocJumpTargetIndex(displayItems, targetLabel, targetPage);
+				if (targetIdx !== null) {
+					ensureItemRenderedAndScroll(targetIdx, 'smooth');
+					announce(`saltando a · <b>${escapeHtml(targetLabel)}</b>`);
+				} else {
+					announce('sección no localizada en el texto extraído');
 				}
 				return;
 			}
-
-			const sel = window.getSelection();
-			if (sel && !sel.isCollapsed) return;
 
 			const markEl = target?.closest<HTMLSpanElement>('.sub, .kw');
 			if (markEl) {
@@ -1909,11 +2224,18 @@ let firstParaAssigned = false;
 				return;
 			}
 			const saved = state.words.find((w) => w.term.trim() === targetTerm && w.anchor);
-			if (saved?.anchor) {
-				const fallbackPara = document.querySelector<HTMLElement>(
-					`[data-chunk-id="${CSS.escape(saved.anchor)}"]`,
-				);
-				if (fallbackPara) scrollElementToFocalBand(fallbackPara, 'smooth');
+			const targetIdx = findKeywordJumpTargetIndex(displayItems, targetTerm, saved?.anchor);
+			if (targetIdx !== null) {
+				const hostEl = ensureItemRenderedAndScroll(targetIdx, 'smooth');
+				const mountedKw = Array.from(
+					hostEl?.querySelectorAll<HTMLElement>('.kw') ?? [],
+				).find((k) => {
+					const kwTerm = (k.dataset.wordTerm || k.textContent || '').trim();
+					return kwTerm === targetTerm || kwTerm.startsWith(targetTerm.slice(0, 10));
+				});
+				if (mountedKw) {
+					scrollElementToFocalBand(mountedKw, 'smooth');
+				}
 			}
 		});
 	</script>

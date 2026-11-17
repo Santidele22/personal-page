@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getJson } from '../../../shared/api/http';
-import { putJson as authorizedPutJson } from '../../../shared/api/authorizedHttp';
+import {
+	getJson as authorizedGetJson,
+	putJson as authorizedPutJson,
+} from '../../../shared/api/authorizedHttp';
 import {
 	fetchBookById,
+	fetchBookClientReading,
 	fetchBookReading,
 	fetchBookReadingState,
 	fetchBooks,
@@ -18,9 +22,10 @@ import {
  */
 
 vi.mock('../../../shared/api/http', () => ({ getJson: vi.fn(), putJson: vi.fn() }));
-vi.mock('../../../shared/api/authorizedHttp', () => ({ putJson: vi.fn() }));
+vi.mock('../../../shared/api/authorizedHttp', () => ({ getJson: vi.fn(), putJson: vi.fn() }));
 
 const getJsonMock = vi.mocked(getJson);
+const authorizedGetJsonMock = vi.mocked(authorizedGetJson);
 const authorizedPutJsonMock = vi.mocked(authorizedPutJson);
 
 const row = (overrides: Record<string, unknown> = {}) => ({
@@ -37,6 +42,7 @@ const row = (overrides: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
 	getJsonMock.mockReset();
+	authorizedGetJsonMock.mockReset();
 	authorizedPutJsonMock.mockReset();
 });
 
@@ -155,5 +161,12 @@ describe('immersive reader API helpers (issue 50)', () => {
 		expect(authorizedPutJsonMock).toHaveBeenCalledWith('/books/7/reading-state', {
 			progress: { page: 120, pct: 40 },
 		});
+	});
+
+	it('fetchBookClientReading uses authorizedHttp.getJson so browser reads carry bearer/cookies', async () => {
+		const doc = { bookId: '7', pdfPages: 120, ocrPending: false, chunks: [] };
+		authorizedGetJsonMock.mockResolvedValueOnce(doc);
+		await expect(fetchBookClientReading(7)).resolves.toEqual(doc);
+		expect(authorizedGetJsonMock).toHaveBeenCalledWith('/books/7/reading');
 	});
 });
