@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { ReadingChunk, ReadingChunkType } from '../../../entities/book/types';
 import {
 	clusterVisualLineTops,
 	collectRepeatedEdgeNoise,
@@ -22,6 +23,19 @@ import {
 	resolvePreferredReadingState,
 	stepReaderScale,
 } from './reader';
+
+function makeChunk(
+	partial: Pick<ReadingChunk, 'id' | 'page' | 'text'> & {
+		type: ReadingChunkType;
+		level?: 1 | 2 | 3;
+		runs?: ReadingChunk['runs'];
+		ordered?: boolean;
+		items?: string[];
+		align?: 'left' | 'center' | 'right';
+	},
+): ReadingChunk {
+	return { offset: 0, mood: 'espera', cues: [], ...partial };
+}
 
 describe('reader helpers', () => {
 	it('parses a legacy inline TOC paragraph into heading and individual rows', () => {
@@ -602,5 +616,342 @@ describe('reader helpers', () => {
 		expect(findTocJumpTargetIndex(prepared.items, 'I', 251)).toBe(250);
 		expect(findTocJumpTargetIndex(prepared.items, 'Capítulo final', 251)).toBe(250);
 		expect(findKeywordJumpTargetIndex(prepared.items, 'Párrafo 200', 'p0200.0000')).toBe(199);
+	});
+
+	it('assigns hierarchical TOC entry levels from numbered section labels without mutating labels', () => {
+		const raw = [
+			'Contenido',
+			'1 Introducción 1',
+			'1.1 Antecedentes 3',
+			'1.1.1 Detalle de la implementación 5',
+		].join('\n');
+
+		const parsed = parseTocChunk(raw, { chunkType: 'toc' });
+		expect(parsed?.heading).toBe('Contenido');
+		expect(parsed?.entries).toEqual([
+			{ label: '1 Introducción', page: 1 },
+			{ label: '1.1 Antecedentes', page: 3, level: 2 },
+			{ label: '1.1.1 Detalle de la implementación', page: 5, level: 3 },
+		]);
+		expect(parsed?.entries.map((entry) => entry.level ?? 1)).toEqual([1, 2, 3]);
+	});
+
+	it('splits leaderless multi-entry TOC blocks instead of gluing them into one row', () => {
+		const expectedEntries = [
+			{ label: '¿QUÉ ES UN SISTEMA OPERATIVO?', page: 3 },
+			{ label: '1.1.1 El sistema operativo como una máquina extendida', page: 4, level: 3 },
+			{ label: '1.1.2 El sistema operativo como administrador de recursos', page: 6, level: 3 },
+		];
+
+		const inline =
+			'¿QUÉ ES UN SISTEMA OPERATIVO? 3 1.1.1 El sistema operativo como una máquina extendida 4 ' +
+			'1.1.2 El sistema operativo como administrador de recursos 6';
+		expect(parseTocChunk(inline, { chunkType: 'para', inTocContext: true })?.entries).toEqual(
+			expectedEntries,
+		);
+
+		const wrapped = [
+			'¿QUÉ ES UN SISTEMA OPERATIVO? 3 1.1.1 El sistema operativo como una máquina extendida 4',
+			'1.1.2 El sistema operativo como administrador de recursos 6',
+		].join('\n');
+		expect(parseTocChunk(wrapped, { chunkType: 'para', inTocContext: true })?.entries).toEqual(
+			expectedEntries,
+		);
+
+		// A dotted leader TOC keeps its leader-based parsing untouched.
+		expect(parseTocChunk('Contenido\nPrólogo . . . 5\nEpílogo . . . 90')?.entries).toEqual([
+			{ label: 'Prólogo', page: 5 },
+			{ label: 'Epílogo', page: 90 },
+		]);
+	});
+
+	it('maps every extended chunk type to its editorial display item', () => {
+		const chunks = [
+			makeChunk({ id: 'p0002.0000', type: 'heading', page: 2, text: 'Capítulo 1', level: 1, align: 'center' }),
+			makeChunk({ id: 'p0002.0100', type: 'heading', page: 2, text: '1.2 Los sistemas operativos', level: 2 }),
+			makeChunk({ id: 'p0002.0200', type: 'heading', page: 2, text: '1.2.3 El núcleo', level: 3 }),
+			makeChunk({
+				id: 'p0002.0300',
+				type: 'para',
+				page: 2,
+				text: 'Un párrafo con tipografía.',
+				runs: [{ text: 'Un ' }, { text: 'párrafo', marks: ['b'] }, { text: ' con tipografía.' }],
+			}),
+			makeChunk({
+				id: 'p0002.0400',
+				type: 'quote',
+				page: 2,
+				text: 'La simplicidad es un requisito previo.',
+				runs: [{ text: 'La simplicidad', marks: ['i'] }],
+			}),
+			makeChunk({ id: 'p0002.0500', type: 'list', page: 2, text: 'Procesos\nArchivos\nMemoria', ordered: false }),
+			makeChunk({ id: 'p0002.0600', type: 'code', page: 2, text: 'int main(void) { return 0; }' }),
+			makeChunk({ id: 'p0002.0700', type: 'caption', page: 2, text: 'Figura 1.1 Procesos e hilos' }),
+			makeChunk({ id: 'p0002.0800', type: 'dedication', page: 2, text: 'Para Suzanne' }),
+		];
+
+		const prepared = prepareBookDisplayItems(chunks, 200);
+		expect(prepared.totalParas).toBe(4);
+		expect(prepared.items).toEqual([
+			{ kind: 'heading', chunkId: 'p0002.0000', page: 2, text: 'Capítulo 1', level: 1, align: 'center' },
+			{ kind: 'heading', chunkId: 'p0002.0100', page: 2, text: '1.2 Los sistemas operativos', level: 2 },
+			{ kind: 'heading', chunkId: 'p0002.0200', page: 2, text: '1.2.3 El núcleo', level: 3 },
+			{
+				kind: 'para',
+				chunkId: 'p0002.0300',
+				page: 2,
+				mood: 'espera',
+				cues: [],
+				text: 'Un párrafo con tipografía.',
+				verse: false,
+				paraIndex: 0,
+				isFirstPara: true,
+				runs: [{ text: 'Un ' }, { text: 'párrafo', marks: ['b'] }, { text: ' con tipografía.' }],
+			},
+			{
+				kind: 'quote',
+				chunkId: 'p0002.0400',
+				page: 2,
+				mood: 'espera',
+				cues: [],
+				text: 'La simplicidad es un requisito previo.',
+				paraIndex: 1,
+				runs: [{ text: 'La simplicidad', marks: ['i'] }],
+			},
+			{
+				kind: 'list',
+				chunkId: 'p0002.0500',
+				page: 2,
+				mood: 'espera',
+				cues: [],
+				ordered: false,
+				items: ['Procesos', 'Archivos', 'Memoria'],
+				paraIndex: 2,
+			},
+			{
+				kind: 'code',
+				chunkId: 'p0002.0600',
+				page: 2,
+				mood: 'espera',
+				cues: [],
+				text: 'int main(void) { return 0; }',
+				paraIndex: 3,
+			},
+			{ kind: 'caption', chunkId: 'p0002.0700', page: 2, text: 'Figura 1.1 Procesos e hilos' },
+			{ kind: 'dedication', chunkId: 'p0002.0800', page: 2, text: 'Para Suzanne' },
+		]);
+
+		// Keyword jumps read list items through the public search helper.
+		expect(findKeywordJumpTargetIndex(prepared.items, 'Archivos')).toBe(5);
+	});
+
+	it('prefers pre-split list items and marks ordered lists', () => {
+		const prepared = prepareBookDisplayItems(
+			[
+				makeChunk({
+					id: 'p0030.0000',
+					type: 'list',
+					page: 30,
+					text: '1. Planificar\n2. Ejecutar',
+					ordered: true,
+					items: ['Planificar', 'Ejecutar'],
+				}),
+			],
+			200,
+		);
+
+		expect(prepared.items).toEqual([
+			{
+				kind: 'list',
+				chunkId: 'p0030.0000',
+				page: 30,
+				mood: 'espera',
+				cues: [],
+				ordered: true,
+				items: ['Planificar', 'Ejecutar'],
+				paraIndex: 0,
+			},
+		]);
+	});
+
+	it('infers heading levels for legacy headings that omit chunk.level', () => {
+		const prepared = prepareBookDisplayItems(
+			[
+				makeChunk({ id: 'p0020.0000', type: 'heading', page: 20, text: 'Capítulo 1. Introducción' }),
+				makeChunk({ id: 'p0020.0100', type: 'heading', page: 20, text: '1.1 Antecedentes históricos' }),
+				makeChunk({ id: 'p0020.0200', type: 'heading', page: 20, text: '1.1.1 Primeros sistemas' }),
+			],
+			200,
+		);
+
+		expect(prepared.items.map((item) => (item.kind === 'heading' ? item.level : null))).toEqual([
+			1, 2, 3,
+		]);
+		// Legacy v1 headings must not be rewritten while gaining a level.
+		expect(prepared.items[1]).toEqual({
+			kind: 'heading',
+			chunkId: 'p0020.0100',
+			page: 20,
+			text: '1.1 Antecedentes históricos',
+			level: 2,
+		});
+	});
+
+	it('demotes legacy edition, print-run and credits headings to grouped metadata', () => {
+		const prepared = prepareBookDisplayItems(
+			[
+				makeChunk({ id: 'p0004.0000', type: 'heading', page: 4, text: '09 10 11 12' }),
+				makeChunk({ id: 'p0004.0100', type: 'heading', page: 4, text: '3ª edición' }),
+				makeChunk({ id: 'p0004.0200', type: 'heading', page: 4, text: 'TERCERA EDICIÓN' }),
+				makeChunk({ id: 'p0004.0300', type: 'heading', page: 4, text: 'TRADUCCIÓN' }),
+				makeChunk({ id: 'p0004.0400', type: 'heading', page: 4, text: 'REVISIÓN TÉCNICA' }),
+				makeChunk({
+					id: 'p0004.0500',
+					type: 'heading',
+					page: 4,
+					text: 'Para mayor información visite la página Web:',
+				}),
+				makeChunk({
+					id: 'p0005.0000',
+					type: 'heading',
+					page: 5,
+					text: 'ANDREW S. TANENBAUM Vrije Universiteit Amsterdam, Holanda',
+				}),
+				makeChunk({ id: 'p0020.0000', type: 'para', page: 20, text: 'Primer párrafo real del libro.' }),
+			],
+			200,
+		);
+
+		expect(prepared.items).toHaveLength(3);
+		expect(prepared.items[0]).toEqual({
+			kind: 'meta',
+			chunkId: 'p0004.0000',
+			page: 4,
+			text: [
+				'09 10 11 12',
+				'3ª edición',
+				'TERCERA EDICIÓN',
+				'TRADUCCIÓN',
+				'REVISIÓN TÉCNICA',
+				'Para mayor información visite la página Web:',
+			].join('\n'),
+		});
+		expect(prepared.items[1]).toEqual({
+			kind: 'meta',
+			chunkId: 'p0005.0000',
+			page: 5,
+			text: 'ANDREW S. TANENBAUM Vrije Universiteit Amsterdam, Holanda',
+		});
+		expect(prepared.items[2]).toMatchObject({ kind: 'para', text: 'Primer párrafo real del libro.' });
+	});
+
+	it('promotes legacy dedication blocks and keeps real chapter titles as headings', () => {
+		const prepared = prepareBookDisplayItems(
+			[
+				makeChunk({
+					id: 'p0007.0000',
+					type: 'heading',
+					page: 7,
+					text: 'Para Suzanne, Barbara, Marc y Rebecca',
+				}),
+				makeChunk({
+					id: 'p0008.0000',
+					type: 'heading',
+					page: 8,
+					text: 'A la memoria de Ana y Julio',
+				}),
+				makeChunk({ id: 'p0009.0000', type: 'heading', page: 9, text: 'PREFACIO' }),
+			],
+			200,
+		);
+
+		expect(prepared.items[0]).toEqual({
+			kind: 'dedication',
+			chunkId: 'p0007.0000',
+			page: 7,
+			text: 'Para Suzanne, Barbara, Marc y Rebecca',
+		});
+		expect(prepared.items[1]).toEqual({
+			kind: 'dedication',
+			chunkId: 'p0008.0000',
+			page: 8,
+			text: 'A la memoria de Ana y Julio',
+		});
+		expect(prepared.items[2]).toEqual({
+			kind: 'heading',
+			chunkId: 'p0009.0000',
+			page: 9,
+			text: 'PREFACIO',
+			level: 1,
+		});
+		// An unrelated paragraph starting with "Para" is not a dedication.
+		const prose = prepareBookDisplayItems(
+			[
+				makeChunk({
+					id: 'p0040.0000',
+					type: 'heading',
+					page: 40,
+					text: 'Para una crítica de la economía política',
+				}),
+			],
+			200,
+		);
+		expect(prose.items[0]).toMatchObject({ kind: 'heading' });
+	});
+
+	it('rescues legacy numbered-section headings glued to leaderless TOC rows', () => {
+		const prepared = prepareBookDisplayItems(
+			[
+				makeChunk({ id: 'p0012.0000', type: 'heading', page: 12, text: '1.1' }),
+				makeChunk({
+					id: 'p0012.0100',
+					type: 'para',
+					page: 12,
+					text:
+						'¿QUÉ ES UN SISTEMA OPERATIVO? 3 1.1.1 El sistema operativo como una máquina extendida 4 ' +
+						'1.1.2 El sistema operativo como administrador de recursos 6',
+				}),
+				makeChunk({ id: 'p0012.0200', type: 'heading', page: 12, text: '1.2' }),
+				makeChunk({
+					id: 'p0012.0300',
+					type: 'para',
+					page: 12,
+					text: 'CONCEPTOS DE SISTEMAS OPERATIVOS 7 1.2.1 Procesos 9',
+				}),
+				makeChunk({ id: 'p0013.0000', type: 'para', page: 13, text: 'Un párrafo real que no es índice.' }),
+			],
+			200,
+		);
+
+		expect(prepared.items).toHaveLength(2);
+		expect(prepared.items[0]).toEqual({
+			kind: 'toc',
+			chunkId: 'p0012.0100',
+			chunkIds: ['p0012.0100', 'p0012.0300'],
+			page: 12,
+			parsed: {
+				heading: undefined,
+				entries: [
+					{ label: '1.1 ¿QUÉ ES UN SISTEMA OPERATIVO?', page: 3, level: 2 },
+					{
+						label: '1.1.1 El sistema operativo como una máquina extendida',
+						page: 4,
+						level: 3,
+					},
+					{
+						label: '1.1.2 El sistema operativo como administrador de recursos',
+						page: 6,
+						level: 3,
+					},
+					{ label: '1.2 CONCEPTOS DE SISTEMAS OPERATIVOS', page: 7, level: 2 },
+					{ label: '1.2.1 Procesos', page: 9, level: 3 },
+				],
+			},
+		});
+		expect(prepared.items[1]).toMatchObject({
+			kind: 'para',
+			page: 13,
+			text: 'Un párrafo real que no es índice.',
+		});
 	});
 });

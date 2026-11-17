@@ -18,8 +18,26 @@ export type Book = {
 	hasFile?: boolean;
 };
 
-export type ReadingChunkType = 'para' | 'heading' | 'verse' | 'toc';
+export type ReadingChunkType =
+	| 'para'
+	| 'heading'
+	| 'verse'
+	| 'toc'
+	| 'quote'
+	| 'list'
+	| 'dedication'
+	| 'meta'
+	| 'caption'
+	| 'code';
+
 export type ReadingMood = 'espera' | 'polvo' | 'alerta' | 'niebla';
+
+export type ReadingInlineMark = 'b' | 'i' | 'code';
+
+export type ReadingInlineRun = {
+	text: string;
+	marks?: ReadingInlineMark[];
+};
 
 export type ReadingChunk = {
 	id: string;
@@ -29,12 +47,24 @@ export type ReadingChunk = {
 	text: string;
 	mood: ReadingMood;
 	cues: string[];
+	/** Heading depth (`1` chapter, `2` section, `3` subsection) when known. */
+	level?: 1 | 2 | 3;
+	/** Inline emphasis runs (`b`, `i`, `code`) preserving typography. */
+	runs?: ReadingInlineRun[];
+	/** Whether a `list` chunk is an ordered list. */
+	ordered?: boolean;
+	/** Pre-split items for a `list` chunk. */
+	items?: string[];
+	/** Original horizontal alignment for headings and captions. */
+	align?: 'left' | 'center' | 'right';
 };
 
 export type BookReadingDocument = {
 	bookId: string;
 	pdfPages: number;
 	ocrPending: boolean;
+	/** Extraction pipeline version (absent on legacy cached documents). */
+	extractorVersion?: number;
 	chunks: ReadingChunk[];
 };
 

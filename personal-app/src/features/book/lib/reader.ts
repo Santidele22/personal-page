@@ -2,6 +2,7 @@ import type {
 	BookReadingState,
 	ReadingChunk,
 	ReadingChunkType,
+	ReadingInlineRun,
 	ReadingMark,
 	ReadingMood,
 	ReadingWord,
@@ -11,6 +12,8 @@ export type TocEntry = {
 	label: string;
 	page: number;
 	pageLabel?: string;
+	/** Hierarchy depth derived from a numbered label (`1` top level, `2` section, `3` subsection). */
+	level?: 1 | 2 | 3;
 };
 
 export type ParsedToc = {
@@ -80,6 +83,62 @@ function cleanTocLabel(raw: string): string {
 		.replace(/^(?:\s*[.\-–—_·•])+\s*/, '')
 		.replace(/\s+/g, ' ')
 		.trim();
+}
+
+const LEADERLESS_SECTION_NUMBER_RE = /(?:^|\s)\d+\.\d+(?:\.\d+)*\s/;
+const LEADERLESS_TOC_SPLIT_RE =
+	/\s(\d{1,4})(?=\s+(?:\d+\.\d+(?:\.\d+)*\s|[A-ZÁÉÍÓÚÜÑ¿¡«"])|\s*$)/g;
+const GLUED_TOC_ENTRY_RE = /\s\d{1,4}\s+(?:\d+\.\d+(?:\.\d+)*\s|[A-ZÁÉÍÓÚÜÑ¿¡«"])/;
+
+/** Derives the TOC hierarchy depth from a numbered entry label. */
+function computeTocEntryLevel(label: string): 1 | 2 | 3 {
+	const match = label.trim().match(/^(\d+(?:\.\d+)*)(?=\s)/);
+	if (!match) return 1;
+	const depth = match[1].split('.').length;
+	if (depth >= 3) return 3;
+	return depth === 2 ? 2 : 1;
+}
+
+/**
+ * Attaches the label hierarchy to an entry. Top-level entries omit `level` so
+ * documents parsed before the hierarchy existed keep byte-identical entries.
+ */
+function withTocLevel(entry: TocEntry): TocEntry {
+	const level = computeTocEntryLevel(entry.label);
+	if (level > 1) return { ...entry, level };
+	if (entry.level === undefined) return entry;
+	const { level: _dropped, ...rest } = entry;
+	return rest;
+}
+
+/**
+ * Splits a leaderless numbered TOC block (`¿QUÉ ES ...? 3 1.1.1 ... 4`) into
+ * individual entries. Returns `null` unless the block is unambiguously a
+ * numbered table of contents, so ordinary prose is never reflowed.
+ */
+export function splitLeaderlessNumberedToc(text: string): TocEntry[] | null {
+	const flattened = text.replace(/\s+/g, ' ').trim();
+	// A standalone TOC heading (`CONTENIDO`) is not an entry of its own.
+	const headingMatch = flattened.match(TOC_HEADING_PREFIX_RE);
+	const flat = (headingMatch ? flattened.slice(headingMatch[0].length) : flattened).trim();
+	if (flat.length < 12) return null;
+	if (!LEADERLESS_SECTION_NUMBER_RE.test(flat)) return null;
+
+	const entries: TocEntry[] = [];
+	let prev = 0;
+	LEADERLESS_TOC_SPLIT_RE.lastIndex = 0;
+	let match: RegExpExecArray | null;
+	while ((match = LEADERLESS_TOC_SPLIT_RE.exec(flat)) !== null) {
+		const label = cleanTocLabel(flat.slice(prev, match.index));
+		const page = Number(match[1]);
+		prev = match.index + match[0].length;
+		if (!label || label.length > 160) return null;
+		if (!Number.isFinite(page) || page < 1 || page > 5000) return null;
+		entries.push(withTocLevel({ label, page }));
+	}
+	if (entries.length < 2) return null;
+	if (prev !== flat.length) return null;
+	return entries;
 }
 
 function isStandaloneTocHeading(text: string): boolean {
@@ -179,8 +238,16 @@ export function parseTocChunk(text: string, options: ParseTocOptions = {}): Pars
 		/\t/.test(trimmed) ||
 		/[ ]{2,}/.test(trimmed);
 	const hasHeadingPrefix = TOC_HEADING_PREFIX_RE.test(trimmed);
+	const leaderlessEntries = splitLeaderlessNumberedToc(trimmed);
 
-	if (!isTypedToc && !inTocContext && !hasAnyLeader && !hasHeadingPrefix && rawLines.length < 2) {
+	if (
+		!isTypedToc &&
+		!inTocContext &&
+		!hasAnyLeader &&
+		!hasHeadingPrefix &&
+		rawLines.length < 2 &&
+		!leaderlessEntries
+	) {
 		return null;
 	}
 
@@ -210,7 +277,7 @@ export function parseTocChunk(text: string, options: ParseTocOptions = {}): Pars
 		const entry: TocEntry = pageInfo.pageLabel
 			? { label, page: pageInfo.page, pageLabel: pageInfo.pageLabel }
 			: { label, page: pageInfo.page };
-		rawEntries.push(entry);
+		rawEntries.push(withTocLevel(entry));
 		if (isStrong) strongMatches += 1;
 		return true;
 	};
@@ -313,7 +380,7 @@ export function parseTocChunk(text: string, options: ParseTocOptions = {}): Pars
 				prev = m.index + m[0].length;
 				const pageInfo = parseTocPageToken(m[1]);
 				if (segLabel && pageInfo) {
-					inlineEntries.push({ label: segLabel, page: pageInfo.page });
+					inlineEntries.push(withTocLevel({ label: segLabel, page: pageInfo.page }));
 				}
 			}
 			if (inlineEntries.length >= 2) {
@@ -322,6 +389,17 @@ export function parseTocChunk(text: string, options: ParseTocOptions = {}): Pars
 				strongMatches = inlineEntries.length;
 			}
 		}
+	}
+
+	// Rebuild rows that swallowed a page break (`¿QUÉ ES ...? 3 1.1.1 ...`).
+	if (
+		leaderlessEntries &&
+		leaderlessEntries.length > rawEntries.length &&
+		rawEntries.some((entry) => GLUED_TOC_ENTRY_RE.test(entry.label))
+	) {
+		rawEntries.length = 0;
+		rawEntries.push(...leaderlessEntries);
+		strongMatches = leaderlessEntries.length;
 	}
 
 	const minRequired = isTypedToc || inTocContext ? 1 : 2;
@@ -675,6 +753,71 @@ export function extractLeadingChapterMarker(
 	return { marker: candidate, rest };
 }
 
+const PRINT_RUN_LINE_RE = /^(?:\d{1,3}\s+){2,}\d{1,3}$/;
+const EDITION_LINE_RE =
+	/^(?:\d{1,2}\s*[ªº]|primera|segunda|tercera|cuarta|quinta|sexta|s[ée]ptima|octava|novena|d[ée]cima)(?:\s+edici[óo]n)?(?:\s*[.:,–—-]\s*.{0,40})?$/i;
+const CREDITS_LINE_RE =
+	/^(?:traducci[óo]n|revisi[óo]n\s+t[ée]cnica|correcci[óo]n(?:\s+(?:de\s+estilo|ortogr[áa]fica))?|adaptaci[óo]n|edici[óo]n\s+al\s+cuidado\s+de|dise[ñn]o\s+de\s+(?:cubierta|portada)|ilustraci[óo]n\s+de\s+(?:cubierta|portada))(?:\s*[.:,–—-]\s*.{0,40})?$/i;
+const INFO_LINE_RE = /^para\s+mayor\s+informaci[óo]n\b/i;
+const DEDICATION_LINE_RE =
+	/^(?:Para|PARA)\s+[A-ZÁÉÍÓÚÜÑ]|^(?:A\s+la\s+memoria\s+de|En\s+memoria\s+de|Dedicatoria)\b/;
+const AFFILIATION_LINE_RE = /^[A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ.'´\-\s]{4,60}\s+[A-ZÁÉÍÓÚÜÑ][a-záéíóúüñ]/;
+const AFFILIATION_MARKER_RE =
+	/,|(?:universi(?:dad|ty|teit|t[àa]t|d[áa]d)|instituto|institute|college|facultad|academia)\b/i;
+
+function headingLevelFromText(text: string): 1 | 2 | 3 {
+	const trimmed = text.trim();
+	if (/^\d+\.\d+\.\d+/.test(trimmed)) return 3;
+	if (/^\d+\.\d+/.test(trimmed)) return 2;
+	return 1;
+}
+
+/** Resolves the heading depth, falling back to the numbered label convention. */
+export function inferHeadingLevel(chunk: ReadingChunk): 1 | 2 | 3 {
+	if (chunk.level === 1 || chunk.level === 2 || chunk.level === 3) return chunk.level;
+	return headingLevelFromText(chunk.text);
+}
+
+/**
+ * Classifies legacy-cache frontmatter that was extracted as a heading: print
+ * runs, edition lines, credits, colophon notices and author affiliations on the
+ * opening pages become `meta`, while opening dedications become `dedication`.
+ */
+export function classifyFrontmatterHeading(
+	text: string,
+	page: number,
+): 'meta' | 'dedication' | null {
+	const trimmed = text.trim();
+	if (!trimmed || page > 10) return null;
+	if (INFO_LINE_RE.test(trimmed)) return 'meta';
+	if (trimmed.length >= 10 && DEDICATION_LINE_RE.test(trimmed)) return 'dedication';
+	if (PRINT_RUN_LINE_RE.test(trimmed)) return 'meta';
+	if (trimmed.length <= 80 && EDITION_LINE_RE.test(trimmed)) return 'meta';
+	if (trimmed.length <= 80 && CREDITS_LINE_RE.test(trimmed)) return 'meta';
+	if (
+		page <= 6 &&
+		trimmed.length >= 16 &&
+		AFFILIATION_LINE_RE.test(trimmed) &&
+		AFFILIATION_MARKER_RE.test(trimmed)
+	) {
+		return 'meta';
+	}
+	return null;
+}
+
+const LIST_BULLET_RE = /^(?:[-–—•·*]|\d{1,2}[.)])\s+/;
+
+/** Keeps line breaks for preformatted chunks instead of reflowing them. */
+function prepareChunkText(chunk: ReadingChunk): string {
+	if (chunk.type === 'toc') return chunk.text.trim();
+	if (chunk.type === 'list' || chunk.type === 'code') return chunk.text.replace(/\r\n?/g, '\n').trim();
+	return stripInlineArtifacts(chunk.text);
+}
+
+function normalizeListItemText(raw: string): string {
+	return raw.replace(LIST_BULLET_RE, '').replace(/\s+/g, ' ').trim();
+}
+
 export type ChunkDisplay =
 	| { kind: 'hidden' }
 	| { kind: 'toc'; parsed: ParsedToc }
@@ -750,7 +893,14 @@ export function prepareChunkDisplay(
 export type BookDisplayItem =
 	| { kind: 'toc'; chunkId: string; chunkIds: string[]; page: number; parsed: ParsedToc }
 	| { kind: 'opener'; chunkId: string; page: number; author: string; title: string }
-	| { kind: 'heading'; chunkId: string; page: number; text: string }
+	| {
+			kind: 'heading';
+			chunkId: string;
+			page: number;
+			text: string;
+			level: 1 | 2 | 3;
+			align?: 'left' | 'center' | 'right';
+	  }
 	| {
 			kind: 'para';
 			chunkId: string;
@@ -762,7 +912,48 @@ export type BookDisplayItem =
 			chapterMarker?: string;
 			paraIndex: number;
 			isFirstPara: boolean;
+			runs?: ReadingInlineRun[];
+	  }
+	| {
+			kind: 'quote';
+			chunkId: string;
+			page: number;
+			mood: ReadingMood;
+			cues: string[];
+			text: string;
+			runs?: ReadingInlineRun[];
+			paraIndex: number;
+	  }
+	| {
+			kind: 'list';
+			chunkId: string;
+			page: number;
+			mood: ReadingMood;
+			cues: string[];
+			ordered: boolean;
+			items: string[];
+			paraIndex: number;
+	  }
+	| { kind: 'dedication'; chunkId: string; page: number; text: string }
+	| { kind: 'meta'; chunkId: string; page: number; text: string }
+	| { kind: 'caption'; chunkId: string; page: number; text: string }
+	| {
+			kind: 'code';
+			chunkId: string;
+			page: number;
+			mood: ReadingMood;
+			cues: string[];
+			text: string;
+			paraIndex: number;
 	  };
+
+/** Plain searchable text of any display item (TOC rows, list items included). */
+function displayItemPlainText(item: BookDisplayItem): string {
+	if (item.kind === 'toc') return item.parsed.entries.map((entry) => entry.label).join(' ');
+	if (item.kind === 'opener') return item.title;
+	if (item.kind === 'list') return item.items.join(' ');
+	return item.text;
+}
 
 export type PreparedBookDisplay = {
 	items: BookDisplayItem[];
@@ -785,8 +976,7 @@ export function prepareBookDisplayItems(
 
 	const activeChunks: ReadingChunk[] = [];
 	for (const chunk of chunks) {
-		const cleanedText =
-			chunk.type === 'toc' ? chunk.text.trim() : stripInlineArtifacts(chunk.text);
+		const cleanedText = prepareChunkText(chunk);
 		if (!cleanedText || cleanedText.length < 2) continue;
 		const effective = cleanedText === chunk.text ? chunk : { ...chunk, text: cleanedText };
 		if (isNoiseChunk(effective, book, context)) continue;
@@ -799,6 +989,30 @@ export function prepareBookDisplayItems(
 	let inTocContext = false;
 	let pendingTocHeading: { text: string; chunkId: string; page: number } | undefined;
 
+	// Legacy v1 cache rescue: a numbered section heading (`1.1`) followed by a
+	// leaderless TOC block (`¿QUÉ ES ...? 3 1.1.1 ... 4`) was extracted as a
+	// heading + paragraph pair. Rebuild the hierarchical TOC rows instead.
+	const rescuedTocEntries = new Map<string, TocEntry[]>();
+	const consumedHeadingIds = new Set<string>();
+	for (let i = 0; i < activeChunks.length - 1; i += 1) {
+		const candidate = activeChunks[i];
+		if (candidate.type !== 'heading') continue;
+		const sectionNumber = candidate.text.trim();
+		if (!/^\d+\.\d+$/.test(sectionNumber)) continue;
+		const body = activeChunks[i + 1];
+		if (body.type !== 'para' && body.type !== 'toc') continue;
+		if (rescuedTocEntries.has(body.id)) continue;
+		const entries = splitLeaderlessNumberedToc(body.text);
+		if (!entries || entries.length < 2) continue;
+		const first = entries[0];
+		entries[0] = first.label.startsWith(`${sectionNumber} `)
+			? first
+			: withTocLevel({ ...first, label: `${sectionNumber} ${first.label}` });
+		rescuedTocEntries.set(body.id, entries);
+		consumedHeadingIds.add(candidate.id);
+		i += 1;
+	}
+
 	const flushPendingTocHeading = () => {
 		if (!pendingTocHeading) return;
 		items.push({
@@ -806,8 +1020,18 @@ export function prepareBookDisplayItems(
 			chunkId: pendingTocHeading.chunkId,
 			page: pendingTocHeading.page,
 			text: pendingTocHeading.text,
+			level: headingLevelFromText(pendingTocHeading.text),
 		});
 		pendingTocHeading = undefined;
+	};
+
+	const pushMeta = (chunk: ReadingChunk) => {
+		const prev = items[items.length - 1];
+		if (prev && prev.kind === 'meta' && prev.page === chunk.page) {
+			prev.text = `${prev.text}\n${chunk.text}`;
+			return;
+		}
+		items.push({ kind: 'meta', chunkId: chunk.id, page: chunk.page, text: chunk.text });
 	};
 
 	const pushToc = (chunk: ReadingChunk, parsed: ParsedToc) => {
@@ -849,6 +1073,15 @@ export function prepareBookDisplayItems(
 
 	for (let i = 0; i < activeChunks.length; i += 1) {
 		const chunk = activeChunks[i];
+
+		if (consumedHeadingIds.has(chunk.id)) continue;
+		const rescuedEntries = rescuedTocEntries.get(chunk.id);
+		if (rescuedEntries) {
+			pushToc(chunk, { entries: rescuedEntries.map((entry) => ({ ...entry })) });
+			inTocContext = true;
+			continue;
+		}
+
 		const prevIsToc = items.length > 0 && items[items.length - 1].kind === 'toc';
 
 		if (
@@ -921,6 +1154,20 @@ export function prepareBookDisplayItems(
 					continue;
 				}
 			}
+			const frontmatter = classifyFrontmatterHeading(chunk.text, chunk.page);
+			if (frontmatter === 'dedication') {
+				items.push({
+					kind: 'dedication',
+					chunkId: chunk.id,
+					page: chunk.page,
+					text: chunk.text,
+				});
+				continue;
+			}
+			if (frontmatter === 'meta') {
+				pushMeta(chunk);
+				continue;
+			}
 			if (isLikelyFalseHeading(chunk.text)) {
 				const chapter = extractLeadingChapterMarker(chunk.text);
 				const isFirstPara = !firstParaAssigned;
@@ -945,7 +1192,75 @@ export function prepareBookDisplayItems(
 				chunkId: chunk.id,
 				page: chunk.page,
 				text: chunk.text,
+				level: inferHeadingLevel(chunk),
+				...(chunk.align ? { align: chunk.align } : {}),
 			});
+			continue;
+		}
+
+		if (chunk.type === 'quote') {
+			const runs = chunk.runs && chunk.runs.length > 0 ? chunk.runs : undefined;
+			items.push({
+				kind: 'quote',
+				chunkId: chunk.id,
+				page: chunk.page,
+				mood: chunk.mood,
+				cues: chunk.cues,
+				text: chunk.text,
+				...(runs ? { runs } : {}),
+				paraIndex: totalParas,
+			});
+			totalParas += 1;
+			continue;
+		}
+
+		if (chunk.type === 'list') {
+			const sourceItems =
+				chunk.items && chunk.items.length > 0 ? chunk.items : chunk.text.split('\n');
+			const listItems = sourceItems
+				.map(normalizeListItemText)
+				.filter((value) => value.length > 0);
+			if (listItems.length === 0) continue;
+			items.push({
+				kind: 'list',
+				chunkId: chunk.id,
+				page: chunk.page,
+				mood: chunk.mood,
+				cues: chunk.cues,
+				ordered: Boolean(chunk.ordered),
+				items: listItems,
+				paraIndex: totalParas,
+			});
+			totalParas += 1;
+			continue;
+		}
+
+		if (chunk.type === 'code') {
+			items.push({
+				kind: 'code',
+				chunkId: chunk.id,
+				page: chunk.page,
+				mood: chunk.mood,
+				cues: chunk.cues,
+				text: chunk.text,
+				paraIndex: totalParas,
+			});
+			totalParas += 1;
+			continue;
+		}
+
+		if (chunk.type === 'caption') {
+			items.push({ kind: 'caption', chunkId: chunk.id, page: chunk.page, text: chunk.text });
+			continue;
+		}
+
+		if (chunk.type === 'dedication') {
+			items.push({ kind: 'dedication', chunkId: chunk.id, page: chunk.page, text: chunk.text });
+			continue;
+		}
+
+		if (chunk.type === 'meta') {
+			pushMeta(chunk);
 			continue;
 		}
 
@@ -955,6 +1270,7 @@ export function prepareBookDisplayItems(
 		if (!isVerse) {
 			firstParaAssigned = true;
 		}
+		const runs = chunk.runs && chunk.runs.length > 0 ? chunk.runs : undefined;
 		items.push({
 			kind: 'para',
 			chunkId: chunk.id,
@@ -966,6 +1282,7 @@ export function prepareBookDisplayItems(
 			chapterMarker: chapter?.marker,
 			paraIndex: totalParas,
 			isFirstPara,
+			...(runs ? { runs } : {}),
 		});
 		totalParas += 1;
 	}
@@ -1019,6 +1336,7 @@ function normalizeJumpTargetText(value: string): string {
 		.normalize('NFD')
 		.replace(/[\u0300-\u036f]/g, '')
 		.toLowerCase()
+		.replace(/[·]+/g, ' ')
 		.replace(/\s+/g, ' ')
 		.trim();
 }
@@ -1056,7 +1374,7 @@ export function findTocJumpTargetIndex(
 		if (cleanTarget.length >= 4) {
 			const paraMatch = items.findIndex((item) => {
 				if (item.kind === 'toc' || item.kind === 'opener') return false;
-				return normalizeJumpTargetText(item.text).startsWith(cleanTarget);
+				return normalizeJumpTargetText(displayItemPlainText(item)).startsWith(cleanTarget);
 			});
 			if (paraMatch >= 0) return paraMatch;
 		}
@@ -1098,7 +1416,7 @@ export function findKeywordJumpTargetIndex(
 		if (item.kind === 'opener') {
 			return item.title.toLowerCase().includes(cleanTerm);
 		}
-		return item.text.toLowerCase().includes(cleanTerm);
+		return displayItemPlainText(item).toLowerCase().includes(cleanTerm);
 	});
 	return byText >= 0 ? byText : null;
 }
