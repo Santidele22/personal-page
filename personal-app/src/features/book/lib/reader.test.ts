@@ -954,4 +954,23 @@ describe('reader helpers', () => {
 			text: 'Un párrafo real que no es índice.',
 		});
 	});
+
+	it('preserves leading indentation on the first line of code chunks while trimming blank outer lines', () => {
+		const prepared = prepareBookDisplayItems(
+			[
+				makeChunk({
+					id: 'p0050.0000',
+					type: 'code',
+					page: 50,
+					text: '\n  int x = 1;\n    return x;\n\n',
+				}),
+			],
+			100,
+		);
+
+		expect(prepared.items[0]).toMatchObject({
+			kind: 'code',
+			text: '  int x = 1;\n    return x;',
+		});
+	});
 });

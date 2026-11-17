@@ -810,7 +810,13 @@ const LIST_BULLET_RE = /^(?:[-–—•·*]|\d{1,2}[.)])\s+/;
 /** Keeps line breaks for preformatted chunks instead of reflowing them. */
 function prepareChunkText(chunk: ReadingChunk): string {
 	if (chunk.type === 'toc') return chunk.text.trim();
-	if (chunk.type === 'list' || chunk.type === 'code') return chunk.text.replace(/\r\n?/g, '\n').trim();
+	if (chunk.type === 'list') return chunk.text.replace(/\r\n?/g, '\n').trim();
+	if (chunk.type === 'code') {
+		return chunk.text
+			.replace(/\r\n?/g, '\n')
+			.replace(/^(?:[ \t]*\n)+/, '')
+			.replace(/\s+$/, '');
+	}
 	return stripInlineArtifacts(chunk.text);
 }
 
