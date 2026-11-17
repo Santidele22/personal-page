@@ -306,6 +306,34 @@ const pageDescription = book
 			color:var(--w-foreground); margin:40px 0 36px; letter-spacing:.01em;
 		}
 		.text h2:first-child { margin-top:0; }
+		/* Nivel 2 · sección: un escalón por debajo del capítulo, con filo bronce */
+		.text h3 {
+			font:600 calc(clamp(21px, 2.1vw, 27px) * var(--reader-scale, 1))/1.4 var(--font-mincho);
+			color:var(--w-foreground); letter-spacing:.01em;
+			margin:34px 0 18px;
+		}
+		.text h3:not(.align-center):not(.align-right) {
+			padding-left:16px;
+			border-left:2px solid rgba(185,138,68,.42);
+		}
+		/* Nivel 3 · subsección: compacta, sans, pegada a su párrafo */
+		.text h4 {
+			font:600 calc(clamp(17px, 1.5vw, 21px) * var(--reader-scale, 1))/1.45 var(--font-zen-stack);
+			color:var(--w-body); letter-spacing:.02em;
+			margin:26px 0 10px;
+		}
+		.text h4:not(.align-center):not(.align-right):not(.has-num)::before {
+			content:"—"; color:var(--bronce); font-weight:400; margin-right:10px;
+		}
+		.text h2.align-center, .text h3.align-center, .text h4.align-center { text-align:center; }
+		.text h2.align-right, .text h3.align-right, .text h4.align-right { text-align:right; }
+		/* Numeral mono: la jerarquía editorial se lee de un vistazo */
+		.text .h-num {
+			font:500 .54em/1 var(--font-mono); letter-spacing:.12em;
+			color:var(--bronce); margin-right:.7em; vertical-align:.14em;
+			white-space:nowrap;
+		}
+		.text h2 .h-num { color:var(--aka); }
 		.text p {
 			font:400 calc(clamp(20px, 1.7vw, 24px) * var(--reader-scale, 1))/1.92 var(--reader-font);
 			margin-bottom:32px;
@@ -314,10 +342,18 @@ const pageDescription = book
 			color:var(--w-foreground);
 			transition:opacity .55s ease;
 		}
-		body.vigilia-body[data-focus="wide"] .text p:not(.reading) { opacity:.62; }
-		body.vigilia-body[data-focus="narrow"] .text p:not(.reading) { opacity:.52; }
-		body.vigilia-body[data-focus="off"] .text p { opacity:1; }
-		.text p.reading { opacity:1; }
+		.text p strong { font-weight:600; }
+		.text .reader-inline-code {
+			font:400 calc(13px * var(--reader-scale, 1))/1 var(--font-mono);
+			color:var(--bronce); background:rgba(185,138,68,.09);
+			border:1px solid rgba(185,138,68,.2); border-radius:3px;
+			padding:.1em .3em; white-space:nowrap;
+		}
+		/* Contraste en reposo más nítido, sin perder el velo foveal */
+		body.vigilia-body[data-focus="wide"] .text :is(p, blockquote.reader-quote, ol.reader-list, ul.reader-list, pre.reader-code):not(.reading):not(.reader-caption) { opacity:.78; }
+		body.vigilia-body[data-focus="narrow"] .text :is(p, blockquote.reader-quote, ol.reader-list, ul.reader-list, pre.reader-code):not(.reading):not(.reader-caption) { opacity:.58; }
+		body.vigilia-body[data-focus="off"] .text :is(p, blockquote.reader-quote, ol.reader-list, ul.reader-list, pre.reader-code) { opacity:1; }
+		.text :is(p, blockquote.reader-quote, ol.reader-list, ul.reader-list, pre.reader-code).reading { opacity:1; }
 		.text p.verse {
 			font-style:italic; text-align:left; padding-left:24px;
 			border-left:1px solid var(--w-border);
@@ -325,6 +361,75 @@ const pageDescription = book
 		.text .dropcap::first-letter {
 			font:600 4.1em/.82 var(--font-mincho); color:var(--aka);
 			float:left; margin:.08em 16px 0 0;
+		}
+
+		/* ===== Citas, listas, dedicatorias, colofón, figuras y código ===== */
+		.text .reader-quote {
+			margin:32px 0; padding:18px 22px 18px 24px;
+			border-left:2px solid rgba(185,138,68,.55);
+			background:rgba(185,138,68,.035);
+			font:italic 400 calc(clamp(19px, 1.6vw, 23px) * var(--reader-scale, 1))/1.82 var(--font-mincho);
+			color:var(--w-body);
+			transition:opacity .55s ease;
+		}
+		.text .reader-list {
+			margin:26px 0 32px; padding:0 0 0 4px;
+			list-style:none;
+			counter-reset:reader-list;
+			font:400 calc(clamp(19px, 1.6vw, 23px) * var(--reader-scale, 1))/1.78 var(--reader-font);
+			color:var(--w-foreground);
+			transition:opacity .55s ease;
+		}
+		.text .reader-list-item {
+			position:relative; padding-left:28px; margin-bottom:12px;
+		}
+		.text .reader-list-item:last-child { margin-bottom:0; }
+		.text .reader-list-item::before {
+			position:absolute; left:2px; top:0;
+			font:500 .82em/2.1 var(--font-mono);
+			color:var(--bronce);
+		}
+		ul.reader-list .reader-list-item::before { content:"—"; }
+		ol.reader-list .reader-list-item { counter-increment:reader-list; }
+		ol.reader-list .reader-list-item::before { content:counter(reader-list) "."; color:var(--aka); }
+		.text .reader-dedication {
+			margin:44px 0; padding:34px 16px;
+			border-top:1px solid var(--w-border);
+			border-bottom:1px solid var(--w-border);
+			text-align:center;
+			font:italic 400 calc(clamp(18px, 1.5vw, 22px) * var(--reader-scale, 1))/1.9 var(--font-mincho);
+			color:var(--w-body);
+		}
+		.text .reader-meta {
+			margin:22px 0 28px; padding:10px 0 10px 14px;
+			border-left:1px solid var(--w-border);
+			border-top:1px solid rgba(53,45,34,.55);
+		}
+		.text .reader-meta .meta-line {
+			font:400 calc(11.5px * var(--reader-scale, 1))/1.75 var(--font-mono);
+			letter-spacing:.06em;
+			color:var(--w-faint);
+		}
+		.text p.reader-caption {
+			margin-bottom:30px;
+			text-align:center;
+			font:400 calc(11.5px * var(--reader-scale, 1))/1.7 var(--font-mono);
+			letter-spacing:.08em;
+			color:var(--w-faint);
+		}
+		.text pre.reader-code {
+			margin:30px 0 34px; padding:18px 20px;
+			background:rgba(20,16,11,.92);
+			border:1px solid var(--w-border);
+			border-radius:4px;
+			overflow-x:auto;
+			font:400 calc(13px * var(--reader-scale, 1))/1.72 var(--font-mono);
+			color:var(--w-body);
+			tab-size:2;
+			transition:opacity .55s ease;
+		}
+		.text pre.reader-code code {
+			font:inherit; color:inherit; background:none; border:none; padding:0; white-space:pre;
 		}
 
 		/* ===== Portada / Apertura y Separación de capítulos ===== */
@@ -398,6 +503,25 @@ const pageDescription = book
 			font-variant-numeric:tabular-nums; white-space:nowrap;
 		}
 		.toc-item:hover .toc-page { color:var(--aka); }
+		/* Jerarquía del índice: cada nivel retrocede y se apaga un punto */
+		.toc-item[data-level="2"] { padding-left:24px; }
+		.toc-item[data-level="3"] { padding-left:48px; }
+		.toc-item[data-level="1"] .toc-label {
+			color:var(--w-foreground); font-weight:500;
+			font-size:clamp(15px, 1.35vw, 18px);
+		}
+		.toc-item[data-level="2"] .toc-label {
+			color:var(--w-body); font-weight:400;
+			font-size:clamp(14px, 1.22vw, 16.5px);
+		}
+		.toc-item[data-level="3"] .toc-label {
+			color:var(--w-faint); font-weight:400;
+			font-size:clamp(13px, 1.1vw, 15px);
+		}
+		.toc-num {
+			font:500 .78em/1 var(--font-mono); letter-spacing:.08em;
+			color:var(--bronce); margin-right:.6em; white-space:nowrap;
+		}
 
 		/* Subrayados ya hechos + keywords */
 		.sub { border-bottom:2px solid; padding-bottom:1px; cursor:pointer; transition:background .15s ease; }
@@ -732,7 +856,12 @@ const pageDescription = book
 	</footer>
 
 	<script>
-		import type { BookReadingState, ReadingMood } from '../../entities/book/types';
+		import type {
+			BookReadingState,
+			ReadingInlineMark,
+			ReadingInlineRun,
+			ReadingMood,
+		} from '../../entities/book/types';
 		import {
 			fetchBookClientReading,
 			saveBookReadingState,
@@ -1114,6 +1243,41 @@ const pageDescription = book
 			stage.scrollTo({ top: targetTop, behavior });
 		}
 
+		/**
+		 * Groups the text nodes of one host into runs of contiguous inline text, so
+		 * an annotation never matches across two blocks (a paragraph and the next).
+		 * Inline elements (`strong`, `em`, `code`) stay inside the same group.
+		 */
+		function collectReaderTextGroups(container: HTMLElement): Text[][] {
+			const groups: Text[][] = [];
+			let current: Text[] | null = null;
+			let currentBoundary: Element | null = null;
+			const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+			let node: Node | null;
+			while ((node = walker.nextNode())) {
+				const textNode = node as Text;
+				if (!textNode.nodeValue) continue;
+				const boundary =
+					textNode.parentElement?.closest(
+						'p, h2, h3, h4, blockquote, li, pre, aside, .toc-item, .book-opener',
+					) ?? null;
+				if (!current || currentBoundary !== boundary) {
+					current = [];
+					currentBoundary = boundary;
+					groups.push(current);
+				}
+				current.push(textNode);
+			}
+			return groups;
+		}
+
+		/**
+		 * Finds `targetText` inside `container` and wraps it in annotation spans.
+		 * A match living in a single text node is wrapped with `surroundContents`;
+		 * a match split by inline runs (`strong`/`em`/`code`) wraps each matching
+		 * text-node slice with the same class and dataset attributes, so removal by
+		 * `markId` or `wordTerm` can clean every part afterwards.
+		 */
 		function highlightTextInContainer(
 			container: HTMLElement,
 			targetText: string,
@@ -1122,26 +1286,90 @@ const pageDescription = book
 		): HTMLSpanElement | null {
 			const needle = targetText.trim();
 			if (!needle) return null;
-			const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
-			let node: Node | null;
-			while ((node = walker.nextNode())) {
-				const textNode = node as Text;
-				if (textNode.parentElement?.closest('.sub, .kw')) continue;
-				const value = textNode.nodeValue ?? '';
-				const idx = value.indexOf(needle);
-				if (idx < 0) continue;
-				const range = document.createRange();
-				range.setStart(textNode, idx);
-				range.setEnd(textNode, idx + needle.length);
+
+			const createAnnotationSpan = () => {
 				const span = document.createElement('span');
 				span.className = className;
 				Object.entries(attrs).forEach(([k, v]) => {
 					span.dataset[k] = v;
 				});
-				range.surroundContents(span);
 				return span;
+			};
+
+			for (const group of collectReaderTextGroups(container)) {
+				const offsets: { node: Text; start: number }[] = [];
+				let combined = '';
+				for (const textNode of group) {
+					offsets.push({ node: textNode, start: combined.length });
+					combined += textNode.nodeValue ?? '';
+				}
+
+				let searchFrom = 0;
+				while (searchFrom < combined.length) {
+					const idx = combined.indexOf(needle, searchFrom);
+					if (idx < 0) break;
+					const end = idx + needle.length;
+
+					const slices: { node: Text; start: number; end: number }[] = [];
+					let blocked = false;
+					for (const { node: textNode, start } of offsets) {
+						const value = textNode.nodeValue ?? '';
+						const nodeEnd = start + value.length;
+						if (nodeEnd <= idx || start >= end) continue;
+						if (textNode.parentElement?.closest('.sub, .kw')) {
+							blocked = true;
+							break;
+						}
+						slices.push({
+							node: textNode,
+							start: Math.max(0, idx - start),
+							end: Math.min(value.length, end - start),
+						});
+					}
+					if (blocked || slices.length === 0) {
+						searchFrom = idx + 1;
+						continue;
+					}
+
+					let first: HTMLSpanElement | null = null;
+					for (const slice of slices) {
+						const span = createAnnotationSpan();
+						const range = document.createRange();
+						range.setStart(slice.node, slice.start);
+						range.setEnd(slice.node, slice.end);
+						range.surroundContents(span);
+						first ??= span;
+					}
+					return first;
+				}
 			}
 			return null;
+		}
+
+		/** Every span that belongs to the same annotation after a cross-run split. */
+		function companionSpans(span: HTMLSpanElement): HTMLSpanElement[] {
+			const host = span.closest<HTMLElement>('[data-chunk-id]');
+			const selector = span.classList.contains('kw') ? '.kw' : '.sub';
+			const markId = span.dataset.markId;
+			const wordTerm = span.dataset.wordTerm;
+			const candidates = host
+				? host.querySelectorAll<HTMLSpanElement>(selector)
+				: document.querySelectorAll<HTMLSpanElement>(selector);
+			const spans = Array.from(candidates).filter((candidate) => {
+				if (candidate === span) return true;
+				if (markId) return candidate.dataset.markId === markId;
+				if (wordTerm) return candidate.dataset.wordTerm === wordTerm;
+				return false;
+			});
+			return spans.length > 0 ? spans : [span];
+		}
+
+		/** Full text of an annotation even when it was split across inline runs. */
+		function annotationText(span: HTMLSpanElement): string {
+			return companionSpans(span)
+				.map((part) => part.textContent ?? '')
+				.join('')
+				.trim();
 		}
 
 		function appendRailWordItem(term: string, fresh = false) {
@@ -1251,137 +1479,340 @@ const pageDescription = book
 		function refreshLineBlocks() {
 			lineBlocks = Array.from(
 				document.querySelectorAll<HTMLElement>(
-					'#readerArticle p[data-mood], #readerArticle h2, #readerArticle .toc-item .toc-label, #readerArticle .chapter-num',
+					'#readerArticle p[data-mood], #readerArticle h2, #readerArticle h3, #readerArticle h4, #readerArticle blockquote[data-mood], #readerArticle .reader-list li, #readerArticle pre.reader-code, #readerArticle .toc-item .toc-label, #readerArticle .chapter-num',
 				),
 			);
 		}
 
+		const INLINE_MARK_TAGS: Record<ReadingInlineMark, 'strong' | 'em' | 'code'> = {
+			b: 'strong',
+			i: 'em',
+			code: 'code',
+		};
+		const INLINE_MARK_ORDER: ReadingInlineMark[] = ['b', 'i', 'code'];
+		const HEADING_NUMBER_MARKER_RE = /^(\d+(?:\.\d+)*|[IVXLCDM]{1,6})\s*·\s*(.+)$/;
+		const HEADING_NUMBER_DOTTED_RE = /^(\d+\.\d+(?:\.\d+)*)\s+(.+)$/;
+		const TOC_LABEL_NUMBER_RE = /^(\d+(?:\.\d+)*)\s+(.+)$/;
+
+		function appendTextWithBreaks(target: HTMLElement, value: string) {
+			const lines = value.split('\n');
+			for (let i = 0; i < lines.length; i += 1) {
+				if (i > 0) target.appendChild(document.createElement('br'));
+				if (lines[i]) target.appendChild(document.createTextNode(lines[i]));
+			}
+		}
+
+		/**
+		 * Renders extracted PDF text as safe DOM nodes: inline runs keep their
+		 * emphasis (`strong`, `em`, `code`, nested in a stable order) and line
+		 * breaks become `<br>`. PDF text is never assigned through `innerHTML`.
+		 */
+		function appendFormattedContent(
+			el: HTMLElement,
+			text: string,
+			runs?: readonly ReadingInlineRun[],
+		): HTMLElement {
+			if (!runs || runs.length === 0) {
+				appendTextWithBreaks(el, text);
+				return el;
+			}
+			for (const run of runs) {
+				if (!run.text) continue;
+				const marks = INLINE_MARK_ORDER.filter((mark) => run.marks?.includes(mark));
+				if (marks.length === 0) {
+					appendTextWithBreaks(el, run.text);
+					continue;
+				}
+				let wrapper: HTMLElement | null = null;
+				for (let i = marks.length - 1; i >= 0; i -= 1) {
+					const node = document.createElement(INLINE_MARK_TAGS[marks[i]]);
+					if (marks[i] === 'code') node.className = 'reader-inline-code';
+					if (wrapper) node.appendChild(wrapper);
+					wrapper = node;
+				}
+				if (!wrapper) continue;
+				appendTextWithBreaks(wrapper, run.text);
+				el.appendChild(wrapper);
+			}
+			if (!el.firstChild) appendTextWithBreaks(el, text);
+			return el;
+		}
+
+		/** Splits `1.2 · Título` or `1.2 Título` into numeral + label. */
+		function splitNumberedLabel(
+			text: string,
+			markerRe: RegExp,
+			dottedRe?: RegExp,
+		): { number: string; label: string } | null {
+			const trimmed = text.trim();
+			const marker = trimmed.match(markerRe);
+			if (marker) return { number: marker[1], label: marker[2].trim() };
+			if (!dottedRe) return null;
+			const dotted = trimmed.match(dottedRe);
+			if (dotted) return { number: dotted[1], label: dotted[2].trim() };
+			return null;
+		}
+
+		function buildChapterBreak(marker: string, page: number): HTMLElement {
+			const chBreak = document.createElement('div');
+			chBreak.className = 'chapter-break';
+			chBreak.dataset.page = String(page);
+
+			const r1 = document.createElement('span');
+			r1.className = 'chapter-rule';
+			r1.setAttribute('aria-hidden', 'true');
+
+			const chNum = document.createElement('span');
+			chNum.className = 'chapter-num';
+			chNum.textContent = marker;
+
+			const r2 = document.createElement('span');
+			r2.className = 'chapter-rule';
+			r2.setAttribute('aria-hidden', 'true');
+
+			chBreak.appendChild(r1);
+			chBreak.appendChild(chNum);
+			chBreak.appendChild(r2);
+			return chBreak;
+		}
+
 		function buildDisplayItemFragment(item: BookDisplayItem): DocumentFragment {
 			const frag = document.createDocumentFragment();
-			if (item.kind === 'toc') {
-				if (item.parsed.heading) {
-					const h2 = document.createElement('h2');
-					h2.className = 'toc-heading';
-					h2.dataset.chunkId = item.chunkId;
-					h2.dataset.page = String(item.page);
-					h2.textContent = item.parsed.heading;
-					frag.appendChild(h2);
+
+			switch (item.kind) {
+				case 'toc': {
+					if (item.parsed.heading) {
+						const h2 = document.createElement('h2');
+						h2.className = 'toc-heading';
+						h2.dataset.chunkId = item.chunkId;
+						h2.dataset.page = String(item.page);
+						h2.textContent = item.parsed.heading;
+						frag.appendChild(h2);
+					}
+					const nav = document.createElement('nav');
+					nav.className = 'toc';
+					nav.setAttribute('aria-label', item.parsed.heading || 'Índice');
+					nav.dataset.chunkId = item.chunkId;
+					nav.dataset.chunkIds = item.chunkIds.join(',');
+					nav.dataset.page = String(item.page);
+
+					const ul = document.createElement('ul');
+					ul.className = 'toc-list';
+					for (const entry of item.parsed.entries) {
+						const li = document.createElement('li');
+						const btn = document.createElement('button');
+						btn.type = 'button';
+						btn.className = 'toc-item';
+						btn.dataset.tocPage = String(entry.page);
+						btn.dataset.tocLabel = entry.label;
+						btn.dataset.level = String(entry.level ?? 1);
+
+						const lbl = document.createElement('span');
+						lbl.className = 'toc-label';
+						const numbered = splitNumberedLabel(entry.label, TOC_LABEL_NUMBER_RE);
+						if (numbered) {
+							const num = document.createElement('span');
+							num.className = 'toc-num';
+							num.textContent = numbered.number;
+							lbl.appendChild(num);
+							lbl.appendChild(document.createTextNode(numbered.label));
+						} else {
+							lbl.textContent = entry.label;
+						}
+
+						const dots = document.createElement('span');
+						dots.className = 'toc-dots';
+						dots.setAttribute('aria-hidden', 'true');
+
+						const pg = document.createElement('span');
+						pg.className = 'toc-page';
+						pg.textContent = entry.pageLabel ?? String(entry.page);
+
+						btn.appendChild(lbl);
+						btn.appendChild(dots);
+						btn.appendChild(pg);
+						li.appendChild(btn);
+						ul.appendChild(li);
+					}
+					nav.appendChild(ul);
+					applySavedAnnotationsToHost(nav, item.chunkIds);
+					frag.appendChild(nav);
+					return frag;
 				}
-				const nav = document.createElement('nav');
-				nav.className = 'toc';
-				nav.setAttribute('aria-label', item.parsed.heading || 'Índice');
-				nav.dataset.chunkId = item.chunkId;
-				nav.dataset.chunkIds = item.chunkIds.join(',');
-				nav.dataset.page = String(item.page);
 
-				const ul = document.createElement('ul');
-				ul.className = 'toc-list';
-				for (const entry of item.parsed.entries) {
-					const li = document.createElement('li');
-					const btn = document.createElement('button');
-					btn.type = 'button';
-					btn.className = 'toc-item';
-					btn.dataset.tocPage = String(entry.page);
-					btn.dataset.tocLabel = entry.label;
+				case 'opener': {
+					const header = document.createElement('header');
+					header.className = 'book-opener';
+					header.dataset.chunkId = item.chunkId;
+					header.dataset.page = String(item.page);
 
-					const lbl = document.createElement('span');
-					lbl.className = 'toc-label';
-					lbl.textContent = entry.label;
+					const authorEl = document.createElement('p');
+					authorEl.className = 'opener-author';
+					authorEl.textContent = item.author;
 
-					const dots = document.createElement('span');
-					dots.className = 'toc-dots';
-					dots.setAttribute('aria-hidden', 'true');
+					const rule = document.createElement('span');
+					rule.className = 'opener-rule';
+					rule.setAttribute('aria-hidden', 'true');
 
-					const pg = document.createElement('span');
-					pg.className = 'toc-page';
-					pg.textContent = entry.pageLabel ?? String(entry.page);
+					const titleEl = document.createElement('h2');
+					titleEl.className = 'opener-title';
+					titleEl.textContent = item.title;
 
-					btn.appendChild(lbl);
-					btn.appendChild(dots);
-					btn.appendChild(pg);
-					li.appendChild(btn);
-					ul.appendChild(li);
+					header.appendChild(authorEl);
+					header.appendChild(rule);
+					header.appendChild(titleEl);
+					applySavedAnnotationsToHost(header, [item.chunkId]);
+					frag.appendChild(header);
+					return frag;
 				}
-				nav.appendChild(ul);
-				applySavedAnnotationsToHost(nav, item.chunkIds);
-				frag.appendChild(nav);
-				return frag;
+
+				case 'heading': {
+					const tag = item.level === 1 ? 'h2' : item.level === 2 ? 'h3' : 'h4';
+					const heading = document.createElement(tag);
+					heading.dataset.chunkId = item.chunkId;
+					heading.dataset.page = String(item.page);
+					heading.dataset.level = String(item.level);
+					if (item.align === 'center') heading.classList.add('align-center');
+					if (item.align === 'right') heading.classList.add('align-right');
+
+					const numbered = splitNumberedLabel(
+						item.text,
+						HEADING_NUMBER_MARKER_RE,
+						HEADING_NUMBER_DOTTED_RE,
+					);
+					if (numbered) {
+						heading.classList.add('has-num');
+						const num = document.createElement('span');
+						num.className = 'h-num';
+						num.textContent = numbered.number;
+						const title = document.createElement('span');
+						title.className = 'h-title';
+						title.textContent = numbered.label;
+						heading.appendChild(num);
+						heading.appendChild(title);
+					} else {
+						heading.textContent = item.text;
+					}
+
+					applySavedAnnotationsToHost(heading, [item.chunkId]);
+					frag.appendChild(heading);
+					return frag;
+				}
+
+				case 'para': {
+					if (item.chapterMarker) {
+						frag.appendChild(buildChapterBreak(item.chapterMarker, item.page));
+					}
+
+					const p = document.createElement('p');
+					const classes: string[] = [];
+					if (item.isFirstPara || (item.chapterMarker && !item.verse)) classes.push('dropcap');
+					if (item.verse) classes.push('verse');
+					if (classes.length > 0) p.className = classes.join(' ');
+					p.dataset.chunkId = item.chunkId;
+					p.dataset.page = String(item.page);
+					p.dataset.mood = item.mood;
+					p.dataset.cues = item.cues.join(', ');
+					p.dataset.paraIndex = String(item.paraIndex);
+					appendFormattedContent(p, item.text, item.runs);
+					applySavedAnnotationsToHost(p, [item.chunkId]);
+					io.observe(p);
+					frag.appendChild(p);
+					return frag;
+				}
+
+				case 'quote': {
+					const quote = document.createElement('blockquote');
+					quote.className = 'reader-quote';
+					quote.dataset.chunkId = item.chunkId;
+					quote.dataset.page = String(item.page);
+					quote.dataset.mood = item.mood;
+					quote.dataset.cues = item.cues.join(', ');
+					quote.dataset.paraIndex = String(item.paraIndex);
+					appendFormattedContent(quote, item.text, item.runs);
+					applySavedAnnotationsToHost(quote, [item.chunkId]);
+					io.observe(quote);
+					frag.appendChild(quote);
+					return frag;
+				}
+
+				case 'list': {
+					const list = document.createElement(item.ordered ? 'ol' : 'ul');
+					list.className = 'reader-list';
+					list.dataset.chunkId = item.chunkId;
+					list.dataset.page = String(item.page);
+					list.dataset.mood = item.mood;
+					list.dataset.cues = item.cues.join(', ');
+					list.dataset.paraIndex = String(item.paraIndex);
+					for (const value of item.items) {
+						const li = document.createElement('li');
+						li.className = 'reader-list-item';
+						li.textContent = value;
+						list.appendChild(li);
+					}
+					applySavedAnnotationsToHost(list, [item.chunkId]);
+					io.observe(list);
+					frag.appendChild(list);
+					return frag;
+				}
+
+				case 'dedication': {
+					const aside = document.createElement('aside');
+					aside.className = 'reader-dedication';
+					aside.dataset.chunkId = item.chunkId;
+					aside.dataset.page = String(item.page);
+					appendFormattedContent(aside, item.text);
+					applySavedAnnotationsToHost(aside, [item.chunkId]);
+					frag.appendChild(aside);
+					return frag;
+				}
+
+				case 'meta': {
+					const aside = document.createElement('aside');
+					aside.className = 'reader-meta';
+					aside.dataset.chunkId = item.chunkId;
+					aside.dataset.page = String(item.page);
+					for (const rawLine of item.text.split('\n')) {
+						const line = rawLine.trim();
+						if (!line) continue;
+						const row = document.createElement('div');
+						row.className = 'meta-line';
+						row.textContent = line;
+						aside.appendChild(row);
+					}
+					applySavedAnnotationsToHost(aside, [item.chunkId]);
+					frag.appendChild(aside);
+					return frag;
+				}
+
+				case 'caption': {
+					const p = document.createElement('p');
+					p.className = 'reader-caption';
+					p.dataset.chunkId = item.chunkId;
+					p.dataset.page = String(item.page);
+					appendFormattedContent(p, item.text);
+					applySavedAnnotationsToHost(p, [item.chunkId]);
+					frag.appendChild(p);
+					return frag;
+				}
+
+				case 'code': {
+					const pre = document.createElement('pre');
+					pre.className = 'reader-code';
+					pre.dataset.chunkId = item.chunkId;
+					pre.dataset.page = String(item.page);
+					pre.dataset.mood = item.mood;
+					pre.dataset.cues = item.cues.join(', ');
+					pre.dataset.paraIndex = String(item.paraIndex);
+					const code = document.createElement('code');
+					code.textContent = item.text;
+					pre.appendChild(code);
+					applySavedAnnotationsToHost(pre, [item.chunkId]);
+					io.observe(pre);
+					frag.appendChild(pre);
+					return frag;
+				}
 			}
-
-			if (item.kind === 'opener') {
-				const header = document.createElement('header');
-				header.className = 'book-opener';
-				header.dataset.chunkId = item.chunkId;
-				header.dataset.page = String(item.page);
-
-				const authorEl = document.createElement('p');
-				authorEl.className = 'opener-author';
-				authorEl.textContent = item.author;
-
-				const rule = document.createElement('span');
-				rule.className = 'opener-rule';
-				rule.setAttribute('aria-hidden', 'true');
-
-				const titleEl = document.createElement('h2');
-				titleEl.className = 'opener-title';
-				titleEl.textContent = item.title;
-
-				header.appendChild(authorEl);
-				header.appendChild(rule);
-				header.appendChild(titleEl);
-				applySavedAnnotationsToHost(header, [item.chunkId]);
-				frag.appendChild(header);
-				return frag;
-			}
-
-			if (item.kind === 'heading') {
-				const h2 = document.createElement('h2');
-				h2.dataset.chunkId = item.chunkId;
-				h2.dataset.page = String(item.page);
-				h2.textContent = item.text;
-				applySavedAnnotationsToHost(h2, [item.chunkId]);
-				frag.appendChild(h2);
-				return frag;
-			}
-
-			if (item.chapterMarker) {
-				const chBreak = document.createElement('div');
-				chBreak.className = 'chapter-break';
-				chBreak.dataset.page = String(item.page);
-
-				const r1 = document.createElement('span');
-				r1.className = 'chapter-rule';
-				r1.setAttribute('aria-hidden', 'true');
-
-				const chNum = document.createElement('span');
-				chNum.className = 'chapter-num';
-				chNum.textContent = item.chapterMarker;
-
-				const r2 = document.createElement('span');
-				r2.className = 'chapter-rule';
-				r2.setAttribute('aria-hidden', 'true');
-
-				chBreak.appendChild(r1);
-				chBreak.appendChild(chNum);
-				chBreak.appendChild(r2);
-				frag.appendChild(chBreak);
-			}
-
-			const p = document.createElement('p');
-			const classes: string[] = [];
-			if (item.isFirstPara || (item.chapterMarker && !item.verse)) classes.push('dropcap');
-			if (item.verse) classes.push('verse');
-			if (classes.length > 0) p.className = classes.join(' ');
-			p.dataset.chunkId = item.chunkId;
-			p.dataset.page = String(item.page);
-			p.dataset.mood = item.mood;
-			p.dataset.cues = item.cues.join(', ');
-			p.dataset.paraIndex = String(item.paraIndex);
-			p.textContent = item.text;
-			applySavedAnnotationsToHost(p, [item.chunkId]);
-			io.observe(p);
-			frag.appendChild(p);
-			return frag;
 		}
 
 		function updateSentinelVisibility() {
@@ -2016,14 +2447,15 @@ const pageDescription = book
 		}
 
 		function removeSpanAndState(span: HTMLSpanElement) {
+			const spans = companionSpans(span);
 			const hostPara = span.closest<HTMLElement>('[data-chunk-id]');
 			const chunkId = hostPara?.dataset.chunkId;
-			const text = (span.textContent || '').trim();
+			const text = annotationText(span);
 
 			if (span.classList.contains('kw')) {
 				const term = (span.dataset.wordTerm || text).trim();
 				state.words = removeWordFromState(state.words, { term, anchor: chunkId });
-				unwrapSpan(span);
+				spans.forEach((part) => unwrapSpan(part));
 				const stillHasTerm = state.words.some((w) => w.term.trim() === term);
 				if (!stillHasTerm) {
 					rail?.querySelector(`.rail-item[data-term="${CSS.escape(term)}"]`)?.remove();
@@ -2038,7 +2470,7 @@ const pageDescription = book
 				chunkId,
 				text,
 			});
-			unwrapSpan(span);
+			spans.forEach((part) => unwrapSpan(part));
 			void persistReadingState();
 			announce('subrayado borrado');
 		}
@@ -2090,7 +2522,9 @@ const pageDescription = book
 				return;
 			}
 
-			const para = target?.closest<HTMLElement>('#readerArticle p[data-chunk-id]');
+			const para = target?.closest<HTMLElement>(
+				'#readerArticle p[data-chunk-id], #readerArticle blockquote[data-chunk-id], #readerArticle .reader-list[data-chunk-id], #readerArticle pre.reader-code[data-chunk-id]',
+			);
 			if (para && !target?.closest('a, button')) {
 				const stageRect = stage?.getBoundingClientRect();
 				const pRect = para.getBoundingClientRect();
@@ -2123,10 +2557,12 @@ const pageDescription = book
 				const inkName = inkAttr.replace(/^sub-/, '') as 'aka' | 'bronce' | 'tinta';
 
 				if (activeEditSpan && activeEditSpan.classList.contains('sub')) {
-					activeEditSpan.classList.remove('sub-aka', 'sub-bronce', 'sub-tinta');
-					activeEditSpan.classList.add(inkAttr);
+					companionSpans(activeEditSpan).forEach((part) => {
+						part.classList.remove('sub-aka', 'sub-bronce', 'sub-tinta');
+						part.classList.add(inkAttr);
+					});
 					const markId = activeEditSpan.dataset.markId;
-					const text = (activeEditSpan.textContent || '').trim();
+					const text = annotationText(activeEditSpan);
 					const chunkId = activeEditSpan.closest<HTMLElement>('[data-chunk-id]')?.dataset.chunkId;
 					const existing = state.marks.find(
 						(m) =>
@@ -2164,7 +2600,7 @@ const pageDescription = book
 
 		kwBtn?.addEventListener('click', () => {
 			if (activeEditSpan && activeEditSpan.classList.contains('sub')) {
-				const t = (activeEditSpan.textContent || '').trim();
+				const t = annotationText(activeEditSpan);
 				if (t) {
 					const chunkId =
 						activeEditSpan.closest<HTMLElement>('[data-chunk-id]')?.dataset.chunkId ||
