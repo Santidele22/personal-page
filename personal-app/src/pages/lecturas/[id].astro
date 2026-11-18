@@ -706,6 +706,223 @@ const pageDescription = book
 		.scroll-sentinel {
 			height:1px; width:100%; pointer-events:none;
 		}
+
+		/* ===== Navegación por capítulos + Vigilia cronometrada ===== */
+		.topbar .crumb.is-locked,
+		.session a.is-locked {
+			opacity:.45;
+			cursor:not-allowed;
+			border-style:dashed;
+		}
+		.topbar .crumb.is-locked::after,
+		.session a.is-locked::after {
+			content:" · 🔒";
+			letter-spacing:0;
+		}
+		.top-timer-pill {
+			display:inline-flex; align-items:center; gap:6px;
+			padding:4px 9px; border-radius:999px;
+			border:1px solid rgba(201,62,58,.45);
+			background:rgba(201,62,58,.12);
+			font:500 10px/1 var(--font-mono); letter-spacing:.12em;
+			color:var(--w-foreground); font-variant-numeric:tabular-nums;
+		}
+		.top-timer-pill[hidden] { display:none !important; }
+		.top-timer-pill .timer-dot {
+			width:6px; height:6px; border-radius:50%; background:var(--aka);
+			animation:loaderPulse 1.6s ease-in-out infinite;
+		}
+		.chapter-nav {
+			display:inline-flex; align-items:center;
+			border:1px solid var(--w-border); border-radius:999px;
+			background:rgba(20,17,13,.85); overflow:hidden;
+		}
+		.chapter-nav button {
+			height:30px; border:none; background:none; cursor:pointer;
+			color:var(--w-faint); display:inline-flex; align-items:center; gap:6px;
+			font:500 9px/1 var(--font-mono); letter-spacing:.14em; text-transform:uppercase;
+			white-space:nowrap;
+		}
+		.chapter-nav button.chap-step { width:30px; justify-content:center; padding:0; font-size:12px; }
+		.chapter-nav button.chap-open {
+			padding:0 12px;
+			border-left:1px solid rgba(53,45,34,.85);
+			border-right:1px solid rgba(53,45,34,.85);
+		}
+		.chapter-nav button:hover:not(:disabled) { color:var(--w-foreground); background:rgba(216,205,180,.06); }
+		.chapter-nav button:disabled { opacity:.35; cursor:default; }
+		.chapter-nav button[aria-expanded="true"] { color:var(--aka); }
+
+		.timer-trigger { font-variant-numeric:tabular-nums; }
+		.timer-trigger.is-running {
+			color:var(--aka); border-color:rgba(201,62,58,.55);
+			background:rgba(201,62,58,.1);
+		}
+		.timer-trigger .timer-dot {
+			width:6px; height:6px; border-radius:50%; background:var(--aka);
+			animation:loaderPulse 1.6s ease-in-out infinite;
+		}
+		.timer-trigger .timer-dot[hidden] { display:none; }
+
+		.chapter-deck,
+		.timer-deck {
+			position:fixed; z-index:36; bottom:100px; right:26px;
+			width:min(352px, calc(100vw - 32px));
+			border:1px solid var(--w-border); background:var(--w-panel);
+			box-shadow:0 24px 60px -20px rgba(0,0,0,.95);
+			padding:16px 18px;
+			opacity:0; transform:translateY(8px); pointer-events:none;
+			transition:opacity .25s ease, transform .25s ease;
+		}
+		@media (max-width: 760px) {
+			.chapter-deck, .timer-deck { bottom:108px; right:16px; }
+		}
+		.chapter-deck.open,
+		.timer-deck.open { opacity:1; transform:none; pointer-events:auto; }
+		.deck-head {
+			display:flex; align-items:center; justify-content:space-between; gap:10px;
+			padding-bottom:10px; margin-bottom:12px; border-bottom:1px solid var(--w-border);
+		}
+		.deck-head span {
+			font:500 9px/1 var(--font-mono); letter-spacing:.2em; text-transform:uppercase; color:var(--w-faint);
+		}
+		.deck-head button {
+			background:none; border:none; cursor:pointer; color:var(--w-faint);
+			font:500 9px/1 var(--font-mono); letter-spacing:.14em; text-transform:uppercase;
+		}
+		.deck-head button:hover { color:var(--w-foreground); }
+
+		.chapter-list {
+			max-height:min(48vh, 340px); overflow-y:auto;
+			display:flex; flex-direction:column; gap:4px;
+			scrollbar-width:thin;
+		}
+		.chapter-empty {
+			font:400 12px/1.6 var(--font-zen-stack); color:var(--w-faint); padding:6px 0;
+		}
+		.chapter-opt {
+			width:100%; display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+			padding:8px 10px; border:1px solid transparent; border-radius:4px;
+			background:none; cursor:pointer; text-align:left;
+			transition:background .15s ease, border-color .15s ease;
+		}
+		.chapter-opt:hover, .chapter-opt:focus-visible {
+			background:rgba(216,205,180,.06); border-color:rgba(138,125,102,.35);
+		}
+		.chapter-opt.is-active {
+			background:rgba(201,62,58,.12); border-color:rgba(201,62,58,.45);
+		}
+		.chapter-opt-title {
+			font:400 13px/1.45 var(--font-zen-stack); color:var(--w-foreground);
+			overflow:hidden; text-overflow:ellipsis; display:-webkit-box;
+			-webkit-line-clamp:2; -webkit-box-orient:vertical;
+		}
+		.chapter-opt.is-active .chapter-opt-title { color:#fff; font-weight:500; }
+		.chapter-opt-page {
+			font:400 10px/1 var(--font-mono); letter-spacing:.1em; color:var(--w-faint);
+			flex:none; font-variant-numeric:tabular-nums;
+		}
+		.chapter-opt.is-active .chapter-opt-page { color:var(--aka); }
+		.deck-foot {
+			margin-top:10px; padding-top:10px; border-top:1px solid rgba(53,45,34,.7);
+			font:400 9px/1.5 var(--font-mono); letter-spacing:.12em; text-transform:uppercase;
+			color:var(--w-ghost);
+		}
+
+		.timer-desc {
+			font:400 12.5px/1.6 var(--font-zen-stack); color:var(--w-body); margin-bottom:12px;
+		}
+		.timer-presets {
+			display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-bottom:12px;
+		}
+		.timer-preset {
+			height:30px; border:1px solid var(--w-border); border-radius:999px;
+			background:rgba(13,10,7,.7); color:var(--w-faint); cursor:pointer;
+			font:500 10px/1 var(--font-mono); letter-spacing:.1em;
+		}
+		.timer-preset:hover { color:var(--w-foreground); border-color:#8a7d66; }
+		.timer-preset[aria-pressed="true"] {
+			color:var(--aka); border-color:rgba(201,62,58,.55); background:rgba(201,62,58,.14);
+		}
+		.timer-custom-row {
+			display:flex; align-items:center; gap:8px; margin-bottom:10px;
+		}
+		.timer-custom-row label {
+			font:500 9px/1 var(--font-mono); letter-spacing:.14em; text-transform:uppercase;
+			color:var(--w-faint); white-space:nowrap;
+		}
+		.timer-custom-row input {
+			width:72px; height:32px; padding:0 10px;
+			border:1px solid var(--w-border); border-radius:6px;
+			background:#120e0a; color:var(--w-foreground);
+			font:500 12px/1 var(--font-mono); font-variant-numeric:tabular-nums;
+		}
+		.timer-start-btn {
+			flex:1; height:32px; padding:0 14px; border-radius:999px;
+			border:1px solid rgba(201,62,58,.6); background:rgba(201,62,58,.18);
+			color:var(--w-foreground); cursor:pointer;
+			font:500 9px/1 var(--font-mono); letter-spacing:.16em; text-transform:uppercase;
+		}
+		.timer-start-btn:hover { background:rgba(201,62,58,.3); color:#fff; }
+		.timer-stats {
+			margin-top:8px; font:400 10px/1.4 var(--font-mono); letter-spacing:.1em;
+			color:var(--w-faint);
+		}
+		.timer-running-clock {
+			text-align:center; padding:8px 0 10px;
+			font:600 34px/1.1 var(--font-mono); letter-spacing:.08em;
+			color:var(--w-foreground); font-variant-numeric:tabular-nums;
+		}
+		.timer-bar {
+			width:100%; height:4px; border-radius:999px; background:#262017;
+			overflow:hidden; margin-bottom:10px;
+		}
+		.timer-bar i {
+			display:block; height:100%; width:0%;
+			background:linear-gradient(90deg, var(--aka-deep), var(--aka));
+			transition:width .35s linear;
+		}
+		.timer-lock-note {
+			font:400 11.5px/1.5 var(--font-zen-stack); color:var(--w-faint);
+			text-align:center; margin-bottom:12px;
+		}
+		.timer-abandon-btn {
+			width:100%; height:30px; border-radius:999px;
+			border:1px solid var(--w-border); background:rgba(20,17,13,.85);
+			color:var(--w-faint); cursor:pointer;
+			font:500 9px/1 var(--font-mono); letter-spacing:.14em; text-transform:uppercase;
+		}
+		.timer-abandon-btn:hover { color:#e07d79; border-color:rgba(201,62,58,.45); }
+		.timer-abandon-confirm {
+			margin-top:10px; padding:12px; border:1px solid rgba(201,62,58,.4);
+			background:rgba(201,62,58,.08); border-radius:6px;
+		}
+		.timer-abandon-confirm[hidden] { display:none !important; }
+		.timer-abandon-confirm p {
+			font:400 12px/1.5 var(--font-zen-stack); color:var(--w-foreground); margin-bottom:10px;
+		}
+		.timer-abandon-actions { display:flex; gap:8px; }
+		.timer-abandon-actions button {
+			flex:1; height:30px; border-radius:999px; cursor:pointer;
+			font:500 9px/1 var(--font-mono); letter-spacing:.12em; text-transform:uppercase;
+		}
+		.timer-abandon-yes {
+			border:1px solid rgba(201,62,58,.65); background:rgba(201,62,58,.24); color:#ffd9d7;
+		}
+		.timer-abandon-yes:hover { background:rgba(201,62,58,.4); }
+		.timer-abandon-no {
+			border:1px solid var(--w-border); background:rgba(13,10,7,.85); color:var(--w-body);
+		}
+		@media (max-width: 560px) {
+			.bottombar-right { gap:6px; }
+			.chapter-nav button.chap-step { width:26px; }
+			.chapter-nav button.chap-open { padding:0 9px; }
+			.top-timer-pill { padding:3px 7px; font-size:9px; }
+		}
+		@media (prefers-reduced-motion: reduce) {
+			.chapter-deck, .timer-deck, .timer-bar i { transition:none; }
+			.top-timer-pill .timer-dot, .timer-trigger .timer-dot { animation:none; }
+		}
 	</style>
 </head>
 <body
@@ -717,6 +934,7 @@ const pageDescription = book
 	data-zen="off"
 	data-has-book={book ? '1' : '0'}
 	data-book-id={String(bookId)}
+	data-book-status={book?.status ?? ''}
 	data-book-title={book?.title ?? ''}
 	data-book-author={book?.author ?? ''}
 	data-download-url={downloadUrl}
@@ -737,7 +955,7 @@ const pageDescription = book
 	<div class="topthread" aria-hidden="true"><i id="topThreadBar"></i></div>
 
 	<header class="topbar" id="topbar">
-		<a class="crumb" href="/lecturas/">← lecturas</a>
+		<a class="crumb" id="topBackLink" href="/lecturas/">← lecturas</a>
 		<div class="ident">
 			<h1>{book ? book.title : 'Vigilia de lectura'}</h1>
 			<p>{book ? book.author : 'No encontrado'}</p>
@@ -747,6 +965,10 @@ const pageDescription = book
 			id="progSummary"
 			aria-label={`Progreso de lectura: página ${initialPage}, ${initialPct} por ciento`}
 		>
+			<span class="top-timer-pill" id="topTimerPill" hidden aria-live="off">
+				<i class="timer-dot" aria-hidden="true"></i>
+				<span id="topTimerClock">00:00</span>
+			</span>
 			<span class="pg">PÁG <b id="progPage">{initialPage}</b> · <span id="progTotalPages">…</span></span>
 			<span class="wire" aria-hidden="true"><i id="progWire"></i></span>
 			<span class="pct" id="progPct">{initialPct}%</span>
@@ -837,17 +1059,67 @@ const pageDescription = book
 		</div>
 	</aside>
 
+	<!-- Índice de capítulos -->
+	<aside class="chapter-deck" id="chapterDeck" aria-label="Navegación por capítulos">
+		<div class="deck-head">
+			<span>Capítulos</span>
+			<button type="button" id="chapterClose">Cerrar</button>
+		</div>
+		<div class="chapter-list" id="chapterList" role="list">
+			<p class="chapter-empty">Cargando capítulos…</p>
+		</div>
+		<p class="deck-foot">teclas: [ / ] o h / l capítulo · c abrir índice · j / k mover en lista</p>
+	</aside>
+
+	<!-- Contador de lectura obligatoria -->
+	<aside class="timer-deck" id="timerDeck" aria-label="Vigilia cronometrada">
+		<div class="deck-head">
+			<span>Vigilia cronometrada</span>
+			<button type="button" id="timerClose">Cerrar</button>
+		</div>
+
+		<div id="timerSetupView">
+			<p class="timer-desc">Elegí cuánto tiempo querés quedarte leyendo. Mientras corra el reloj, se bloquea la salida de esta página.</p>
+			<div class="timer-presets" role="group" aria-label="Duraciones sugeridas">
+				<button type="button" class="timer-preset" data-timer-preset="10" aria-pressed="false">10 min</button>
+				<button type="button" class="timer-preset" data-timer-preset="20" aria-pressed="true">20 min</button>
+				<button type="button" class="timer-preset" data-timer-preset="30" aria-pressed="false">30 min</button>
+				<button type="button" class="timer-preset" data-timer-preset="45" aria-pressed="false">45 min</button>
+			</div>
+			<div class="timer-custom-row">
+				<label for="timerCustomMinutes">Minutos</label>
+				<input id="timerCustomMinutes" type="number" min="1" max="240" step="1" value="20" />
+				<button type="button" class="timer-start-btn" id="timerStartBtn">Iniciar vigilia</button>
+			</div>
+			<p class="timer-stats" id="timerStatsNote" hidden></p>
+		</div>
+
+		<div id="timerRunningView" hidden>
+			<div class="timer-running-clock" id="timerClockDisplay">20:00</div>
+			<div class="timer-bar" aria-hidden="true"><i id="timerBarFill"></i></div>
+			<p class="timer-lock-note">Salida bloqueada hasta completar la sesión de lectura.</p>
+			<button type="button" class="timer-abandon-btn" id="timerAbandonPromptBtn">Abandonar vigilia…</button>
+			<div class="timer-abandon-confirm" id="timerAbandonConfirm" hidden>
+				<p>¿Seguro que querés abandonar antes de completar el tiempo?</p>
+				<div class="timer-abandon-actions">
+					<button type="button" class="timer-abandon-yes" id="timerAbandonConfirmBtn">Confirmar abandono</button>
+					<button type="button" class="timer-abandon-no" id="timerAbandonCancelBtn">Seguir leyendo</button>
+				</div>
+			</div>
+		</div>
+	</aside>
+
 	<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 	<footer class="bottombar" id="bottombar" aria-label="Controles de lectura">
-		<p class="hint">seleccioná para subrayar · j / k o ↑ / ↓ línea · f pantalla completa · v foco · las barras se ocultan solas al leer</p>
+		<p class="hint">seleccioná para subrayar · j / k línea · [ / ] o h / l capítulo · c capítulos · t vigilia · f inmersión · v foco</p>
 		<div class="bottombar-row">
 			<div class="session" aria-label="Sesión de lectura">
 				<button class="save" type="button" id="saveBtn">
 					<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2h8l2 2v10H3z"/><path d="M5 2v4h6V2M5 14v-5h6v5"/></svg>
 					<span id="saveLabel">Guardar progreso</span>
 				</button>
-				<a href="/#lectura" aria-label="Volver al inicio">
+				<a id="bottomBackLink" href="/#lectura" aria-label="Volver al inicio">
 					<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>
 					Volver al inicio
 				</a>
@@ -858,6 +1130,17 @@ const pageDescription = book
 			</div>
 
 			<div class="bottombar-right">
+				<div class="chapter-nav" role="group" aria-label="Navegación por capítulos">
+					<button type="button" class="chap-step" id="prevChapterBtn" aria-label="Capítulo anterior ([ o h)" title="Capítulo anterior ([ o h)" disabled>‹</button>
+					<button type="button" class="chap-open" id="chapterBtn" aria-expanded="false" aria-label="Abrir lista de capítulos (C)">
+						<span id="chapterBtnLabel">Capítulos</span>
+					</button>
+					<button type="button" class="chap-step" id="nextChapterBtn" aria-label="Siguiente capítulo (] o l)" title="Siguiente capítulo (] o l)" disabled>›</button>
+				</div>
+				<button class="view-trigger timer-trigger" type="button" id="timerBtn" aria-expanded="false" aria-label="Vigilia cronometrada (T)">
+					<i class="timer-dot" id="timerBtnDot" hidden aria-hidden="true"></i>
+					<span id="timerBtnLabel">Vigilia</span>
+				</button>
 				<button class="view-trigger" type="button" id="viewBtn" aria-expanded="false" aria-label="Tipografía y foco">
 					<span>Aa · Foco</span>
 				</button>
@@ -871,6 +1154,7 @@ const pageDescription = book
 			ReadingInlineMark,
 			ReadingInlineRun,
 			ReadingMood,
+			ReadingStatus,
 		} from '../../entities/book/types';
 		import {
 			fetchBookClientReading,
@@ -878,25 +1162,40 @@ const pageDescription = book
 		} from '../../features/book/api/books';
 		import { tokenizeCode } from '../../features/book/lib/codeHighlight';
 		import {
+			abandonTimerSession,
+			clampTimerMinutes,
 			clusterVisualLineTops,
 			computeDampedWheelDelta,
 			computeFovealBandMetrics,
 			computeInitialRenderWindow,
+			createIdleTimerSession,
+			createTimerSession,
+			DEFAULT_TIMER_MINUTES,
+			evaluateTimerTick,
+			extractBookChapters,
+			findActiveChapterIndex,
+			findAdjacentChapterIndex,
 			findAdjacentLineTop,
 			findKeywordJumpTargetIndex,
 			findSavedProgressItemIndex,
 			findTocJumpTargetIndex,
+			formatTimerClock,
+			isNavigationLocked,
+			parseCompletedTimersCount,
 			parseReaderPrefs,
 			prepareBookDisplayItems,
 			removeMarkFromState,
 			removeWordFromState,
+			resolveAutoBookStatus,
 			resolvePreferredReadingState,
 			stepReaderScale,
 			type BookDisplayItem,
+			type ChapterNavItem,
 			type ReaderAlign,
 			type ReaderFocusMode,
 			type ReaderFont,
 			type ReaderPrefs,
+			type ReadingLockTimer,
 		} from '../../features/book/lib/reader';
 
 		const moodGlow: Record<ReadingMood, string> = {
@@ -1047,6 +1346,9 @@ const pageDescription = book
 				);
 			}
 			writeLocalSnapshot();
+			if (hasStartedBook && cleanPct >= 100) {
+				void syncAutoBookStatus();
+			}
 		}
 
 		let smoothScrollRaf = 0;
@@ -1438,6 +1740,8 @@ const pageDescription = book
 
 		const BATCH_SIZE = 50;
 		let displayItems: BookDisplayItem[] = [];
+		let chapters: ChapterNavItem[] = [];
+		let currentItemIndex = 0;
 		let totalParas = 0;
 		let renderedStart = 0;
 		let renderedEnd = 0;
@@ -1447,12 +1751,88 @@ const pageDescription = book
 		let sentinelObserver: IntersectionObserver | null = null;
 		let isBatchMutating = false;
 
+		const prevChapterBtn = document.getElementById('prevChapterBtn') as HTMLButtonElement | null;
+		const nextChapterBtn = document.getElementById('nextChapterBtn') as HTMLButtonElement | null;
+		const chapterBtn = document.getElementById('chapterBtn') as HTMLButtonElement | null;
+		const chapterBtnLabel = document.getElementById('chapterBtnLabel');
+		const chapterDeck = document.getElementById('chapterDeck');
+		const chapterList = document.getElementById('chapterList');
+
+		function updateChapterNavUi() {
+			const activeIdx = findActiveChapterIndex(chapters, currentItemIndex);
+			const hasPrev = findAdjacentChapterIndex(chapters, currentItemIndex, -1) !== null;
+			const hasNext = findAdjacentChapterIndex(chapters, currentItemIndex, 1) !== null;
+			if (prevChapterBtn) prevChapterBtn.disabled = !hasPrev;
+			if (nextChapterBtn) nextChapterBtn.disabled = !hasNext;
+
+			if (chapterBtnLabel) {
+				if (chapters.length === 0) {
+					chapterBtnLabel.textContent = 'Sin capítulos';
+				} else if (activeIdx >= 0) {
+					chapterBtnLabel.textContent = `Cap ${activeIdx + 1}/${chapters.length}`;
+				} else {
+					chapterBtnLabel.textContent = `Capítulos (${chapters.length})`;
+				}
+			}
+
+			chapterList?.querySelectorAll<HTMLButtonElement>('.chapter-opt').forEach((btn, idx) => {
+				const active = idx === activeIdx;
+				btn.classList.toggle('is-active', active);
+				if (active) btn.setAttribute('aria-current', 'true');
+				else btn.removeAttribute('aria-current');
+			});
+		}
+
+		function setCurrentItemIndex(nextIdx: number) {
+			if (!Number.isFinite(nextIdx) || nextIdx < 0) return;
+			currentItemIndex = nextIdx;
+			updateChapterNavUi();
+		}
+
+		function renderChapterList() {
+			if (!chapterList) return;
+			chapterList.replaceChildren();
+			if (chapters.length === 0) {
+				const empty = document.createElement('p');
+				empty.className = 'chapter-empty';
+				empty.textContent = 'Este documento no tiene capítulos detectados.';
+				chapterList.appendChild(empty);
+				updateChapterNavUi();
+				return;
+			}
+			chapters.forEach((chapter, idx) => {
+				const btn = document.createElement('button');
+				btn.type = 'button';
+				btn.className = 'chapter-opt';
+				btn.dataset.chapterIdx = String(idx);
+
+				const titleSpan = document.createElement('span');
+				titleSpan.className = 'chapter-opt-title';
+				titleSpan.textContent = chapter.title;
+
+				const pageSpan = document.createElement('span');
+				pageSpan.className = 'chapter-opt-page';
+				pageSpan.textContent = `pág ${chapter.page}`;
+
+				btn.appendChild(titleSpan);
+				btn.appendChild(pageSpan);
+				chapterList.appendChild(btn);
+			});
+			updateChapterNavUi();
+		}
+
 		const io = new IntersectionObserver(
 			(entries) => {
 				entries.forEach((e) => {
 					const target = e.target as HTMLElement;
 					target.classList.toggle('reading', e.isIntersecting);
 					if (e.isIntersecting) {
+						if (target.dataset.itemIndex !== undefined) {
+							setCurrentItemIndex(Number(target.dataset.itemIndex));
+						}
+						if (target.dataset.paraIndex === undefined) {
+							return;
+						}
 						const paraIdx = Number(target.dataset.paraIndex ?? -1);
 						const page = Number(target.dataset.page || 1);
 						const pct =
@@ -1587,7 +1967,7 @@ const pageDescription = book
 			return chBreak;
 		}
 
-		function buildDisplayItemFragment(item: BookDisplayItem): DocumentFragment {
+		function buildDisplayItemFragment(item: BookDisplayItem, itemIndex: number): DocumentFragment {
 			const frag = document.createDocumentFragment();
 
 			switch (item.kind) {
@@ -1597,6 +1977,7 @@ const pageDescription = book
 						h2.className = 'toc-heading';
 						h2.dataset.chunkId = item.chunkId;
 						h2.dataset.page = String(item.page);
+						h2.dataset.itemIndex = String(itemIndex);
 						h2.textContent = item.parsed.heading;
 						frag.appendChild(h2);
 					}
@@ -1606,6 +1987,7 @@ const pageDescription = book
 					nav.dataset.chunkId = item.chunkId;
 					nav.dataset.chunkIds = item.chunkIds.join(',');
 					nav.dataset.page = String(item.page);
+					nav.dataset.itemIndex = String(itemIndex);
 
 					const ul = document.createElement('ul');
 					ul.className = 'toc-list';
@@ -1656,6 +2038,7 @@ const pageDescription = book
 					header.className = 'book-opener';
 					header.dataset.chunkId = item.chunkId;
 					header.dataset.page = String(item.page);
+					header.dataset.itemIndex = String(itemIndex);
 
 					const authorEl = document.createElement('p');
 					authorEl.className = 'opener-author';
@@ -1682,6 +2065,7 @@ const pageDescription = book
 					const heading = document.createElement(tag);
 					heading.dataset.chunkId = item.chunkId;
 					heading.dataset.page = String(item.page);
+					heading.dataset.itemIndex = String(itemIndex);
 					heading.dataset.level = String(item.level);
 					if (item.align === 'center') heading.classList.add('align-center');
 					if (item.align === 'right') heading.classList.add('align-right');
@@ -1706,6 +2090,7 @@ const pageDescription = book
 					}
 
 					applySavedAnnotationsToHost(heading, [item.chunkId]);
+					io.observe(heading);
 					frag.appendChild(heading);
 					return frag;
 				}
@@ -1722,6 +2107,7 @@ const pageDescription = book
 					if (classes.length > 0) p.className = classes.join(' ');
 					p.dataset.chunkId = item.chunkId;
 					p.dataset.page = String(item.page);
+					p.dataset.itemIndex = String(itemIndex);
 					p.dataset.mood = item.mood;
 					p.dataset.cues = item.cues.join(', ');
 					p.dataset.paraIndex = String(item.paraIndex);
@@ -1737,6 +2123,7 @@ const pageDescription = book
 					quote.className = 'reader-quote';
 					quote.dataset.chunkId = item.chunkId;
 					quote.dataset.page = String(item.page);
+					quote.dataset.itemIndex = String(itemIndex);
 					quote.dataset.mood = item.mood;
 					quote.dataset.cues = item.cues.join(', ');
 					quote.dataset.paraIndex = String(item.paraIndex);
@@ -1752,6 +2139,7 @@ const pageDescription = book
 					list.className = 'reader-list';
 					list.dataset.chunkId = item.chunkId;
 					list.dataset.page = String(item.page);
+					list.dataset.itemIndex = String(itemIndex);
 					list.dataset.mood = item.mood;
 					list.dataset.cues = item.cues.join(', ');
 					list.dataset.paraIndex = String(item.paraIndex);
@@ -1772,6 +2160,7 @@ const pageDescription = book
 					aside.className = 'reader-dedication';
 					aside.dataset.chunkId = item.chunkId;
 					aside.dataset.page = String(item.page);
+					aside.dataset.itemIndex = String(itemIndex);
 					appendFormattedContent(aside, item.text);
 					applySavedAnnotationsToHost(aside, [item.chunkId]);
 					frag.appendChild(aside);
@@ -1783,6 +2172,7 @@ const pageDescription = book
 					aside.className = 'reader-meta';
 					aside.dataset.chunkId = item.chunkId;
 					aside.dataset.page = String(item.page);
+					aside.dataset.itemIndex = String(itemIndex);
 					for (const rawLine of item.text.split('\n')) {
 						const line = rawLine.trim();
 						if (!line) continue;
@@ -1801,6 +2191,7 @@ const pageDescription = book
 					p.className = 'reader-caption';
 					p.dataset.chunkId = item.chunkId;
 					p.dataset.page = String(item.page);
+					p.dataset.itemIndex = String(itemIndex);
 					appendFormattedContent(p, item.text);
 					applySavedAnnotationsToHost(p, [item.chunkId]);
 					frag.appendChild(p);
@@ -1812,6 +2203,7 @@ const pageDescription = book
 					pre.className = 'reader-code';
 					pre.dataset.chunkId = item.chunkId;
 					pre.dataset.page = String(item.page);
+					pre.dataset.itemIndex = String(itemIndex);
 					pre.dataset.mood = item.mood;
 					pre.dataset.cues = item.cues.join(', ');
 					pre.dataset.paraIndex = String(item.paraIndex);
@@ -1849,7 +2241,7 @@ const pageDescription = book
 				const nextEnd = Math.min(displayItems.length, renderedEnd + Math.max(1, count));
 				const frag = document.createDocumentFragment();
 				for (let i = renderedEnd; i < nextEnd; i += 1) {
-					frag.appendChild(buildDisplayItemFragment(displayItems[i]));
+					frag.appendChild(buildDisplayItemFragment(displayItems[i], i));
 				}
 				readerArticle?.insertBefore(frag, bottomSentinel);
 				renderedEnd = nextEnd;
@@ -1873,7 +2265,7 @@ const pageDescription = book
 
 				const frag = document.createDocumentFragment();
 				for (let i = nextStart; i < renderedStart; i += 1) {
-					frag.appendChild(buildDisplayItemFragment(displayItems[i]));
+					frag.appendChild(buildDisplayItemFragment(displayItems[i], i));
 				}
 				readerArticle?.insertBefore(frag, topSentinel.nextSibling);
 				renderedStart = nextStart;
@@ -1911,7 +2303,7 @@ const pageDescription = book
 
 			const frag = document.createDocumentFragment();
 			for (let i = start; i < end; i += 1) {
-				frag.appendChild(buildDisplayItemFragment(displayItems[i]));
+				frag.appendChild(buildDisplayItemFragment(displayItems[i], i));
 			}
 			readerArticle.appendChild(topSentinel);
 			readerArticle.appendChild(frag);
@@ -2070,6 +2462,8 @@ const pageDescription = book
 				if (reading.ocrPending || chunks.length === 0) {
 					updateProgressDisplay(state.progress.page || 1, state.progress.pct || 0, state.progress.chunkId);
 					renderOcrFallback();
+					hasStartedBook = true;
+					void syncAutoBookStatus();
 					return;
 				}
 
@@ -2079,13 +2473,18 @@ const pageDescription = book
 				});
 				displayItems = prepared.items;
 				totalParas = prepared.totalParas;
+				chapters = extractBookChapters(displayItems);
+				renderChapterList();
 
 				if (displayItems.length === 0) {
 					renderOcrFallback();
+					hasStartedBook = true;
+					void syncAutoBookStatus();
 					return;
 				}
 
 				const startTargetIdx = findSavedProgressItemIndex(displayItems, state.progress);
+				setCurrentItemIndex(startTargetIdx);
 				const win = computeInitialRenderWindow(displayItems.length, startTargetIdx, BATCH_SIZE);
 				mountRenderWindow(win.start, win.end);
 
@@ -2100,6 +2499,8 @@ const pageDescription = book
 				} else {
 					updateProgressDisplay(1, totalParas > 0 ? Math.max(1, Math.round((1 / totalParas) * 100)) : 1, displayItems[0]?.chunkId);
 				}
+				hasStartedBook = true;
+				void syncAutoBookStatus();
 			} catch (err) {
 				const msg =
 					err instanceof Error && err.message
@@ -2116,14 +2517,289 @@ const pageDescription = book
 		const fullBtn = document.getElementById('fullBtn');
 		const fullLabel = document.getElementById('fullLabel');
 
+		const timerDeck = document.getElementById('timerDeck');
+		const timerBtn = document.getElementById('timerBtn') as HTMLButtonElement | null;
+		const timerBtnLabel = document.getElementById('timerBtnLabel');
+		const timerBtnDot = document.getElementById('timerBtnDot');
+		const topTimerPill = document.getElementById('topTimerPill');
+		const topTimerClock = document.getElementById('topTimerClock');
+		const topBackLink = document.getElementById('topBackLink') as HTMLAnchorElement | null;
+		const bottomBackLink = document.getElementById('bottomBackLink') as HTMLAnchorElement | null;
+		const timerSetupView = document.getElementById('timerSetupView');
+		const timerRunningView = document.getElementById('timerRunningView');
+		const timerCustomMinutes = document.getElementById('timerCustomMinutes') as HTMLInputElement | null;
+		const timerStartBtn = document.getElementById('timerStartBtn') as HTMLButtonElement | null;
+		const timerStatsNote = document.getElementById('timerStatsNote');
+		const timerClockDisplay = document.getElementById('timerClockDisplay');
+		const timerBarFill = document.getElementById('timerBarFill') as HTMLElement | null;
+		const timerAbandonPromptBtn = document.getElementById('timerAbandonPromptBtn') as HTMLButtonElement | null;
+		const timerAbandonConfirm = document.getElementById('timerAbandonConfirm');
+		const timerAbandonConfirmBtn = document.getElementById('timerAbandonConfirmBtn') as HTMLButtonElement | null;
+		const timerAbandonCancelBtn = document.getElementById('timerAbandonCancelBtn') as HTMLButtonElement | null;
+
+		const completedTimersKey = 'vigilia:timers-completed';
+		let completedTimersCount = 0;
+		try {
+			completedTimersCount = parseCompletedTimersCount(localStorage.getItem(completedTimersKey));
+		} catch {}
+
+		let selectedTimerMinutes = DEFAULT_TIMER_MINUTES;
+		let timerSession: ReadingLockTimer = createIdleTimerSession();
+		let timerIntervalId: ReturnType<typeof setInterval> | undefined;
+
 		function closeViewDeck() {
 			viewDeck?.classList.remove('open');
 			viewBtn?.setAttribute('aria-expanded', 'false');
 		}
 
+		function closeChapterDeck() {
+			chapterDeck?.classList.remove('open');
+			chapterBtn?.setAttribute('aria-expanded', 'false');
+		}
+
+		function closeTimerDeck() {
+			timerDeck?.classList.remove('open');
+			timerBtn?.setAttribute('aria-expanded', 'false');
+			if (timerAbandonConfirm) timerAbandonConfirm.hidden = true;
+		}
+
+		function closeAllDecks(except?: 'view' | 'chapter' | 'timer') {
+			if (except !== 'view') closeViewDeck();
+			if (except !== 'chapter') closeChapterDeck();
+			if (except !== 'timer') closeTimerDeck();
+		}
+
+		function syncTimerStatsUi() {
+			if (!timerStatsNote) return;
+			if (completedTimersCount > 0) {
+				timerStatsNote.hidden = false;
+				timerStatsNote.textContent =
+					completedTimersCount === 1
+						? '1 sesión completada en este navegador.'
+						: `${completedTimersCount} sesiones completadas en este navegador.`;
+			} else {
+				timerStatsNote.hidden = true;
+			}
+		}
+
+		function syncTimerPresetUi() {
+			document.querySelectorAll<HTMLButtonElement>('[data-timer-preset]').forEach((btn) => {
+				const val = Number(btn.dataset.timerPreset || 0);
+				btn.setAttribute('aria-pressed', String(val === selectedTimerMinutes));
+			});
+			if (timerCustomMinutes && Number(timerCustomMinutes.value) !== selectedTimerMinutes) {
+				timerCustomMinutes.value = String(selectedTimerMinutes);
+			}
+		}
+
+		function syncNavigationLockUi(locked: boolean) {
+			[topBackLink, bottomBackLink].forEach((link) => {
+				if (!link) return;
+				link.classList.toggle('is-locked', locked);
+				if (locked) link.setAttribute('aria-disabled', 'true');
+				else link.removeAttribute('aria-disabled');
+			});
+		}
+
+		function renderTimerUi(remainingMs = 0) {
+			const locked = isNavigationLocked(timerSession);
+			syncNavigationLockUi(locked);
+			const clock = formatTimerClock(remainingMs);
+
+			if (timerSetupView) timerSetupView.hidden = locked;
+			if (timerRunningView) timerRunningView.hidden = !locked;
+			if (topTimerPill) topTimerPill.hidden = !locked;
+			if (timerBtnDot) timerBtnDot.hidden = !locked;
+			timerBtn?.classList.toggle('is-running', locked);
+
+			if (locked) {
+				if (topTimerClock) topTimerClock.textContent = clock;
+				if (timerClockDisplay) timerClockDisplay.textContent = clock;
+				if (timerBtnLabel) timerBtnLabel.textContent = clock;
+				if (timerBarFill && timerSession.durationMs > 0) {
+					const elapsedPct = Math.min(
+						100,
+						Math.max(0, ((timerSession.durationMs - remainingMs) / timerSession.durationMs) * 100),
+					);
+					timerBarFill.style.width = `${elapsedPct.toFixed(1)}%`;
+				}
+			} else {
+				if (timerBtnLabel) timerBtnLabel.textContent = 'Vigilia';
+				if (timerBarFill) timerBarFill.style.width = '0%';
+				if (timerAbandonConfirm) timerAbandonConfirm.hidden = true;
+			}
+			syncTimerStatsUi();
+		}
+
+		function stopTimerLoop() {
+			if (timerIntervalId) {
+				clearInterval(timerIntervalId);
+				timerIntervalId = undefined;
+			}
+		}
+
+		function tickTimer() {
+			const result = evaluateTimerTick(timerSession, Date.now());
+			timerSession = result.session;
+			if (result.justCompleted) {
+				stopTimerLoop();
+				completedTimersCount += 1;
+				try {
+					localStorage.setItem(completedTimersKey, String(completedTimersCount));
+				} catch {}
+				renderTimerUi(0);
+				const mins = Math.round(timerSession.durationMs / 60_000);
+				announce(`vigilia completada · <b>${mins} min</b> — salida desbloqueada`);
+				return;
+			}
+			renderTimerUi(result.remainingMs);
+		}
+
+		function startLockTimer(minutes: number) {
+			const cleanMinutes = clampTimerMinutes(minutes);
+			selectedTimerMinutes = cleanMinutes;
+			syncTimerPresetUi();
+			stopTimerLoop();
+			timerSession = createTimerSession(cleanMinutes, Date.now());
+			if (timerAbandonConfirm) timerAbandonConfirm.hidden = true;
+			renderTimerUi(timerSession.durationMs);
+			timerIntervalId = setInterval(tickTimer, 250);
+			announce(`vigilia iniciada · <b>${cleanMinutes} min</b> — salida bloqueada hasta completar`);
+		}
+
+		function confirmAbandonTimer() {
+			if (!isNavigationLocked(timerSession)) return;
+			stopTimerLoop();
+			timerSession = abandonTimerSession(timerSession);
+			renderTimerUi(0);
+			closeTimerDeck();
+			announce('vigilia abandonada · salida desbloqueada');
+		}
+
+		syncTimerPresetUi();
+		renderTimerUi(0);
+
+		function openChapterDeck(focusActive = false) {
+			if (!chapterDeck) return;
+			closeAllDecks('chapter');
+			chapterDeck.classList.add('open');
+			chapterBtn?.setAttribute('aria-expanded', 'true');
+			wakeChrome();
+			const activeBtn =
+				chapterList?.querySelector<HTMLButtonElement>('.chapter-opt.is-active') ??
+				chapterList?.querySelector<HTMLButtonElement>('.chapter-opt');
+			if (activeBtn) {
+				activeBtn.scrollIntoView({ block: 'nearest' });
+				if (focusActive) activeBtn.focus();
+			}
+		}
+
+		function openTimerDeck() {
+			if (!timerDeck) return;
+			closeAllDecks('timer');
+			timerDeck.classList.add('open');
+			timerBtn?.setAttribute('aria-expanded', 'true');
+			wakeChrome();
+		}
+
+		function jumpToChapterByIndex(chapterIdx: number) {
+			const chapter = chapters[chapterIdx];
+			if (!chapter) return;
+			setCurrentItemIndex(chapter.itemIndex);
+			ensureItemRenderedAndScroll(chapter.itemIndex, 'smooth');
+			announce(`capítulo · <b>${escapeHtml(chapter.title)}</b>`);
+		}
+
+		function stepChapter(direction: 1 | -1) {
+			if (chapters.length === 0) {
+				announce('este documento no tiene capítulos detectados');
+				return;
+			}
+			const nextChapterIdx = findAdjacentChapterIndex(chapters, currentItemIndex, direction);
+			if (nextChapterIdx === null) {
+				announce(direction > 0 ? 'último capítulo alcanzado' : 'ya estás en el primer capítulo');
+				return;
+			}
+			jumpToChapterByIndex(nextChapterIdx);
+		}
+
+		prevChapterBtn?.addEventListener('click', () => stepChapter(-1));
+		nextChapterBtn?.addEventListener('click', () => stepChapter(1));
+		chapterBtn?.addEventListener('click', () => {
+			if (!chapterDeck) return;
+			if (chapterDeck.classList.contains('open')) closeChapterDeck();
+			else openChapterDeck(false);
+		});
+		document.getElementById('chapterClose')?.addEventListener('click', closeChapterDeck);
+		chapterList?.addEventListener('click', (e) => {
+			const btn = (e.target as Element | null)?.closest<HTMLButtonElement>('.chapter-opt');
+			if (!btn) return;
+			const idx = Number(btn.dataset.chapterIdx ?? -1);
+			if (idx >= 0) {
+				jumpToChapterByIndex(idx);
+				closeChapterDeck();
+			}
+		});
+
+		timerBtn?.addEventListener('click', () => {
+			if (!timerDeck) return;
+			if (timerDeck.classList.contains('open')) closeTimerDeck();
+			else openTimerDeck();
+		});
+		document.getElementById('timerClose')?.addEventListener('click', closeTimerDeck);
+		document.querySelectorAll<HTMLButtonElement>('[data-timer-preset]').forEach((btn) => {
+			btn.addEventListener('click', () => {
+				selectedTimerMinutes = clampTimerMinutes(Number(btn.dataset.timerPreset || DEFAULT_TIMER_MINUTES));
+				syncTimerPresetUi();
+			});
+		});
+		timerCustomMinutes?.addEventListener('input', () => {
+			const raw = Number(timerCustomMinutes.value);
+			if (Number.isFinite(raw) && raw > 0) {
+				selectedTimerMinutes = clampTimerMinutes(raw);
+				document.querySelectorAll<HTMLButtonElement>('[data-timer-preset]').forEach((btn) => {
+					btn.setAttribute('aria-pressed', String(Number(btn.dataset.timerPreset) === selectedTimerMinutes));
+				});
+			}
+		});
+		timerCustomMinutes?.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				startLockTimer(Number(timerCustomMinutes.value || selectedTimerMinutes));
+			}
+		});
+		timerStartBtn?.addEventListener('click', () => {
+			const inputVal = timerCustomMinutes ? Number(timerCustomMinutes.value) : selectedTimerMinutes;
+			startLockTimer(Number.isFinite(inputVal) && inputVal > 0 ? inputVal : selectedTimerMinutes);
+		});
+		timerAbandonPromptBtn?.addEventListener('click', () => {
+			if (timerAbandonConfirm) timerAbandonConfirm.hidden = false;
+		});
+		timerAbandonCancelBtn?.addEventListener('click', () => {
+			if (timerAbandonConfirm) timerAbandonConfirm.hidden = true;
+		});
+		timerAbandonConfirmBtn?.addEventListener('click', confirmAbandonTimer);
+
+		[topBackLink, bottomBackLink].forEach((link) => {
+			link?.addEventListener('click', (e) => {
+				if (!isNavigationLocked(timerSession)) return;
+				e.preventDefault();
+				const rem = Math.max(0, timerSession.endsAtMs - Date.now());
+				openTimerDeck();
+				announce(`vigilia activa · faltan <b>${formatTimerClock(rem)}</b> — confirmá abandono para salir`);
+			});
+		});
+
+		window.addEventListener('beforeunload', (e) => {
+			if (!isNavigationLocked(timerSession)) return;
+			e.preventDefault();
+			e.returnValue = '';
+		});
+
 		viewBtn?.addEventListener('click', () => {
 			if (!viewDeck) return;
 			const open = !viewDeck.classList.contains('open');
+			if (open) closeAllDecks('view');
 			viewDeck.classList.toggle('open', open);
 			viewBtn.setAttribute('aria-expanded', String(open));
 			wakeChrome();
@@ -2164,7 +2840,12 @@ const pageDescription = book
 		let pointerOverChrome = false;
 
 		function hasActiveOverlay(): boolean {
-			return Boolean(viewDeck?.classList.contains('open') || selbar?.classList.contains('on'));
+			return Boolean(
+				viewDeck?.classList.contains('open') ||
+					chapterDeck?.classList.contains('open') ||
+					timerDeck?.classList.contains('open') ||
+					selbar?.classList.contains('on'),
+			);
 		}
 
 		function setZen(on: boolean) {
@@ -2183,7 +2864,7 @@ const pageDescription = book
 			}, delayMs);
 		}
 
-		['#topbar', '#bottombar', '#viewDeck', '#rail'].forEach((selector) => {
+		['#topbar', '#bottombar', '#viewDeck', '#chapterDeck', '#timerDeck', '#rail'].forEach((selector) => {
 			const el = document.querySelector(selector);
 			el?.addEventListener('pointerenter', () => {
 				pointerOverChrome = true;
@@ -2272,12 +2953,14 @@ const pageDescription = book
 		}
 
 		document.addEventListener('keydown', (e) => {
-			if (e.ctrlKey || e.metaKey || e.altKey) return;
+			if (e.ctrlKey || e.metaKey) return;
+			if (e.altKey && !e.getModifierState?.('AltGraph')) return;
 			const targetEl = e.target as HTMLElement | null;
 			if (
 				targetEl &&
 				(targetEl.tagName === 'INPUT' ||
 					targetEl.tagName === 'TEXTAREA' ||
+					targetEl.tagName === 'SELECT' ||
 					targetEl.isContentEditable)
 			) {
 				return;
@@ -2285,12 +2968,33 @@ const pageDescription = book
 			const key = e.key.toLowerCase();
 			if (key === 'escape') {
 				if (hasActiveOverlay()) {
-					closeViewDeck();
+					closeAllDecks();
 					hideSelbar();
 					return;
 				}
 				setZen(body.dataset.zen !== 'on');
 				return;
+			}
+			if (chapterDeck?.classList.contains('open')) {
+				if (key === 'c') {
+					e.preventDefault();
+					closeChapterDeck();
+					return;
+				}
+				if (key === 'j' || e.key === 'ArrowDown' || key === 'k' || e.key === 'ArrowUp') {
+					e.preventDefault();
+					const opts = Array.from(chapterList?.querySelectorAll<HTMLButtonElement>('.chapter-opt') ?? []);
+					if (opts.length === 0) return;
+					const focusedIdx = opts.indexOf(document.activeElement as HTMLButtonElement);
+					const delta = key === 'j' || e.key === 'ArrowDown' ? 1 : -1;
+					const fallbackIdx = Math.max(0, findActiveChapterIndex(chapters, currentItemIndex));
+					const nextIdx =
+						focusedIdx >= 0
+							? (focusedIdx + delta + opts.length) % opts.length
+							: fallbackIdx;
+					opts[nextIdx]?.focus();
+					return;
+				}
 			}
 			if (key === 'j' || e.key === 'ArrowDown') {
 				e.preventDefault();
@@ -2298,6 +3002,20 @@ const pageDescription = book
 			} else if (key === 'k' || e.key === 'ArrowUp') {
 				e.preventDefault();
 				stepLine(-1);
+			} else if (key === 'h' || e.key === '[') {
+				e.preventDefault();
+				stepChapter(-1);
+			} else if (key === 'l' || e.key === ']') {
+				e.preventDefault();
+				stepChapter(1);
+			} else if (key === 'c') {
+				e.preventDefault();
+				if (chapterDeck?.classList.contains('open')) closeChapterDeck();
+				else openChapterDeck(true);
+			} else if (key === 't') {
+				e.preventDefault();
+				if (timerDeck?.classList.contains('open')) closeTimerDeck();
+				else openTimerDeck();
 			} else if (e.key === ' ') {
 				e.preventDefault();
 				cancelSmoothScroll();
@@ -2314,18 +3032,72 @@ const pageDescription = book
 			}
 		});
 
+		const rawBookStatus = body.dataset.bookStatus;
+		let bookStatus: ReadingStatus | '' =
+			rawBookStatus === 'reading' || rawBookStatus === 'finished' || rawBookStatus === 'queued'
+				? rawBookStatus
+				: '';
+		let hasStartedBook = false;
+		let statusSyncPromise: Promise<void> | null = null;
+		let pendingStatusSync = false;
+
 		async function persistReadingState(): Promise<boolean> {
 			writeLocalSnapshot();
+			const pct = state.progress.pct || 0;
 			try {
 				await saveBookReadingState(bookId, {
 					progress: state.progress,
 					marks: state.marks,
 					words: state.words,
 				});
+				const nextStatus = resolveAutoBookStatus(bookStatus, pct, true);
+				if (nextStatus) {
+					bookStatus = nextStatus;
+					body.dataset.bookStatus = nextStatus;
+				}
 				return true;
 			} catch {
 				return false;
 			}
+		}
+
+		async function syncAutoBookStatus(): Promise<void> {
+			const targetStatus = resolveAutoBookStatus(
+				bookStatus,
+				state.progress.pct || 0,
+				hasStartedBook,
+			);
+			if (!targetStatus) return;
+
+			if (statusSyncPromise) {
+				pendingStatusSync = true;
+				return;
+			}
+
+			statusSyncPromise = (async () => {
+				do {
+					pendingStatusSync = false;
+					const nextTarget = resolveAutoBookStatus(
+						bookStatus,
+						state.progress.pct || 0,
+						hasStartedBook,
+					);
+					if (!nextTarget) break;
+
+					const saved = await persistReadingState();
+					if (!saved) break;
+
+					if (nextTarget === 'finished') {
+						announce('lectura completada · marcado automáticamente como <b>Terminado</b>');
+					} else if (nextTarget === 'reading') {
+						announce('lectura iniciada · marcado automáticamente como <b>Leyendo</b>');
+					}
+				} while (pendingStatusSync);
+			})().finally(() => {
+				statusSyncPromise = null;
+			});
+
+			await statusSyncPromise;
 		}
 
 		const saveBtn = document.getElementById('saveBtn');
@@ -2434,6 +3206,12 @@ const pageDescription = book
 			const target = e.target as Element | null;
 			if (viewDeck?.classList.contains('open') && !target?.closest('#viewDeck, #viewBtn')) {
 				closeViewDeck();
+			}
+			if (chapterDeck?.classList.contains('open') && !target?.closest('#chapterDeck, #chapterBtn')) {
+				closeChapterDeck();
+			}
+			if (timerDeck?.classList.contains('open') && !target?.closest('#timerDeck, #timerBtn, #topBackLink, #bottomBackLink')) {
+				closeTimerDeck();
 			}
 			if (!activeEditSpan) return;
 			if (target?.closest('#selbar, .sub, .kw')) return;

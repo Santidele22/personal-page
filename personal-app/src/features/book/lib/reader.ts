@@ -5,6 +5,7 @@ import type {
 	ReadingInlineRun,
 	ReadingMark,
 	ReadingMood,
+	ReadingStatus,
 	ReadingWord,
 } from '../../../entities/book/types';
 
@@ -1566,6 +1567,226 @@ export function findAdjacentLineTop(
 		if (Number.isFinite(top) && top < referenceTopPx - safeTolerance) {
 			return top;
 		}
+	}
+	return null;
+}
+
+export type ChapterNavItem = {
+	id: string;
+	itemIndex: number;
+	title: string;
+	page: number;
+	level: 1 | 2 | 3;
+};
+
+function formatChapterMarkerTitle(marker: string, bodyText: string): string {
+	const cleanMarker = marker.replace(/\s+/g, ' ').trim();
+	const cleanBody = bodyText.replace(/\s+/g, ' ').trim();
+	if (!cleanBody || cleanMarker.length > 6) {
+		return cleanMarker;
+	}
+	const maxLen = 44;
+	if (cleanBody.length <= maxLen) {
+		return `${cleanMarker} · ${cleanBody}`;
+	}
+	const truncated = cleanBody.slice(0, maxLen).replace(/\s+\S*$/, '').trim() || cleanBody.slice(0, maxLen).trim();
+	return `${cleanMarker} · ${truncated}…`;
+}
+
+export function extractBookChapters(items: readonly BookDisplayItem[]): ChapterNavItem[] {
+	if (items.length === 0) return [];
+
+	const primary: ChapterNavItem[] = [];
+	const level2: ChapterNavItem[] = [];
+	const level3: ChapterNavItem[] = [];
+
+	for (let i = 0; i < items.length; i += 1) {
+		const item = items[i];
+		if (item.kind === 'heading') {
+			const entry: ChapterNavItem = {
+				id: item.chunkId,
+				itemIndex: i,
+				title: item.text.trim(),
+				page: item.page,
+				level: item.level,
+			};
+			if (item.level === 1) primary.push(entry);
+			else if (item.level === 2) level2.push(entry);
+			else level3.push(entry);
+		} else if (item.kind === 'para' && item.chapterMarker) {
+			primary.push({
+				id: item.chunkId,
+				itemIndex: i,
+				title: formatChapterMarkerTitle(item.chapterMarker, item.text),
+				page: item.page,
+				level: 1,
+			});
+		}
+	}
+
+	if (primary.length > 0) return primary;
+	if (level2.length > 0) return level2;
+	if (level3.length > 0) return level3;
+
+	const tocChapters: ChapterNavItem[] = [];
+	const seenIndices = new Set<number>();
+	const tocItems = items.filter((item): item is Extract<BookDisplayItem, { kind: 'toc' }> => item.kind === 'toc');
+	const hasTopLevelToc = tocItems.some((toc) =>
+		toc.parsed.entries.some((entry) => (entry.level ?? 1) === 1),
+	);
+
+	for (const toc of tocItems) {
+		for (const entry of toc.parsed.entries) {
+			const entryLevel = entry.level ?? 1;
+			if (hasTopLevelToc && entryLevel !== 1) continue;
+			const targetIdx = findTocJumpTargetIndex(items, entry.label, entry.page);
+			if (targetIdx === null || seenIndices.has(targetIdx)) continue;
+			seenIndices.add(targetIdx);
+			const targetItem = items[targetIdx];
+			tocChapters.push({
+				id: targetItem.chunkId,
+				itemIndex: targetIdx,
+				title: entry.label,
+				page: entry.page || targetItem.page,
+				level: entryLevel,
+			});
+		}
+	}
+
+	return tocChapters;
+}
+
+export function findActiveChapterIndex(
+	chapters: readonly ChapterNavItem[],
+	currentItemIndex: number,
+): number {
+	if (chapters.length === 0 || !Number.isFinite(currentItemIndex)) return -1;
+	let active = -1;
+	for (let i = 0; i < chapters.length; i += 1) {
+		if (chapters[i].itemIndex <= currentItemIndex) {
+			active = i;
+		} else {
+			break;
+		}
+	}
+	return active;
+}
+
+export function findAdjacentChapterIndex(
+	chapters: readonly ChapterNavItem[],
+	currentItemIndex: number,
+	direction: 1 | -1,
+): number | null {
+	if (chapters.length === 0) return null;
+	const active = findActiveChapterIndex(chapters, currentItemIndex);
+	if (direction > 0) {
+		if (active < 0) return 0;
+		return active + 1 < chapters.length ? active + 1 : null;
+	}
+	if (active < 0) return null;
+	if (active > 0) return active - 1;
+	return currentItemIndex > chapters[0].itemIndex ? 0 : null;
+}
+
+export const TIMER_PRESET_MINUTES = [10, 20, 30, 45] as const;
+export const DEFAULT_TIMER_MINUTES = 20;
+export const MIN_TIMER_MINUTES = 1;
+export const MAX_TIMER_MINUTES = 240;
+
+export type ReadingLockTimerStatus = 'idle' | 'running' | 'completed' | 'abandoned';
+
+export type ReadingLockTimer = {
+	status: ReadingLockTimerStatus;
+	durationMs: number;
+	startedAtMs: number;
+	endsAtMs: number;
+};
+
+export function clampTimerMinutes(minutes: number): number {
+	if (!Number.isFinite(minutes)) return DEFAULT_TIMER_MINUTES;
+	return Math.min(MAX_TIMER_MINUTES, Math.max(MIN_TIMER_MINUTES, Math.round(minutes)));
+}
+
+export function formatTimerClock(remainingMs: number): string {
+	const safeMs = Number.isFinite(remainingMs) && remainingMs > 0 ? remainingMs : 0;
+	const totalSeconds = safeMs === 0 ? 0 : Math.ceil(safeMs / 1000);
+	const hours = Math.floor(totalSeconds / 3600);
+	const minutes = Math.floor((totalSeconds % 3600) / 60);
+	const seconds = totalSeconds % 60;
+	const mm = String(minutes).padStart(2, '0');
+	const ss = String(seconds).padStart(2, '0');
+	if (hours > 0) {
+		const hh = String(hours).padStart(2, '0');
+		return `${hh}:${mm}:${ss}`;
+	}
+	return `${mm}:${ss}`;
+}
+
+export function createIdleTimerSession(): ReadingLockTimer {
+	return {
+		status: 'idle',
+		durationMs: 0,
+		startedAtMs: 0,
+		endsAtMs: 0,
+	};
+}
+
+export function createTimerSession(minutes: number, nowMs = Date.now()): ReadingLockTimer {
+	const safeMinutes = clampTimerMinutes(minutes);
+	const durationMs = safeMinutes * 60_000;
+	return {
+		status: 'running',
+		durationMs,
+		startedAtMs: nowMs,
+		endsAtMs: nowMs + durationMs,
+	};
+}
+
+export function evaluateTimerTick(
+	session: ReadingLockTimer,
+	nowMs = Date.now(),
+): { session: ReadingLockTimer; remainingMs: number; justCompleted: boolean } {
+	if (session.status !== 'running') {
+		return { session, remainingMs: 0, justCompleted: false };
+	}
+	const remainingMs = Math.max(0, session.endsAtMs - nowMs);
+	if (remainingMs <= 0) {
+		return {
+			session: { ...session, status: 'completed' },
+			remainingMs: 0,
+			justCompleted: true,
+		};
+	}
+	return { session, remainingMs, justCompleted: false };
+}
+
+export function abandonTimerSession(session: ReadingLockTimer): ReadingLockTimer {
+	if (session.status !== 'running') return session;
+	return { ...session, status: 'abandoned' };
+}
+
+export function isNavigationLocked(session: ReadingLockTimer): boolean {
+	return session.status === 'running';
+}
+
+export function parseCompletedTimersCount(raw: string | null): number {
+	if (!raw) return 0;
+	const parsed = Number(raw);
+	if (!Number.isInteger(parsed) || parsed < 0) return 0;
+	return parsed;
+}
+
+export function resolveAutoBookStatus(
+	currentStatus: ReadingStatus | '' | null | undefined,
+	pct: number,
+	started = true,
+): ReadingStatus | null {
+	const cleanPct = Number.isFinite(pct) ? pct : 0;
+	if (cleanPct >= 100) {
+		return currentStatus === 'finished' ? null : 'finished';
+	}
+	if (started && currentStatus === 'queued') {
+		return 'reading';
 	}
 	return null;
 }

@@ -7,21 +7,33 @@ import {
 	computeFovealBandMetrics,
 	computeInitialRenderWindow,
 	DEFAULT_READER_PREFS,
+	abandonTimerSession,
+	clampTimerMinutes,
+	createTimerSession,
+	evaluateTimerTick,
+	extractBookChapters,
 	extractLeadingChapterMarker,
+	findActiveChapterIndex,
+	findAdjacentChapterIndex,
 	findAdjacentLineTop,
 	findKeywordJumpTargetIndex,
 	findSavedProgressItemIndex,
 	findTocJumpTargetIndex,
+	formatTimerClock,
 	isLikelyFalseHeading,
+	isNavigationLocked,
 	parseBookOpenerHeading,
+	parseCompletedTimersCount,
 	parseReaderPrefs,
 	parseTocChunk,
 	prepareBookDisplayItems,
 	prepareChunkDisplay,
 	removeMarkFromState,
 	removeWordFromState,
+	resolveAutoBookStatus,
 	resolvePreferredReadingState,
 	stepReaderScale,
+	TIMER_PRESET_MINUTES,
 } from './reader';
 
 function makeChunk(
@@ -972,5 +984,150 @@ describe('reader helpers', () => {
 			kind: 'code',
 			text: '  int x = 1;\n    return x;',
 		});
+	});
+});
+
+describe('chapter navigation helpers', () => {
+	it('extracts level-1 headings and chapterMarker paragraphs while skipping deeper subsections', () => {
+		const prepared = prepareBookDisplayItems(
+			[
+				makeChunk({ id: 'p0001.0000', type: 'heading', page: 1, level: 1, text: 'Prólogo' }),
+				makeChunk({ id: 'p0002.0000', type: 'para', page: 2, text: 'Introducción breve.' }),
+				makeChunk({ id: 'p0005.0000', type: 'heading', page: 5, level: 1, text: '1 · Procesos' }),
+				makeChunk({ id: 'p0006.0000', type: 'heading', page: 6, level: 2, text: '1.1 Hilos' }),
+				makeChunk({
+					id: 'p0020.0000',
+					type: 'para',
+					page: 20,
+					text: 'I En el gran edificio del Palacio de Justicia todo estaba en silencio.',
+				}),
+			],
+			50,
+		);
+
+		expect(extractBookChapters(prepared.items)).toEqual([
+			{ id: 'p0001.0000', itemIndex: 0, title: 'Prólogo', page: 1, level: 1 },
+			{ id: 'p0005.0000', itemIndex: 2, title: '1 · Procesos', page: 5, level: 1 },
+			{
+				id: 'p0020.0000',
+				itemIndex: 4,
+				title: 'I · En el gran edificio del Palacio de Justicia…',
+				page: 20,
+				level: 1,
+			},
+		]);
+	});
+
+	it('falls back to shallowest heading level when a book has no level-1 headings', () => {
+		const prepared = prepareBookDisplayItems(
+			[
+				makeChunk({ id: 'p0003.0000', type: 'heading', page: 3, level: 2, text: '1.1 Arranque' }),
+				makeChunk({ id: 'p0004.0000', type: 'heading', page: 4, level: 3, text: '1.1.1 Detalle' }),
+				makeChunk({ id: 'p0010.0000', type: 'heading', page: 10, level: 2, text: '1.2 Memoria' }),
+			],
+			30,
+		);
+
+		expect(extractBookChapters(prepared.items)).toEqual([
+			{ id: 'p0003.0000', itemIndex: 0, title: '1.1 Arranque', page: 3, level: 2 },
+			{ id: 'p0010.0000', itemIndex: 2, title: '1.2 Memoria', page: 10, level: 2 },
+		]);
+	});
+
+	it('falls back to TOC entries when no heading or chapterMarker exists', () => {
+		const prepared = prepareBookDisplayItems(
+			[
+				makeChunk({
+					id: 'p0001.0000',
+					type: 'toc',
+					page: 1,
+					text: 'Índice\nInicio . . . 2\nDesarrollo . . . 5',
+				}),
+				makeChunk({ id: 'p0002.0000', type: 'para', page: 2, text: 'Arranca la historia.' }),
+				makeChunk({ id: 'p0005.0000', type: 'para', page: 5, text: 'Sigue el desarrollo.' }),
+			],
+			10,
+		);
+
+		expect(extractBookChapters(prepared.items)).toEqual([
+			{ id: 'p0002.0000', itemIndex: 1, title: 'Inicio', page: 2, level: 1 },
+			{ id: 'p0005.0000', itemIndex: 2, title: 'Desarrollo', page: 5, level: 1 },
+		]);
+	});
+
+	it('computes active and adjacent chapter indices for forward and backward navigation', () => {
+		const chapters = [
+			{ id: 'c1', itemIndex: 2, title: 'Cap 1', page: 2, level: 1 as const },
+			{ id: 'c2', itemIndex: 10, title: 'Cap 2', page: 8, level: 1 as const },
+			{ id: 'c3', itemIndex: 25, title: 'Cap 3', page: 20, level: 1 as const },
+		];
+
+		expect(findActiveChapterIndex(chapters, 0)).toBe(-1);
+		expect(findActiveChapterIndex(chapters, 10)).toBe(1);
+		expect(findActiveChapterIndex(chapters, 18)).toBe(1);
+
+		expect(findAdjacentChapterIndex(chapters, 0, 1)).toBe(0);
+		expect(findAdjacentChapterIndex(chapters, 0, -1)).toBeNull();
+		expect(findAdjacentChapterIndex(chapters, 10, 1)).toBe(2);
+		expect(findAdjacentChapterIndex(chapters, 10, -1)).toBe(0);
+		expect(findAdjacentChapterIndex(chapters, 5, -1)).toBe(0);
+		expect(findAdjacentChapterIndex(chapters, 2, -1)).toBeNull();
+		expect(findAdjacentChapterIndex(chapters, 25, 1)).toBeNull();
+	});
+});
+
+describe('reading lock timer helpers', () => {
+	it('exposes presets, clamps custom minutes and formats clock output', () => {
+		expect(TIMER_PRESET_MINUTES).toEqual([10, 20, 30, 45]);
+		expect(clampTimerMinutes(0)).toBe(1);
+		expect(clampTimerMinutes(500)).toBe(240);
+		expect(clampTimerMinutes(Number.NaN)).toBe(20);
+		expect(clampTimerMinutes(17.6)).toBe(18);
+
+		expect(formatTimerClock(25 * 60_000)).toBe('25:00');
+		expect(formatTimerClock(61_000)).toBe('01:01');
+		expect(formatTimerClock(65 * 60_000)).toBe('01:05:00');
+		expect(formatTimerClock(0)).toBe('00:00');
+	});
+
+	it('locks navigation while running and unlocks upon completion or confirmed abandonment', () => {
+		const session = createTimerSession(10, 1_000);
+		expect(isNavigationLocked(session)).toBe(true);
+		expect(session.endsAtMs).toBe(1_000 + 10 * 60_000);
+
+		const mid = evaluateTimerTick(session, 1_000 + 4 * 60_000);
+		expect(mid.justCompleted).toBe(false);
+		expect(mid.remainingMs).toBe(6 * 60_000);
+		expect(isNavigationLocked(mid.session)).toBe(true);
+
+		const done = evaluateTimerTick(mid.session, session.endsAtMs);
+		expect(done.justCompleted).toBe(true);
+		expect(done.remainingMs).toBe(0);
+		expect(done.session.status).toBe('completed');
+		expect(isNavigationLocked(done.session)).toBe(false);
+
+		const abandoned = abandonTimerSession(createTimerSession(15, 2_000));
+		expect(abandoned.status).toBe('abandoned');
+		expect(isNavigationLocked(abandoned)).toBe(false);
+	});
+
+	it('parses completed timers count safely from storage', () => {
+		expect(parseCompletedTimersCount(null)).toBe(0);
+		expect(parseCompletedTimersCount('garbage')).toBe(0);
+		expect(parseCompletedTimersCount('-3')).toBe(0);
+		expect(parseCompletedTimersCount('7')).toBe(7);
+	});
+});
+
+describe('automatic reading status transitions', () => {
+	it('promotes queued to reading when starting and promotes to finished at 100%', () => {
+		expect(resolveAutoBookStatus('queued', 0, false)).toBeNull();
+		expect(resolveAutoBookStatus('queued', 0, true)).toBe('reading');
+		expect(resolveAutoBookStatus('queued', 12, true)).toBe('reading');
+		expect(resolveAutoBookStatus('queued', 100, true)).toBe('finished');
+		expect(resolveAutoBookStatus('reading', 100, true)).toBe('finished');
+		expect(resolveAutoBookStatus('reading', 55, true)).toBeNull();
+		expect(resolveAutoBookStatus('finished', 25, true)).toBeNull();
+		expect(resolveAutoBookStatus('finished', 100, true)).toBeNull();
 	});
 });
