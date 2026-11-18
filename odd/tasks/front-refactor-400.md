@@ -84,6 +84,30 @@ Conventions every task follows:
 | T10 | `widgets/hero/duneScene.ts` → scene modules | S1 S4 S5 | inline | `refactor(hero): split dune scene` |
 | T11 | `pages/lecturas/[id].astro` → page + widgets | S1 S4 S5 | inline | `refactor(lecturas): split reader page` |
 
+## Result
+
+Stage 1 closed: no file under `personal-app/src/` exceeds 400 code lines (355 files, largest
+`features/menu/MenuItemsEditorPanel.tsx` at 369). Verified with `npx vitest run` (46 files, 417
+tests), `npx astro check` (0 errors, 0 warnings) and `npx astro build` (complete). Inventory
+regenerated in `docs/refactorizacion.md`.
+
+| Task | File | Before | After (max) | Commit |
+| --- | --- | ---: | ---: | --- |
+| T1 | `features/tool/ToolsEditorPanel.tsx` | 410 | 115 | `99ffcfd` |
+| T2 | `features/ad-slot/AdvertisingPlansEditorPanel.tsx` | 503 | 200 | `38b318f` |
+| T3 | `features/ad-slot/BrandsEditorPanel.tsx` | 510 | 198 | `6e92558` |
+| T4 | `features/service/ServicesEditorPanel.tsx` | 536 | 185 | `ea5f2fb` |
+| T5 | `features/profile/ProfileEditorPanel.tsx` | 659 | 198 | `4603253` |
+| T6 | `features/project/ProjectsEditorPanel.tsx` | 700 | 304 | `2323085` |
+| T7 | `features/roadmap/RoadmapEditorPanel.tsx` | 755 | 273 | `b9ccd7f` |
+| T8 | `features/book/lib/reader.ts` | 1748 | 252 | `c295a91` |
+| T9 | `features/book/lib/reader.test.ts` | 1019 | 223 | `045914f` |
+| T10 | `widgets/hero/duneScene.ts` | 1100 | 209 | `0c85309` |
+| T11 | `pages/lecturas/[id].astro` | 3388 | 365 | `ce15a2d` |
+
+The pre-existing books and certificates splits from the previous session were committed as their
+own units first (`44fe274`, `d0a1296`) so the branch history matches the work units.
+
 ## Log
 
 L1. "The conversation history before this point was compacted ... The user asked in Spanish to continue with `personal-app/src/features/certificate/CertificadosEditorPanel.tsx`" (context; already done).
@@ -111,3 +135,13 @@ L7. Decision (parent, after T1/T2): markup normalization and S5 collided. Resolu
 precedent), exact markup preserved when the panel has a distinct interaction. T1 normalized onto the
 shells; T2 kept its own markup (collapsible create card, public-slot disclosure, per-form error
 routing) and adopted only `createAdminCrudState`.
+
+L8. Evidence per task (widget): every task ended with `npx vitest run` green, `npx astro check` at 0
+errors / 0 warnings, and `scc --by-file` proving each touched file <= 400 code lines. T11 also ran
+`npx astro build` successfully. No test case was added, removed or loosened except the new unit
+specs for the extracted pure helpers; `reader.test.ts` was split with its 40 tests preserved and
+verified by block-keyed diff.
+
+L9. Slice note: the branch exceeds the ~400 authored-line guidance per commit because one unit here
+is one whole panel (container + form module + components + spec). The boundary is the commit: each
+commit is one reviewable panel/module and one task in `## Tasks`.
