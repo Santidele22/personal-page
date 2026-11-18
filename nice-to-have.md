@@ -7,6 +7,7 @@ Lector integrado de EPUB/PDF en el navegador, en vez de solo descargar.
 Estado de lectura: quiero leer / leyendo / terminado, con calificación y reseña propia.
 Estadísticas anuales: libros leídos, páginas, géneros (un "Wrapped" personal).
 Reto de lectura con progreso visible.
+Jardín o taller robótico solarpunk en la vigilia de lectura que se vaya gestando y armando progresivamente según los contadores de lectura completados (idea futura).
 
 Música y ambiente
 Reproductor persistente mientras navegas, con playlists por post o por estado de ánimo.
