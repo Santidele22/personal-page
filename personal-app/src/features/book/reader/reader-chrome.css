@@ -1,0 +1,144 @@
+/* ===== Top bar: identidad + progreso susurrado ===== */
+.topbar {
+	position:fixed; top:0; left:0; right:0; z-index:25;
+	display:grid; grid-template-columns:minmax(100px, 1fr) minmax(0, auto) minmax(160px, 1fr);
+	align-items:center; gap:16px;
+	padding:15px 28px 17px;
+	background:rgba(13,10,7,.92);
+	backdrop-filter:blur(10px);
+	transition:opacity .45s ease, transform .45s ease;
+}
+.topbar::after {
+	content:""; position:absolute; left:0; right:0; top:100%; height:20px;
+	pointer-events:none;
+	background:linear-gradient(to bottom, rgba(13,10,7,.85), rgba(13,10,7,0));
+}
+.topbar .crumb {
+	font:400 10px/1 var(--font-mono); letter-spacing:.22em; text-transform:uppercase;
+	color:var(--w-faint); text-decoration:none; justify-self:start; white-space:nowrap;
+}
+.topbar .crumb:hover { color:var(--w-foreground); }
+.topbar .ident { text-align:center; min-width:0; }
+.topbar .ident h1 {
+	font:600 14px/1.25 var(--font-mincho); letter-spacing:.05em; color:var(--w-foreground);
+	overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:44vw; margin:0 auto;
+}
+.topbar .ident p { margin-top:5px; font:400 9px/1 var(--font-mono); letter-spacing:.26em; text-transform:uppercase; color:var(--w-faint); }
+/* El progreso: barra más legible + porcentaje */
+.topbar .prog { justify-self:end; display:flex; align-items:center; gap:12px; white-space:nowrap; }
+.topbar .prog .pg { font:400 10px/1 var(--font-mono); letter-spacing:.16em; color:var(--w-ghost); }
+.topbar .prog .pg b { color:var(--w-foreground); font-weight:500; }
+.topbar .prog .wire {
+	width:104px; height:5px; border-radius:999px;
+	background:#262017; border:1px solid #3f3628; position:relative; overflow:hidden;
+}
+.topbar .prog .wire i {
+	position:absolute; inset:0 auto 0 0; width:var(--prog-pct, 0%);
+	border-radius:999px;
+	background:linear-gradient(90deg, var(--aka-deep), var(--aka));
+	box-shadow:0 0 8px rgba(201,62,58,.55);
+	opacity:1;
+	transition:width .4s ease;
+}
+.topbar .prog .pct { font:500 10px/1 var(--font-mono); letter-spacing:.1em; color:var(--w-body); min-width:36px; text-align:right; }
+/* Hilo de capítulo fijo arriba: queda visible incluso en vigilia pura */
+.topthread { position:fixed; top:0; left:0; right:0; height:2px; background:rgba(74,62,44,.32); z-index:28; pointer-events:none; }
+.topthread i {
+	display:block; height:100%; width:var(--prog-pct, 0%);
+	background:linear-gradient(90deg, var(--aka-deep), var(--aka));
+	box-shadow:0 0 6px rgba(201,62,58,.5);
+	opacity:1;
+	transition:width .6s ease;
+}
+@media (max-width: 720px) {
+	.topbar { padding:12px 16px 14px; gap:10px; grid-template-columns:auto minmax(0, 1fr) auto; }
+	.topbar .ident h1 { font-size:12px; max-width:38vw; }
+	.topbar .ident p { display:none; }
+	.topbar .prog { gap:8px; }
+	.topbar .prog .wire { width:58px; height:4px; }
+	.topbar .prog .pg { font-size:9px; letter-spacing:.1em; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.topbar .prog .wire i, .topthread i, .topbar, .bottombar, .rail { transition:none; }
+}
+
+/* ===== Foco fovial configurable: amplio (default), estrecho (3 líneas) o apagado ===== */
+.foveal-veil {
+	position:fixed; inset:0; pointer-events:none; z-index:12;
+	background:linear-gradient(
+		to bottom,
+		var(--veil-edge) 0%,
+		var(--veil-mid) calc(var(--focus-top) - 56px),
+		rgba(13,10,7,0) var(--focus-top),
+		rgba(13,10,7,0) var(--focus-bottom),
+		var(--veil-mid) calc(var(--focus-bottom) + 56px),
+		var(--veil-edge) 100%
+	);
+	transition:opacity .45s ease;
+}
+body.vigilia-body[data-focus="off"] .foveal-veil { opacity:0; }
+
+/* ===== Footer fijo sin superposición (auto-ocultable en modo zen) ===== */
+.bottombar {
+	position:fixed; bottom:0; left:0; right:0; z-index:30;
+	padding:14px 26px 18px;
+	background:rgba(13,10,7,.92);
+	border-top:1px solid rgba(53,45,34,.85);
+	backdrop-filter:blur(10px);
+	transition:opacity .45s ease, transform .45s ease;
+}
+.bottombar::before {
+	content:""; position:absolute; left:0; right:0; bottom:100%; height:22px;
+	pointer-events:none;
+	background:linear-gradient(to top, rgba(13,10,7,.88), rgba(13,10,7,0));
+}
+.bottombar .hint {
+	position:static; margin-bottom:10px;
+	font:400 9px/1.4 var(--font-mono); letter-spacing:.16em; text-transform:uppercase;
+	color:var(--w-faint);
+}
+.bottombar-row {
+	display:flex; align-items:center; justify-content:space-between;
+	gap:12px; flex-wrap:wrap;
+}
+.bottombar-right {
+	display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap;
+}
+@media (max-width: 760px) {
+	.bottombar { padding:12px 16px 14px; }
+	.bottombar .hint { display:none; }
+}
+
+/* Modo Zen ("Vigilia pura"): oculta cromo mientras se lee */
+body.vigilia-body[data-zen="on"] .topbar {
+	opacity:0; transform:translateY(-8px); pointer-events:none;
+}
+body.vigilia-body[data-zen="on"] .bottombar {
+	opacity:0; transform:translateY(10px); pointer-events:none;
+}
+body.vigilia-body[data-zen="on"] .rail {
+	opacity:0; pointer-events:none;
+}
+
+/* Salir de la vigilia: guardar progreso, volver y pantalla completa */
+.session {
+	position:static;
+	display:inline-flex; gap:8px; flex-wrap:wrap;
+}
+.session button, .session a, .view-trigger {
+	display:inline-flex; align-items:center; gap:8px; height:32px; padding:0 14px;
+	border:1px solid var(--w-border); background:rgba(20,17,13,.85); cursor:pointer;
+	border-radius:999px; color:var(--w-faint); text-decoration:none;
+	white-space:nowrap; flex:none;
+	font:500 9px/1 var(--font-mono); letter-spacing:.16em; text-transform:uppercase;
+}
+.session button svg, .session a svg, .view-trigger svg { width:12px; height:12px; stroke:currentColor; fill:none; stroke-width:1.6; flex:none; }
+.session button:hover, .session a:hover, .view-trigger:hover { color:var(--w-foreground); border-color:#b3a78e; }
+.session button.save:hover, .session button.save.saved, .session button.full[aria-pressed="true"], .view-trigger[aria-expanded="true"] {
+	color:var(--aka); border-color:rgba(201,62,58,.5);
+}
+@media (max-width: 560px) {
+	.session button.full .full-lbl { display:none; }
+	.session button, .session a, .view-trigger { padding:0 11px; }
+}
+

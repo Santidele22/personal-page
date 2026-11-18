@@ -1,0 +1,30 @@
+---
+interface Props {
+	available: boolean;
+	title: string | null;
+}
+
+const { available, title } = Astro.props;
+---
+
+	<div class="foveal-veil" aria-hidden="true"></div>
+
+	<main class="stage" id="stage" tabindex="-1">
+		<article class="text" id="readerArticle" aria-label={title ?? 'Lectura'}>
+			{!available && (
+				<div class="fallback-box">
+					<div class="head">
+						<span class="seal">404 · No disponible</span>
+						<p>Este libro no existe o todavía no fue publicado en la estantería.</p>
+					</div>
+				</div>
+			)}
+
+			{available && (
+				<div class="reader-loading" id="readerLoading" role="status" aria-live="polite">
+					<span class="loader-dot" aria-hidden="true"></span>
+					<span>Abriendo páginas…</span>
+				</div>
+			)}
+		</article>
+	</main>

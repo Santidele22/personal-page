@@ -1,0 +1,33 @@
+---
+import type { ReadingWord } from '../../../entities/book/types';
+
+interface Props {
+	words: ReadingWord[];
+}
+
+const { words } = Astro.props;
+---
+
+	<!-- Píldora de selección: tintas, keyword y borrado comparten espacio -->
+	<div class="selbar" id="selbar" role="toolbar" aria-label="Subrayar, borrar o marcar como palabra clave">
+		<button class="ink" type="button" data-ink="sub-aka" aria-label="Subrayar en rojo"><i style="background:var(--aka)"></i></button>
+		<button class="ink" type="button" data-ink="sub-bronce" aria-label="Subrayar en bronce"><i style="background:var(--bronce)"></i></button>
+		<button class="ink" type="button" data-ink="sub-tinta" aria-label="Subrayar en tinta"><i style="background:#8a7d66"></i></button>
+		<span class="sep" id="kwSep" aria-hidden="true"></span>
+		<button class="kwbtn" type="button" id="kwBtn">◇ keyword</button>
+		<span class="sep" id="delSep" hidden aria-hidden="true"></span>
+		<button class="delbtn" type="button" id="delMarkBtn" hidden aria-label="Borrar subrayado o keyword">Borrar</button>
+	</div>
+
+	<!-- Riel de keywords del capítulo -->
+	<aside class="rail" id="rail" aria-label="Palabras clave del libro">
+		<span class="rt">Keywords · margen</span>
+		{words.map((w) => (
+			<div class="rail-item" data-term={w.term}>
+				<button class="rail-jump" type="button" data-target={w.term}>
+					{w.term.length > 30 ? `${w.term.slice(0, 30)}…` : w.term}
+				</button>
+				<button class="rail-del" type="button" data-remove-word={w.term} aria-label={`Borrar keyword ${w.term}`}>×</button>
+			</div>
+		))}
+	</aside>
