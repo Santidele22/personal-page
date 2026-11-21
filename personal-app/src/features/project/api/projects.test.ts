@@ -62,12 +62,20 @@ describe('fetchProjectsPage — paginated envelope', () => {
 	});
 
 	it('maps a stored type key to its rendered label', async () => {
-		getJsonMock.mockResolvedValue([row({ type: 'auditoria' })]);
+		getJsonMock.mockResolvedValue([
+			row({ type: 'auditoria' }),
+			row({ id: 2, type: 'sistemas' }),
+			row({ id: 3, type: 'juegos' }),
+		]);
 
 		const projects = await fetchProjects();
 
 		expect(projects?.[0].type).toBe('auditoria');
 		expect(projects?.[0].typeLabel).toBe('Auditoría');
+		expect(projects?.[1].type).toBe('sistemas');
+		expect(projects?.[1].typeLabel).toBe('Sistemas / Linux');
+		expect(projects?.[2].type).toBe('juegos');
+		expect(projects?.[2].typeLabel).toBe('Juegos');
 	});
 
 	it('falls back to the capitalized raw value on an unknown type key', async () => {

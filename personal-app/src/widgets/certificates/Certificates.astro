@@ -48,7 +48,7 @@ const showAllLink = page !== null && page.total > page.items.length;
 			</Reveal>
 		)}
 		{certificates.length > 0 && (
-			<div class="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+			<div class:list={['mt-10 grid gap-6 md:grid-cols-2', certificates.length !== 4 && 'lg:grid-cols-3']}>
 				{certificates.map((certificate, index) => (
 					<Reveal delay={0.1 * index} class="h-full">
 						<CertificateCard certificate={certificate} />

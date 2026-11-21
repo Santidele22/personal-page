@@ -3,7 +3,7 @@ import BaseLayout from '../app/layouts/BaseLayout.astro';
 import { showServicesOnLanding } from '../app/config/sections';
 import AdBand from '../entities/ad-slot/AdBand.astro';
 import { fetchAdvertisingPlans, fetchBrands } from '../features/admin/api/collections';
-import { composeAdBands } from '../features/ad-slot/api/carrusel';
+import { composeAdBands, hasActiveSponsors } from '../features/ad-slot/api/carrusel';
 import Reveal from '../shared/ui/Reveal.astro';
 import About from '../widgets/about/About.astro';
 import Blog from '../widgets/blog/Blog.astro';
@@ -28,11 +28,13 @@ const bands = composeAdBands({ plans, brands, now: new Date() });
 
 <BaseLayout>
 	<Hero />
-	<Reveal>
-		<div class="mx-auto max-w-6xl px-5 pt-8 sm:px-8">
-			<AdBand band={bands.hero} />
-		</div>
-	</Reveal>
+	{hasActiveSponsors(bands.hero) && (
+		<Reveal>
+			<div class="mx-auto max-w-6xl px-5 pt-8 sm:px-8">
+				<AdBand band={bands.hero} />
+			</div>
+		</Reveal>
+	)}
 	<Blog />
 	<About />
 	<Recommendations />

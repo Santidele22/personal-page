@@ -5,7 +5,7 @@ import { safeHref } from '../../../shared/api/url';
 
 const PROJECT_ICONS: ProjectIcon[] = ['sprout', 'feather', 'blocks', 'wrench'];
 const PROJECT_STATUSES: ProjectStatus[] = ['en-produccion', 'en-construccion', 'codigo-abierto'];
-const PROJECT_TYPES: ProjectType[] = ['full-stack', 'backend', 'frontend', 'auditoria', 'web3'];
+const PROJECT_TYPES: ProjectType[] = ['full-stack', 'backend', 'frontend', 'auditoria', 'web3', 'sistemas', 'juegos'];
 
 /** Rendered label of each stored status key. */
 const STATUS_LABELS: Record<ProjectStatus, string> = {
@@ -21,6 +21,8 @@ const TYPE_LABELS: Record<ProjectType, string> = {
 	frontend: 'Frontend',
 	auditoria: 'Auditoría',
 	web3: 'Web3',
+	sistemas: 'Sistemas / Linux',
+	juegos: 'Juegos',
 };
 
 /**

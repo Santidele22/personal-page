@@ -2,7 +2,7 @@
 import { GITHUB_URL, LINKEDIN_URL } from '../../app/config/site';
 import AdBand from '../../entities/ad-slot/AdBand.astro';
 import { fetchAdvertisingPlans, fetchBrands } from '../../features/admin/api/collections';
-import { composeAdBands } from '../../features/ad-slot/api/carrusel';
+import { composeAdBands, hasActiveSponsors } from '../../features/ad-slot/api/carrusel';
 import { fetchProfile } from '../../features/profile/api/profile';
 import { SITE_NAME } from '../../app/config/site';
 import Icon from '../../shared/ui/Icon.astro';
@@ -103,7 +103,7 @@ const columns = [
 				</nav>
 			))}
 		</div>
-		<AdBand band={footerBand} class="mx-auto mt-12 w-full max-w-3xl" />
+		{hasActiveSponsors(footerBand) && <AdBand band={footerBand} class="mx-auto mt-12 w-full max-w-3xl" />}
 		<div class="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6 text-[12px] text-muted-foreground">
 			<p>{copyright}</p>
 			<p class="tracking-wide">hecho despacio · deploy con calma</p>

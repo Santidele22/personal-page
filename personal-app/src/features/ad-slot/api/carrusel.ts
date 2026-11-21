@@ -113,6 +113,11 @@ export function composeAdBands({ plans, brands, now }: ComposeInput): CarruselBa
 	};
 }
 
+/** True only when the band carries at least one active paying sponsor. */
+export function hasActiveSponsors(band: AdBandPayload): boolean {
+	return band.items.some((item) => item.kind === 'sponsor');
+}
+
 /** Active brands first, split by the plan their brand paid for. */
 function pushSponsors(
 	heroItems: SponsorCarouselItem[],

@@ -61,6 +61,8 @@ export const PROJECT_TYPE_OPTIONS: { value: string; label: string }[] = [
 	{ value: 'frontend', label: 'Frontend' },
 	{ value: 'auditoria', label: 'Auditoría' },
 	{ value: 'web3', label: 'Web3' },
+	{ value: 'sistemas', label: 'Sistemas / Linux' },
+	{ value: 'juegos', label: 'Juegos' },
 ];
 
 /** The values the API accepts in `icon`; anything else travels as `null`. */

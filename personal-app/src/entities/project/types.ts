@@ -3,7 +3,7 @@ export type ProjectStatus = 'en-produccion' | 'en-construccion' | 'codigo-abiert
 export type ProjectIcon = 'sprout' | 'feather' | 'blocks' | 'wrench';
 
 /** Portfolio category keys stored in the `projects.type` column. */
-export type ProjectType = 'full-stack' | 'backend' | 'frontend' | 'auditoria' | 'web3';
+export type ProjectType = 'full-stack' | 'backend' | 'frontend' | 'auditoria' | 'web3' | 'sistemas' | 'juegos';
 
 export type Project = {
 	name: string;

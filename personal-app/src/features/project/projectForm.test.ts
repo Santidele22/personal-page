@@ -89,6 +89,8 @@ describe('PROJECT_TYPE_OPTIONS', () => {
 			{ value: 'frontend', label: 'Frontend' },
 			{ value: 'auditoria', label: 'Auditoría' },
 			{ value: 'web3', label: 'Web3' },
+			{ value: 'sistemas', label: 'Sistemas / Linux' },
+			{ value: 'juegos', label: 'Juegos' },
 		]);
 	});
 });
