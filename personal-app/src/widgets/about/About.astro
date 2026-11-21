@@ -1,4 +1,5 @@
 ---
+import { hasAdminSession } from '../../features/auth/api/serverSession';
 import { fetchProfile } from '../../features/profile/api/profile';
 import Icon from '../../shared/ui/Icon.astro';
 import Reveal from '../../shared/ui/Reveal.astro';
@@ -9,7 +10,10 @@ import WorkshopBenchArt from './WorkshopBenchArt.astro';
    the copy empty: the backend is the single source of truth and the section
    never shows shipped text (projects-type-restore L3). */
 const serverOrigin = Astro.url.origin;
-const profile = await fetchProfile(serverOrigin);
+const [profile, isAdmin] = await Promise.all([
+	fetchProfile(serverOrigin),
+	hasAdminSession(Astro.request.headers.get('cookie')),
+]);
 
 const name = (profile?.name ?? '').replace(/\.$/, '');
 const firstName = name.trim().split(/\s+/)[0] || name;
@@ -22,10 +26,10 @@ const folios = buildAboutFolios(profile?.bioParagraphs ?? []);
 		<Reveal class="relative mx-auto w-full max-w-sm lg:max-w-none">
 			<figure class="relative border border-border bg-card shadow-[0_20px_60px_-30px_rgba(0,0,0,0.25)]">
 				<span aria-hidden="true" class="absolute -left-px -top-px z-[3] size-9 border-b border-r border-aka"></span>
-				<WorkshopBenchArt />
+				<WorkshopBenchArt isAdmin={isAdmin} />
 				<figcaption class="flex items-center justify-between gap-2 border-t border-border px-4 py-3 text-[11px] tracking-[0.06em] text-muted-foreground">
-					<span>banco de montaje — manos que guían, máquinas que ayudan</span>
-					<span id="workshopCaptionState" class="font-mono text-[10px] uppercase tracking-[0.14em] text-aka">TALLER CYBER-HERRERO · LINUX</span>
+					<span>taller casero — código de pie, electrónica a mano</span>
+					<span id="workshopCaptionState" class="font-mono text-[10px] uppercase tracking-[0.14em] text-aka">SANTI · CODEANDO EN PC</span>
 				</figcaption>
 			</figure>
 		</Reveal>
