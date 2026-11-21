@@ -83,12 +83,12 @@ describe('duneScene 3D geometry', () => {
 describe('duneScene interaction and telemetry state', () => {
 	it('toggles sanctuary via toggleSanctuary without drag state', () => {
 		const state = createDuneState();
-		expect(getTelemetryLabel(state)).toBe('TORMENTA EN LA ARENA · UMBRAL EN PIE');
+		expect(getTelemetryLabel(state)).toBe('RUIDO AFUERA · EN PIE');
 
 		toggleSanctuary(state);
 		expect(state.shieldLocked).toBe(true);
 		expect(state.pulse).toBe(1);
-		expect(getTelemetryLabel(state)).toBe('UMBRAL ABIERTO · ARENA EN CALMA');
+		expect(getTelemetryLabel(state)).toBe('SILENCIO ADENTRO · ENTRANDO');
 
 		toggleSanctuary(state);
 		expect(state.shieldLocked).toBe(false);

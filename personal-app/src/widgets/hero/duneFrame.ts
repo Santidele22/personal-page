@@ -30,6 +30,7 @@ export interface DuneFrame extends DuneView {
 	drawList: DrawItem[];
 	sunDir: Vec3;
 	project: Projector;
+	scribeScreenPos?: [number, number];
 }
 
 export function createProjector(cx: number, cy: number, scale: number, camDist: number): Projector {

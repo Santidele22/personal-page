@@ -1,65 +1,168 @@
 import { transformGatePoint } from './duneFrame';
 import type { DuneFrame } from './duneFrame';
+import { getScribeVisibility, getScribeWorldPos } from './duneFsm';
 import { rgba } from './dunePalette';
-import type { Vec3 } from './duneTypes';
+import type { DunePalette, Vec3 } from './duneTypes';
+
+function drawWalkingStaff(
+	c: CanvasRenderingContext2D,
+	top: [number, number, number, number],
+	bot: [number, number, number, number],
+	emberBoost: number,
+	palette: DunePalette,
+): void {
+	const scaleRef = top[3];
+	c.strokeStyle = rgba(palette.fg, 0.92);
+	c.lineWidth = Math.max(1.15, 1.3 * scaleRef);
+	c.lineCap = 'round';
+	c.beginPath();
+	c.moveTo(top[0], top[1]);
+	c.lineTo(bot[0], bot[1]);
+	c.stroke();
+
+	const bandX = top[0] + (bot[0] - top[0]) * 0.14;
+	const bandY = top[1] + (bot[1] - top[1]) * 0.14;
+	c.strokeStyle = rgba(palette.aka, 0.72);
+	c.lineWidth = Math.max(1.4, 1.65 * scaleRef);
+	c.beginPath();
+	c.moveTo(bandX - 1.3 * scaleRef, bandY);
+	c.lineTo(bandX + 1.3 * scaleRef, bandY);
+	c.stroke();
+
+	const haloR = (6 + emberBoost * 5) * scaleRef;
+	const emberGlow = c.createRadialGradient(top[0], top[1], 0.5, top[0], top[1], haloR);
+	emberGlow.addColorStop(0, rgba(palette.aka, 0.38 + emberBoost * 0.28));
+	emberGlow.addColorStop(1, rgba(palette.aka, 0));
+	c.fillStyle = emberGlow;
+	c.beginPath();
+	c.arc(top[0], top[1], haloR, 0, Math.PI * 2);
+	c.fill();
+
+	c.fillStyle = rgba(palette.aka, 0.96);
+	c.beginPath();
+	c.arc(top[0], top[1], Math.max(1.5, 1.9 * scaleRef), 0, Math.PI * 2);
+	c.fill();
+}
 
 export function drawScribePass(frame: DuneFrame): void {
 	const { palette, state, project, drawList } = frame;
 
-	// Tiny Scribe / Pilgrim Silhouette holding a miniature Open Codex
-	const figX = -0.22;
-	const figFootY = 1.45;
-	const figHeadY = 1.285;
-	const figZ = 1.88;
+	const [figX, figFootY, figZ] = getScribeWorldPos(state);
+	const isWalking = state.scribeState === 'ENTRANDO' || state.scribeState === 'SALIENDO';
+	const walkSway = isWalking ? Math.sin(state.time * 7.5) * 0.008 * (1 - state.insideDepth * 0.5) : 0;
+	const isBracing = state.scribeState === 'AGUANTANDO';
+	const leanX = isBracing
+		? state.gustStrength * 0.022 * (1 - state.insideDepth)
+		: state.scribeState === 'PENSANDO'
+			? 0.007
+			: state.gustStrength * 0.016 * (1 - state.insideDepth) + walkSway;
+	const headOffset = isBracing ? 0.009 : state.scribeState === 'PENSANDO' ? 0.004 : 0;
+	const figHeadY = figFootY - 0.165 + headOffset;
 
+	const spHead = project(transformGatePoint(frame, [figX + leanX, figHeadY, figZ], 0));
+	frame.scribeScreenPos = [spHead[0], spHead[1]];
+
+	if (state.staffPlanted) {
+		const plantedTop = project(transformGatePoint(frame, [0.145, 0.745, 0.42], 0));
+		const plantedBot = project(transformGatePoint(frame, [0.13, 0.94, 0.42], 0));
+		const emberBoost = 0.35 + state.breathPulse * 0.65;
+		drawList.push({
+			z: 1.36,
+			draw: (c) => {
+				c.fillStyle = rgba(palette.isDark ? palette.bg : palette.fg, palette.isDark ? 0.65 : 0.32);
+				c.beginPath();
+				c.ellipse(
+					plantedBot[0] + 2.5 * plantedBot[3],
+					plantedBot[1] + 0.8 * plantedBot[3],
+					3.4 * plantedBot[3],
+					1.3 * plantedBot[3],
+					0,
+					0,
+					Math.PI * 2,
+				);
+				c.fill();
+				drawWalkingStaff(c, plantedTop, plantedBot, emberBoost, palette);
+			},
+		});
+	}
+
+	const visibility = getScribeVisibility(state);
+	if (visibility <= 0.01) return;
+
+	const shadowScale = (1 - state.stairProgress * 0.52) * (1 - state.insideDepth * 0.85);
 	const figShadowPts = (
 		[
-			[figX - 0.026, figFootY, figZ],
-			[figX + 0.026, figFootY, figZ],
-			[figX + 0.38, figFootY + 0.04, figZ + 0.28],
-			[figX + 0.26, figFootY + 0.04, figZ + 0.34],
+			[figX - 0.024, figFootY, figZ],
+			[figX + 0.024, figFootY, figZ],
+			[figX + 0.36 * shadowScale, figFootY + 0.038 * shadowScale, figZ + 0.26 * shadowScale],
+			[figX + 0.24 * shadowScale, figFootY + 0.038 * shadowScale, figZ + 0.32 * shadowScale],
 		] as Vec3[]
 	).map((p) => transformGatePoint(frame, p, 0));
 	const spFigShadow = figShadowPts.map(project);
 
-	const cloakPts = (
+	const coatPts = (
 		[
-			[figX - 0.015, figHeadY + 0.028, figZ],
-			[figX + 0.015, figHeadY + 0.028, figZ],
-			[figX + 0.044, figFootY, figZ + 0.015],
-			[figX + 0.008, figFootY + 0.006, figZ],
-			[figX - 0.04, figFootY, figZ - 0.01],
+			[figX + leanX - 0.014, figHeadY + 0.028, figZ],
+			[figX + leanX + 0.014, figHeadY + 0.028, figZ],
+			[figX + 0.038, figFootY, figZ + 0.012],
+			[figX + 0.006, figFootY + 0.005, figZ],
+			[figX - 0.034, figFootY, figZ - 0.008],
 		] as Vec3[]
 	).map((p) => transformGatePoint(frame, p, 0));
-	const spCloak = cloakPts.map(project);
-	const spHead = project(transformGatePoint(frame, [figX, figHeadY, figZ], 0));
-	const staffTop = project(transformGatePoint(frame, [figX - 0.044, figHeadY - 0.036, figZ], 0));
-	const staffBot = project(transformGatePoint(frame, [figX - 0.032, figFootY + 0.004, figZ], 0));
-	const codexCenter = project(
-		transformGatePoint(frame, [figX + 0.056, figHeadY + 0.046, figZ + 0.02], 0),
+	const spCoat = coatPts.map(project);
+
+	const windCalm = Math.max(0.15, (1 - state.shieldStrength * 0.65) * (1 - state.insideDepth));
+	const gustBoost = 1 + state.gustStrength * 1.1;
+	const windFlutter = Math.sin(state.time * (3.6 + state.gustStrength * 3.4)) * 0.016 * windCalm * gustBoost;
+	const scarfReach = (1 + state.gustStrength * 0.32) * (1 - state.insideDepth * 0.45);
+	const scarfPts = (
+		[
+			[figX + leanX - 0.01, figHeadY + 0.034, figZ],
+			[figX + leanX - 0.095 * scarfReach, figHeadY + 0.05 + windFlutter, figZ + 0.018],
+			[figX + leanX - 0.175 * scarfReach, figHeadY + 0.072 - windFlutter, figZ + 0.036],
+		] as Vec3[]
+	).map((p) => transformGatePoint(frame, p, 0));
+	const spScarf = scarfPts.map(project);
+
+	const strideSwing = isWalking ? Math.sin(state.scribeTime * 6.5) * 0.022 : 0;
+	const carriedStaffTop = project(
+		transformGatePoint(
+			frame,
+			isBracing
+				? [figX + leanX + 0.012, figHeadY - 0.02, figZ]
+				: [figX + leanX - 0.04 + strideSwing * 0.45, figHeadY - 0.032, figZ],
+			0,
+		),
+	);
+	const carriedStaffBot = project(
+		transformGatePoint(
+			frame,
+			isBracing
+				? [figX + 0.055, figFootY + 0.005, figZ + 0.02]
+				: [figX - 0.03 - strideSwing, figFootY + 0.004, figZ],
+			0,
+		),
 	);
 
-	const windFlutter = Math.sin(state.time * 3.8) * 0.018 * (1 - state.shieldStrength * 0.65);
-	const sashPts = (
-		[
-			[figX - 0.012, figHeadY + 0.034, figZ],
-			[figX - 0.105, figHeadY + 0.05 + windFlutter, figZ + 0.02],
-			[figX - 0.195, figHeadY + 0.074 - windFlutter, figZ + 0.04],
-		] as Vec3[]
-	).map((p) => transformGatePoint(frame, p, 0));
-	const spSash = sashPts.map(project);
+	const painterZ = 1.55 - state.stairProgress * 0.22 - state.insideDepth * 1.75;
 
 	drawList.push({
-		z: 1.55,
+		z: painterZ,
 		draw: (c) => {
-			c.fillStyle = rgba(palette.isDark ? palette.bg : palette.fg, palette.isDark ? 0.72 : 0.36);
+			c.save();
+			c.globalAlpha *= visibility;
+
+			c.fillStyle = rgba(
+				palette.isDark ? palette.bg : palette.fg,
+				(palette.isDark ? 0.68 : 0.34) * (1 - state.insideDepth * 0.8),
+			);
 			c.beginPath();
 			c.moveTo(spFigShadow[0][0], spFigShadow[0][1]);
 			for (let k = 1; k < spFigShadow.length; k++) c.lineTo(spFigShadow[k][0], spFigShadow[k][1]);
 			c.closePath();
 			c.fill();
 
-			const haloR = 14 * spHead[3];
+			const haloR = (13 + state.codexGlow * 4) * spHead[3];
 			const gRim = c.createRadialGradient(
 				spHead[0],
 				spHead[1] + 6 * spHead[3],
@@ -68,107 +171,46 @@ export function drawScribePass(frame: DuneFrame): void {
 				spHead[1] + 6 * spHead[3],
 				haloR,
 			);
-			gRim.addColorStop(0, rgba(palette.aka, 0.34 + state.shieldStrength * 0.24));
+			gRim.addColorStop(0, rgba(palette.aka, 0.28 + state.shieldStrength * 0.22 + state.codexGlow * 0.12));
 			gRim.addColorStop(1, rgba(palette.aka, 0));
 			c.fillStyle = gRim;
 			c.beginPath();
 			c.arc(spHead[0], spHead[1] + 6 * spHead[3], haloR, 0, Math.PI * 2);
 			c.fill();
 
-			c.strokeStyle = rgba(palette.fg, 0.92);
-			c.lineWidth = Math.max(1.2, 1.35 * spHead[3]);
-			c.lineCap = 'round';
-			c.beginPath();
-			c.moveTo(staffTop[0], staffTop[1]);
-			c.lineTo(staffBot[0], staffBot[1]);
-			c.stroke();
-
-			c.fillStyle = rgba(palette.aka, 0.98);
-			c.beginPath();
-			c.arc(staffTop[0], staffTop[1], Math.max(1.7, 2.0 * spHead[3]), 0, Math.PI * 2);
-			c.fill();
+			if (!state.staffPlanted) {
+				drawWalkingStaff(c, carriedStaffTop, carriedStaffBot, state.codexGlow * 0.6, palette);
+			}
 
 			const silColor = palette.fg;
 			c.fillStyle = rgba(silColor, 0.98);
-			c.strokeStyle = rgba(palette.aka, 0.78 + state.shieldStrength * 0.2);
+			c.strokeStyle = rgba(palette.aka, 0.68 + state.shieldStrength * 0.22);
 			c.lineWidth = 1.0;
 			c.lineJoin = 'round';
 			c.beginPath();
-			c.moveTo(spCloak[0][0], spCloak[0][1]);
-			for (let k = 1; k < spCloak.length; k++) c.lineTo(spCloak[k][0], spCloak[k][1]);
+			c.moveTo(spCoat[0][0], spCoat[0][1]);
+			for (let k = 1; k < spCoat.length; k++) c.lineTo(spCoat[k][0], spCoat[k][1]);
 			c.closePath();
 			c.fill();
 			c.stroke();
 
 			c.fillStyle = rgba(silColor, 0.99);
-			c.strokeStyle = rgba(palette.aka, 0.85);
+			c.strokeStyle = rgba(palette.aka, 0.8);
 			c.lineWidth = 0.95;
 			c.beginPath();
 			c.arc(spHead[0], spHead[1], Math.max(2.4, 2.9 * spHead[3]), 0, Math.PI * 2);
 			c.fill();
 			c.stroke();
 
-			const shoulderR: [number, number] = [
-				spHead[0] + 1.8 * spHead[3],
-				spHead[1] + 4.2 * spHead[3],
-			];
-			c.strokeStyle = rgba(silColor, 0.98);
-			c.lineWidth = Math.max(1.6, 1.9 * spHead[3]);
+			c.strokeStyle = rgba(palette.aka, 0.92);
+			c.lineWidth = Math.max(1.5, 1.85 * spHead[3]);
 			c.lineCap = 'round';
 			c.beginPath();
-			c.moveTo(shoulderR[0], shoulderR[1]);
-			c.lineTo(codexCenter[0] - 1.2 * spHead[3], codexCenter[1] + 1.0 * spHead[3]);
+			c.moveTo(spScarf[0][0], spScarf[0][1]);
+			c.quadraticCurveTo(spScarf[1][0], spScarf[1][1], spScarf[2][0], spScarf[2][1]);
 			c.stroke();
 
-			const cw = Math.max(4.6, 5.4 * codexCenter[3]);
-			const ch = Math.max(3.2, 3.8 * codexCenter[3]);
-			const bx = codexCenter[0];
-			const by = codexCenter[1];
-
-			const gBook = c.createRadialGradient(bx, by, 0.5, bx, by, cw * 1.9);
-			gBook.addColorStop(0, rgba(palette.aka, 0.42 + state.shieldStrength * 0.28));
-			gBook.addColorStop(1, rgba(palette.aka, 0));
-			c.fillStyle = gBook;
-			c.beginPath();
-			c.arc(bx, by, cw * 1.9, 0, Math.PI * 2);
-			c.fill();
-
-			c.fillStyle = rgba(palette.card, 0.98);
-			c.strokeStyle = rgba(palette.fg, 0.85);
-			c.lineWidth = 0.9;
-			c.lineJoin = 'round';
-			c.beginPath();
-			c.moveTo(bx, by - ch * 0.35);
-			c.lineTo(bx - cw, by - ch * 0.75);
-			c.lineTo(bx - cw * 0.92, by + ch * 0.45);
-			c.lineTo(bx, by + ch * 0.75);
-			c.closePath();
-			c.fill();
-			c.stroke();
-
-			c.beginPath();
-			c.moveTo(bx, by - ch * 0.35);
-			c.lineTo(bx + cw, by - ch * 0.65);
-			c.lineTo(bx + cw * 0.92, by + ch * 0.55);
-			c.lineTo(bx, by + ch * 0.75);
-			c.closePath();
-			c.fill();
-			c.stroke();
-
-			c.strokeStyle = rgba(palette.aka, 0.96);
-			c.lineWidth = 1.25;
-			c.beginPath();
-			c.moveTo(bx, by + ch * 0.72);
-			c.lineTo(bx + 1.4 * codexCenter[3], by + ch * 1.55);
-			c.stroke();
-
-			c.strokeStyle = rgba(palette.aka, 0.95);
-			c.lineWidth = Math.max(1.6, 1.95 * spHead[3]);
-			c.lineCap = 'round';
-			c.beginPath();
-			c.moveTo(spSash[0][0], spSash[0][1]);
-			c.quadraticCurveTo(spSash[1][0], spSash[1][1], spSash[2][0], spSash[2][1]);
-			c.stroke();
+			c.restore();
 		},
 	});
 }

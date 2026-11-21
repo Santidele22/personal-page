@@ -31,9 +31,10 @@ const commitments = profile?.commitments ?? [];
 		class="absolute inset-0 z-[1] select-none cursor-pointer"
 		tabindex="0"
 		role="button"
-		aria-label="Escena 3D a pantalla completa: dunas de arena en movimiento, un umbral brutalista colosal partido por la mitad con cicatrices kintsugi e inscripciones talladas en la piedra, un haz de luz roja derramándose sobre la escalinata ceremonial, la sombra larga de los monolitos sobre las crestas y una silueta humana diminuta sosteniendo su códice abierto al pie del monumento. Hacé clic para abrir el umbral y calmar la tormenta."
+		aria-label="Escena 3D a pantalla completa: dunas de arena en movimiento, un refugio monolítico de piedra partido en dos con trazos kintsugi, una luz tibia derramándose sobre los escalones, la sombra larga sobre la arena y una persona sola con su bastón de caminante al pie mirando hacia adentro. Hacé clic para entrar en silencio o volver al ruido."
 	>
 		<canvas id="duneCanvas" class="block size-full"></canvas>
+		<p id="duneWhisper" class="dune-whisper font-mincho italic" aria-live="polite" hidden></p>
 	</div>
 
 	<div class="hero-readability-veil pointer-events-none absolute inset-0 z-[2]" aria-hidden="true"></div>
@@ -92,17 +93,17 @@ const commitments = profile?.commitments ?? [];
 	<div class="pointer-events-none relative z-[3] mx-auto mt-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-border/75 px-5 pb-5 pt-3.5 font-mono text-[10.5px] uppercase tracking-[0.2em] text-muted-foreground sm:px-8 sm:pb-[1.35rem] sm:pt-[0.9rem]">
 		<div class="inline-flex items-center gap-3.5">
 			<span class="size-1.5 rounded-full bg-aka" aria-hidden="true"></span>
-			<span id="telemetryState" aria-live="polite">TORMENTA EN LA ARENA · UMBRAL EN PIE</span>
+			<span id="telemetryState" aria-live="polite">RUIDO AFUERA · EN PIE</span>
 		</div>
 		<div class="inline-flex flex-wrap items-center gap-3.5">
-			<span>CLIC PARA ABRIR EL UMBRAL</span>
+			<span>CLIC PARA ENTRAR EN SILENCIO</span>
 			<button
 				type="button"
 				id="holdHelmBtn"
 				class="pointer-events-auto inline-flex items-center gap-2 rounded-md border border-border bg-card/85 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-foreground transition-colors hover:border-aka hover:text-aka aria-[pressed=true]:border-aka aria-[pressed=true]:bg-aka aria-[pressed=true]:text-[#fdf8ee]"
 				aria-pressed="false"
 			>
-				Calmar la tormenta
+				Entrar en silencio
 			</button>
 		</div>
 	</div>
@@ -129,6 +130,25 @@ const commitments = profile?.commitments ?? [];
 				transparent 100%
 			);
 		}
+	}
+
+	.dune-whisper {
+		position: absolute;
+		z-index: 2;
+		pointer-events: none;
+		max-width: 14.5rem;
+		padding-left: 0.65rem;
+		border-left: 1.5px solid color-mix(in srgb, var(--aka) 78%, transparent);
+		font-size: 12.5px;
+		line-height: 1.45;
+		color: color-mix(in srgb, var(--foreground) 92%, transparent);
+		text-shadow: 0 2px 12px color-mix(in srgb, var(--background) 94%, transparent);
+		transform: translate(-50%, -100%);
+		transition: opacity 220ms ease;
+	}
+
+	.dune-whisper[hidden] {
+		display: none !important;
 	}
 </style>
 

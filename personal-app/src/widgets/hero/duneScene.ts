@@ -3,6 +3,8 @@ import { createProjector } from './duneFrame';
 import { drawGatePass } from './duneGatePass';
 import { createDunePylons, createKintsugiSeams, createStoneInscriptions } from './duneGeometry';
 import { drawMonolithPass } from './duneMonolithPass';
+import { stepDuneFsm } from './duneFsm';
+import { getWhisperOpacity } from './duneNarrative';
 import { readPalette } from './dunePalette';
 import { createSand, drawSandPass, updateSand } from './duneSand';
 import { drawScribePass } from './duneScribePass';
@@ -11,19 +13,32 @@ import { drawStairsPass } from './duneStairsPass';
 import {
 	advanceCameraMotion,
 	createDuneState,
+	getSunDir,
 	getTelemetryLabel,
 	toggleSanctuary,
 } from './duneState';
 import { drawTerrainPass } from './duneTerrainPass';
-import { vNorm } from './duneVectors';
 
-export type { DunePalette, DuneState, Quad3, RGB, SlabFace, Vec3 } from './duneTypes';
+export type {
+	DunePalette,
+	DuneState,
+	Quad3,
+	RGB,
+	ScribeState,
+	ScribeWhisper,
+	SlabFace,
+	ThresholdState,
+	Vec3,
+} from './duneTypes';
 export { hexToRgb, mixRgb, rgba } from './dunePalette';
 export { duneHeight } from './duneGeometry';
+export { getScribeVisibility, getScribeWorldPos, stepDuneFsm } from './duneFsm';
+export { getWhisperOpacity } from './duneNarrative';
 export { vAdd, vCross, vDot, makeSlab, vNorm, vScale, vSub } from './duneVectors';
 export {
 	advanceCameraMotion,
 	createDuneState,
+	getSunDir,
 	getTelemetryLabel,
 	isSanctuaryActive,
 	toggleSanctuary,
@@ -34,6 +49,7 @@ export function initDuneHero(): () => void {
 	const canvasNode = document.getElementById('duneCanvas');
 	const telemetryState = document.getElementById('telemetryState');
 	const holdHelmBtn = document.getElementById('holdHelmBtn');
+	const whisperEl = document.getElementById('duneWhisper');
 
 	if (!(stageNode instanceof HTMLElement) || !(canvasNode instanceof HTMLCanvasElement)) {
 		return () => {};
@@ -53,15 +69,45 @@ export function initDuneHero(): () => void {
 	let lastTs = performance.now();
 	let rafId = 0;
 	let isVisible = true;
+	let lastTelemetry = '';
+	let lastLock: boolean | null = null;
+	let lastWhisperText = '';
 
 	function syncTelemetry(): void {
-		if (telemetryState) {
-			telemetryState.textContent = getTelemetryLabel(state);
+		const label = getTelemetryLabel(state);
+		if (telemetryState && label !== lastTelemetry) {
+			lastTelemetry = label;
+			telemetryState.textContent = label;
 		}
-		if (holdHelmBtn) {
+		if (holdHelmBtn && lastLock !== state.shieldLocked) {
+			lastLock = state.shieldLocked;
 			holdHelmBtn.setAttribute('aria-pressed', state.shieldLocked ? 'true' : 'false');
-			holdHelmBtn.textContent = state.shieldLocked ? 'Soltar la calma' : 'Calmar la tormenta';
+			holdHelmBtn.textContent = state.shieldLocked ? 'Volver al ruido' : 'Entrar en silencio';
 		}
+	}
+
+	function syncWhisper(w: number, h: number, scribePos?: [number, number]): void {
+		if (!whisperEl) return;
+		const opacity = reducedMotion ? 0 : getWhisperOpacity(state.whisper);
+		if (!state.whisper || opacity <= 0.01 || !scribePos) {
+			if (!whisperEl.hidden) {
+				whisperEl.hidden = true;
+				lastWhisperText = '';
+			}
+			return;
+		}
+		if (state.whisper.text !== lastWhisperText) {
+			lastWhisperText = state.whisper.text;
+			whisperEl.textContent = state.whisper.text;
+		}
+		const minX = w >= 1024 ? w * 0.56 : Math.max(115, w * 0.22);
+		const maxX = Math.max(minX, w - 125);
+		const leftPx = Math.max(minX, Math.min(maxX, scribePos[0]));
+		const topPx = Math.max(58, Math.min(h - 86, scribePos[1] - 20));
+		whisperEl.style.left = `${leftPx.toFixed(1)}px`;
+		whisperEl.style.top = `${topPx.toFixed(1)}px`;
+		whisperEl.style.opacity = opacity.toFixed(2);
+		whisperEl.hidden = false;
 	}
 
 	function renderFrame(): void {
@@ -83,10 +129,16 @@ export function initDuneHero(): () => void {
 		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 		ctx.clearRect(0, 0, w, h);
 
+		if (!reducedMotion && state.openTremor > 0.01) {
+			const amp = state.openTremor * 1.5;
+			ctx.translate(Math.sin(state.time * 62) * amp, Math.cos(state.time * 47) * amp * 0.7);
+		}
+
 		const isDesktop = w >= 1024;
 		const cx = w * 0.5;
-		const cy = isDesktop ? h * 0.5 : h * 0.73;
-		const scale = isDesktop ? Math.min(w, h) * 0.215 : Math.min(w, h) * 0.155;
+		const cy = (isDesktop ? h * 0.5 : h * 0.73) - (state.cameraZoom - 1) * h * 0.08;
+		const baseScale = isDesktop ? Math.min(w, h) * 0.215 : Math.min(w, h) * 0.155;
+		const scale = baseScale * state.cameraZoom;
 		const camDist = 7.6;
 		const anchorX = isDesktop ? 1.85 : 0.0;
 		const anchorY = 0.0;
@@ -107,7 +159,7 @@ export function initDuneHero(): () => void {
 			state,
 			palette,
 			drawList: [],
-			sunDir: vNorm([-0.74, -0.52, 0.42]),
+			sunDir: getSunDir(state.dayPhase),
 			project: createProjector(cx, cy, scale, camDist),
 		};
 
@@ -123,6 +175,7 @@ export function initDuneHero(): () => void {
 		for (const item of frame.drawList) {
 			item.draw(ctx);
 		}
+		syncWhisper(w, h, frame.scribeScreenPos);
 	}
 
 	function scheduleNextFrame(): void {
@@ -139,9 +192,10 @@ export function initDuneHero(): () => void {
 		lastTs = ts;
 
 		if (!reducedMotion) {
-			state.time += dt;
+			stepDuneFsm(state, dt);
 			updateSand(sand, state, dt, syncTelemetry);
 			advanceCameraMotion(state);
+			syncTelemetry();
 		} else if (state.pulse > 0 || state.shieldStrength > 0.01) {
 			updateSand(sand, state, dt, syncTelemetry);
 		}
@@ -152,12 +206,22 @@ export function initDuneHero(): () => void {
 
 	const triggerSanctuaryToggle = () => {
 		toggleSanctuary(state);
-		syncTelemetry();
 		if (reducedMotion) {
 			state.shieldStrength = state.shieldLocked ? 1 : 0;
 			state.pulse = 0;
+			state.stairProgress = state.shieldLocked ? 1 : 0;
+			state.insideDepth = state.shieldLocked ? 1 : 0;
+			state.staffPlanted = state.shieldLocked;
+			state.cameraZoom = state.shieldLocked ? 1.09 : 1;
+			state.openTremor = 0;
+			state.dustBurst = 0;
+			state.breathPulse = state.shieldLocked ? 0.5 : 0;
+			state.thresholdState = state.shieldLocked ? 'EN_SILENCIO' : 'RUIDO';
+			state.scribeState = state.shieldLocked ? 'ADENTRO' : 'QUIETO';
+			syncTelemetry();
 			renderFrame();
 		} else {
+			syncTelemetry();
 			scheduleNextFrame();
 		}
 	};

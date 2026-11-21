@@ -2,22 +2,26 @@ import { transformGroundPoint, transformGatePoint } from './duneFrame';
 import type { DuneFrame } from './duneFrame';
 import { rgba } from './dunePalette';
 
+const MOTE_COUNT = 18;
+
 export function drawGatePass(frame: DuneFrame): void {
 	const { palette, state, project, splitGap, drawList } = frame;
+	const shadowSkew = Math.sin(state.dayPhase * Math.PI * 2) * 0.65;
+	const breathLift = state.breathPulse * 0.16;
 
 	// 3a. Long Monolith Shadows cast across the right/forward dune ridges
-	const shReachX = 3.6 + state.shieldStrength * 0.55;
+	const shReachX = 3.6 + state.shieldStrength * 0.55 + shadowSkew * 0.5;
 	const leftShadowLoops: [number, number][] = [
 		[-0.85 - splitGap, 0.22],
 		[-0.14 - splitGap, 0.22],
-		[1.95 + splitGap, 1.38],
-		[1.15 + splitGap, 1.56],
+		[1.95 + splitGap + shadowSkew * 0.35, 1.38 + shadowSkew * 0.14],
+		[1.15 + splitGap + shadowSkew * 0.35, 1.56 + shadowSkew * 0.14],
 	];
 	const rightShadowLoops: [number, number][] = [
 		[0.16 + splitGap, 0.26],
 		[0.96 + splitGap, 0.26],
-		[shReachX, 0.95],
-		[shReachX - 0.65, 1.48],
+		[shReachX, 0.95 + shadowSkew * 0.22],
+		[shReachX - 0.65, 1.48 + shadowSkew * 0.22],
 	];
 
 	for (const shLoop of [leftShadowLoops, rightShadowLoops]) {
@@ -60,9 +64,9 @@ export function drawGatePass(frame: DuneFrame): void {
 			const midFarX = (spGroundBeam[2][0] + spGroundBeam[3][0]) * 0.5;
 			const midFarY = (spGroundBeam[2][1] + spGroundBeam[3][1]) * 0.5;
 			const gFan = c.createLinearGradient(midNearX, midNearY, midFarX, midFarY);
-			const baseBoost = 0.32 + state.shieldStrength * 0.36;
-			gFan.addColorStop(0, rgba(palette.aka, Math.min(0.85, baseBoost * 1.35)));
-			gFan.addColorStop(0.52, rgba(palette.aka, baseBoost * 0.68));
+			const baseBoost = 0.32 + state.shieldStrength * 0.36 + breathLift;
+			gFan.addColorStop(0, rgba(palette.aka, Math.min(0.88, baseBoost * 1.35)));
+			gFan.addColorStop(0.52, rgba(palette.aka, Math.min(0.72, baseBoost * 0.68)));
 			gFan.addColorStop(1, rgba(palette.aka, 0));
 			c.fillStyle = gFan;
 			c.beginPath();
@@ -92,8 +96,8 @@ export function drawGatePass(frame: DuneFrame): void {
 				spSlitWall[1][0],
 				spSlitWall[1][1],
 			);
-			const edgeAlpha = 0.28 + state.shieldStrength * 0.26;
-			const coreAlpha = 0.68 + state.shieldStrength * 0.28;
+			const edgeAlpha = Math.min(0.85, 0.28 + state.shieldStrength * 0.26 + breathLift);
+			const coreAlpha = Math.min(0.95, 0.68 + state.shieldStrength * 0.22 + breathLift);
 			gHoriz.addColorStop(0, rgba(palette.akaDeep, edgeAlpha));
 			gHoriz.addColorStop(0.45, rgba(palette.aka, coreAlpha));
 			gHoriz.addColorStop(1, rgba(palette.aka, edgeAlpha * 0.85));
@@ -105,6 +109,32 @@ export function drawGatePass(frame: DuneFrame): void {
 			c.fill();
 		},
 	});
+
+	if (state.insideDepth > 0.25) {
+		const hearthCenter = project(transformGatePoint(frame, [0, 0.85, -0.1], 0));
+		const hearthR = (28 + state.breathPulse * 14) * hearthCenter[3];
+		const hearthAlpha = Math.min(0.75, state.insideDepth * (0.28 + state.breathPulse * 0.26));
+		drawList.push({
+			z: -0.92,
+			draw: (c) => {
+				const gHearth = c.createRadialGradient(
+					hearthCenter[0],
+					hearthCenter[1],
+					1,
+					hearthCenter[0],
+					hearthCenter[1],
+					hearthR,
+				);
+				gHearth.addColorStop(0, rgba(palette.card, hearthAlpha * 0.65));
+				gHearth.addColorStop(0.45, rgba(palette.aka, hearthAlpha));
+				gHearth.addColorStop(1, rgba(palette.aka, 0));
+				c.fillStyle = gHearth;
+				c.beginPath();
+				c.arc(hearthCenter[0], hearthCenter[1], hearthR, 0, Math.PI * 2);
+				c.fill();
+			},
+		});
+	}
 
 	// Soft Atmospheric God-Ray Wedge
 	const rayWedgePts = [
@@ -124,7 +154,7 @@ export function drawGatePass(frame: DuneFrame): void {
 			const botMidX = (spWedge[2][0] + spWedge[3][0]) * 0.5;
 			const botMidY = (spWedge[2][1] + spWedge[3][1]) * 0.5;
 			const gWedge = c.createLinearGradient(topMidX, topMidY, botMidX, botMidY);
-			const wAlpha = 0.18 + state.shieldStrength * 0.24;
+			const wAlpha = Math.min(0.68, 0.18 + state.shieldStrength * 0.24 + breathLift * 0.75);
 			gWedge.addColorStop(0, rgba(palette.aka, wAlpha * 0.75));
 			gWedge.addColorStop(0.48, rgba(palette.aka, wAlpha));
 			gWedge.addColorStop(1, rgba(palette.aka, 0));
@@ -136,4 +166,35 @@ export function drawGatePass(frame: DuneFrame): void {
 			c.fill();
 		},
 	});
+
+	if (state.shieldStrength > 0.12 || state.insideDepth > 0.2) {
+		const motePresence = Math.max(state.shieldStrength, state.insideDepth);
+		const motes: { x: number; y: number; r: number; alpha: number }[] = [];
+		for (let i = 0; i < MOTE_COUNT; i++) {
+			const t = (state.time * (0.09 + (i % 4) * 0.02) + i * 0.173) % 1;
+			const wx = Math.sin(i * 2.3 + state.time * 0.45 + t * 2) * (0.12 + t * 0.22);
+			const wy = 1.1 - t * 1.45;
+			const wz = 0.05 + t * 1.15;
+			const sm = project(transformGatePoint(frame, [wx, wy, wz], 0));
+			const fade = Math.sin(t * Math.PI);
+			motes.push({
+				x: sm[0],
+				y: sm[1],
+				r: Math.max(0.9, (1.1 + (i % 3) * 0.45) * sm[3]),
+				alpha: fade * motePresence * (0.35 + state.breathPulse * 0.28),
+			});
+		}
+		drawList.push({
+			z: 1.34,
+			draw: (c) => {
+				for (const m of motes) {
+					if (m.alpha <= 0.02) continue;
+					c.fillStyle = rgba(palette.aka, m.alpha);
+					c.beginPath();
+					c.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+					c.fill();
+				}
+			},
+		});
+	}
 }

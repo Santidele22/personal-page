@@ -3,7 +3,7 @@ import type { DuneFrame } from './duneFrame';
 import type { KintsugiSeam, StoneInscription } from './duneGeometry';
 import { mixRgb, rgba } from './dunePalette';
 import type { SlabFace } from './duneTypes';
-import { vCross, vDot, vNorm, vScale, vSub } from './duneVectors';
+import { vCross, vDot, vNorm, vSub } from './duneVectors';
 
 export function drawMonolithPass(
 	frame: DuneFrame,
@@ -12,6 +12,10 @@ export function drawMonolithPass(
 	stoneInscriptions: StoneInscription[],
 ): void {
 	const { palette, state, project, sunDir, drawList } = frame;
+	const stepPulse =
+		state.scribeState === 'ENTRANDO' && state.insideDepth === 0
+			? Math.abs(Math.sin(state.stairProgress * Math.PI * 5)) * 0.24
+			: 0;
 
 	// Render left and right brutalist pylons
 	for (let idx = 0; idx < pylonFaces.length; idx++) {
@@ -29,7 +33,11 @@ export function drawMonolithPass(
 			: mixRgb(mixRgb(palette.fg, palette.muted, 0.25), palette.card, 0.22 + diff * 0.74);
 
 		if (isInnerWall) {
-			stoneTone = mixRgb(stoneTone, palette.aka, 0.28 + state.shieldStrength * 0.38);
+			stoneTone = mixRgb(
+				stoneTone,
+				palette.aka,
+				Math.min(0.85, 0.28 + state.shieldStrength * 0.38 + state.breathPulse * 0.22 + stepPulse * 0.2),
+			);
 		}
 
 		const sPts = wPts.map(project);
@@ -67,8 +75,12 @@ export function drawMonolithPass(
 		drawList.push({
 			z: avgZ,
 			draw: (c) => {
-				if (state.shieldStrength > 0.05 || state.pulse > 0.02) {
-					c.strokeStyle = rgba(palette.aka, 0.4 * Math.max(state.shieldStrength, state.pulse));
+				const kGlow = Math.min(
+					1,
+					Math.max(state.shieldStrength, state.pulse, state.kintsugiWave) + state.breathPulse * 0.32 + stepPulse,
+				);
+				if (kGlow > 0.05) {
+					c.strokeStyle = rgba(palette.aka, 0.42 * kGlow);
 					c.lineWidth = 5.2;
 					c.lineCap = 'round';
 					c.lineJoin = 'round';
@@ -78,7 +90,7 @@ export function drawMonolithPass(
 					c.stroke();
 				}
 				c.strokeStyle = rgba(palette.aka, 0.92);
-				c.lineWidth = 2.0 + state.shieldStrength * 0.7;
+				c.lineWidth = 2.0 + Math.max(state.shieldStrength, state.kintsugiWave * 0.7) * 0.7;
 				c.lineCap = 'round';
 				c.lineJoin = 'round';
 				c.beginPath();
@@ -90,7 +102,8 @@ export function drawMonolithPass(
 	}
 
 	// 4. Carved Stone Inscriptions on the Monolith Faces
-	for (const inscr of stoneInscriptions) {
+	for (let iIdx = 0; iIdx < stoneInscriptions.length; iIdx++) {
+		const inscr = stoneInscriptions[iIdx];
 		const wQuad = inscr.quad.map((p) => transformGatePoint(frame, p, inscr.side));
 		const qN = vCross(vSub(wQuad[3], wQuad[0]), vSub(wQuad[1], wQuad[0]));
 		if (qN[2] <= 0) continue;
@@ -102,9 +115,12 @@ export function drawMonolithPass(
 		drawList.push({
 			z: avgZ,
 			draw: (c) => {
-				const isGlow = inscr.accent;
+				const runeWave =
+					Math.max(0, Math.sin(state.time * 2.4 - iIdx * 0.55)) *
+					Math.max(state.codexGlow, state.kintsugiWave);
+				const isGlow = inscr.accent || runeWave > 0.35;
 				c.strokeStyle = isGlow
-					? rgba(palette.aka, 0.58 + state.shieldStrength * 0.32)
+					? rgba(palette.aka, 0.48 + state.shieldStrength * 0.32 + runeWave * 0.35)
 					: rgba(palette.fg, (palette.isDark ? 0.32 : 0.26) + state.shieldStrength * 0.12);
 				c.lineWidth = isGlow ? 1.25 : 0.9;
 				c.lineCap = 'round';
@@ -112,6 +128,30 @@ export function drawMonolithPass(
 				c.moveTo(sPts[0][0], sPts[0][1]);
 				c.lineTo(sPts[1][0], sPts[1][1]);
 				c.stroke();
+			},
+		});
+	}
+
+	if (state.dustBurst > 0.02) {
+		const progress = 1 - state.dustBurst;
+		const specks: { x: number; y: number; r: number }[] = [];
+		for (let i = 0; i < 14; i++) {
+			const sideSign = i % 2 === 0 ? -1 : 1;
+			const frac = (i % 7) / 6;
+			const fallY = -1.35 + frac * 1.15 + progress * (0.55 + (i % 5) * 0.18);
+			const driftX = sideSign * 0.16 - progress * (0.04 + state.gustStrength * 0.14) + Math.sin(i * 1.9 + progress * 6) * 0.015;
+			const pt = project(transformGatePoint(frame, [driftX, fallY, 0.22 + (i % 3) * 0.05], sideSign));
+			specks.push({ x: pt[0], y: pt[1], r: Math.max(0.85, (1.0 + (i % 3) * 0.35) * pt[3]) });
+		}
+		drawList.push({
+			z: 0.42,
+			draw: (c) => {
+				c.fillStyle = rgba(palette.fg, state.dustBurst * (palette.isDark ? 0.46 : 0.38));
+				for (const sp of specks) {
+					c.beginPath();
+					c.arc(sp.x, sp.y, sp.r, 0, Math.PI * 2);
+					c.fill();
+				}
 			},
 		});
 	}
