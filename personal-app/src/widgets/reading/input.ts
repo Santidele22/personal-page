@@ -8,10 +8,19 @@ import {
 	openTimerDeck,
 } from './decks';
 import { getChapters, getCurrentItemIndex } from './doc';
-import { body, chapterDeck, chapterList, stage, timerDeck } from './dom';
+import {
+	body,
+	chapterDeck,
+	chapterList,
+	stage,
+	timerDeck,
+	vigiliaLockVeil,
+	vigiliaSummaryModal,
+} from './dom';
 import { cycleFocusMode } from './prefs';
 import { cancelSmoothScroll, stepLine } from './scroll';
 import { hideSelbar } from './selection';
+import { closeVigiliaSummary } from './timer';
 import { hasActiveOverlay, setZen, toggleFullscreen } from './zen';
 
 // Keyboard map of the vigilia: line and chapter stepping, the decks, zen,
@@ -32,7 +41,21 @@ export function initKeyboard(): void {
 			return;
 		}
 		const key = e.key.toLowerCase();
+		if (vigiliaLockVeil && !vigiliaLockVeil.hidden) {
+			if (key === 'escape') e.preventDefault();
+			return;
+		}
+		if (vigiliaSummaryModal && !vigiliaSummaryModal.hidden) {
+			if (key === 'escape') {
+				e.preventDefault();
+				closeVigiliaSummary();
+			}
+			return;
+		}
 		if (key === 'escape') {
+			if (body.dataset.vigiliaLocked === 'on') {
+				e.preventDefault();
+			}
 			if (hasActiveOverlay()) {
 				closeAllDecks();
 				hideSelbar();

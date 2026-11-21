@@ -3,11 +3,13 @@ import '../../features/book/reader/reader-tokens.css';
 import '../../features/book/reader/reader-chrome.css';
 import '../../features/book/reader/reader-stage.css';
 import '../../features/book/reader/reader-panels.css';
+import '../../features/book/reader/reader-vigilia.css';
 import ReaderAtmosphere from '../../features/book/reader/ReaderAtmosphere.astro';
 import ReaderTopbar from '../../features/book/reader/ReaderTopbar.astro';
 import ReaderStage from '../../features/book/reader/ReaderStage.astro';
 import ReaderMargins from '../../features/book/reader/ReaderMargins.astro';
 import ReaderDecks from '../../features/book/reader/ReaderDecks.astro';
+import ReaderVigiliaOverlays from '../../features/book/reader/ReaderVigiliaOverlays.astro';
 import ReaderFooter from '../../features/book/reader/ReaderFooter.astro';
 import { Font } from 'astro:assets';
 import { SITE_NAME } from '../../app/config/site';
@@ -117,6 +119,8 @@ const pageDescription = book
 	<ReaderMargins words={initialWords} />
 
 	<ReaderDecks />
+
+	<ReaderVigiliaOverlays />
 
 	<ReaderFooter />
 

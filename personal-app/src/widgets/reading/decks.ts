@@ -7,7 +7,6 @@ import {
 	chapterList,
 	nextChapterBtn,
 	prevChapterBtn,
-	timerAbandonConfirm,
 	timerBtn,
 	timerDeck,
 	viewBtn,
@@ -32,7 +31,6 @@ function closeChapterDeck() {
 function closeTimerDeck() {
 	timerDeck?.classList.remove('open');
 	timerBtn?.setAttribute('aria-expanded', 'false');
-	if (timerAbandonConfirm) timerAbandonConfirm.hidden = true;
 }
 
 function closeAllDecks(except?: 'view' | 'chapter' | 'timer') {

@@ -162,31 +162,7 @@
 	height:1px; width:100%; pointer-events:none;
 }
 
-/* ===== Navegación por capítulos + Vigilia cronometrada ===== */
-.topbar .crumb.is-locked,
-.session a.is-locked {
-	opacity:.45;
-	cursor:not-allowed;
-	border-style:dashed;
-}
-.topbar .crumb.is-locked::after,
-.session a.is-locked::after {
-	content:" · 🔒";
-	letter-spacing:0;
-}
-.top-timer-pill {
-	display:inline-flex; align-items:center; gap:6px;
-	padding:4px 9px; border-radius:999px;
-	border:1px solid rgba(201,62,58,.45);
-	background:rgba(201,62,58,.12);
-	font:500 10px/1 var(--font-mono); letter-spacing:.12em;
-	color:var(--w-foreground); font-variant-numeric:tabular-nums;
-}
-.top-timer-pill[hidden] { display:none !important; }
-.top-timer-pill .timer-dot {
-	width:6px; height:6px; border-radius:50%; background:var(--aka);
-	animation:loaderPulse 1.6s ease-in-out infinite;
-}
+/* ===== Navegación por capítulos ===== */
 .chapter-nav {
 	display:inline-flex; align-items:center;
 	border:1px solid var(--w-border); border-radius:999px;
@@ -208,19 +184,7 @@
 .chapter-nav button:disabled { opacity:.35; cursor:default; }
 .chapter-nav button[aria-expanded="true"] { color:var(--aka); }
 
-.timer-trigger { font-variant-numeric:tabular-nums; }
-.timer-trigger.is-running {
-	color:var(--aka); border-color:rgba(201,62,58,.55);
-	background:rgba(201,62,58,.1);
-}
-.timer-trigger .timer-dot {
-	width:6px; height:6px; border-radius:50%; background:var(--aka);
-	animation:loaderPulse 1.6s ease-in-out infinite;
-}
-.timer-trigger .timer-dot[hidden] { display:none; }
-
-.chapter-deck,
-.timer-deck {
+.chapter-deck {
 	position:fixed; z-index:36; bottom:100px; right:26px;
 	width:min(352px, calc(100vw - 32px));
 	border:1px solid var(--w-border); background:var(--w-panel);
@@ -230,10 +194,9 @@
 	transition:opacity .25s ease, transform .25s ease;
 }
 @media (max-width: 760px) {
-	.chapter-deck, .timer-deck { bottom:108px; right:16px; }
+	.chapter-deck { bottom:108px; right:16px; }
 }
-.chapter-deck.open,
-.timer-deck.open { opacity:1; transform:none; pointer-events:auto; }
+.chapter-deck.open { opacity:1; transform:none; pointer-events:auto; }
 .deck-head {
 	display:flex; align-items:center; justify-content:space-between; gap:10px;
 	padding-bottom:10px; margin-bottom:12px; border-bottom:1px solid var(--w-border);
@@ -283,98 +246,11 @@
 	font:400 9px/1.5 var(--font-mono); letter-spacing:.12em; text-transform:uppercase;
 	color:var(--w-ghost);
 }
-
-.timer-desc {
-	font:400 12.5px/1.6 var(--font-zen-stack); color:var(--w-body); margin-bottom:12px;
-}
-.timer-presets {
-	display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin-bottom:12px;
-}
-.timer-preset {
-	height:30px; border:1px solid var(--w-border); border-radius:999px;
-	background:rgba(13,10,7,.7); color:var(--w-faint); cursor:pointer;
-	font:500 10px/1 var(--font-mono); letter-spacing:.1em;
-}
-.timer-preset:hover { color:var(--w-foreground); border-color:#8a7d66; }
-.timer-preset[aria-pressed="true"] {
-	color:var(--aka); border-color:rgba(201,62,58,.55); background:rgba(201,62,58,.14);
-}
-.timer-custom-row {
-	display:flex; align-items:center; gap:8px; margin-bottom:10px;
-}
-.timer-custom-row label {
-	font:500 9px/1 var(--font-mono); letter-spacing:.14em; text-transform:uppercase;
-	color:var(--w-faint); white-space:nowrap;
-}
-.timer-custom-row input {
-	width:72px; height:32px; padding:0 10px;
-	border:1px solid var(--w-border); border-radius:6px;
-	background:#120e0a; color:var(--w-foreground);
-	font:500 12px/1 var(--font-mono); font-variant-numeric:tabular-nums;
-}
-.timer-start-btn {
-	flex:1; height:32px; padding:0 14px; border-radius:999px;
-	border:1px solid rgba(201,62,58,.6); background:rgba(201,62,58,.18);
-	color:var(--w-foreground); cursor:pointer;
-	font:500 9px/1 var(--font-mono); letter-spacing:.16em; text-transform:uppercase;
-}
-.timer-start-btn:hover { background:rgba(201,62,58,.3); color:#fff; }
-.timer-stats {
-	margin-top:8px; font:400 10px/1.4 var(--font-mono); letter-spacing:.1em;
-	color:var(--w-faint);
-}
-.timer-running-clock {
-	text-align:center; padding:8px 0 10px;
-	font:600 34px/1.1 var(--font-mono); letter-spacing:.08em;
-	color:var(--w-foreground); font-variant-numeric:tabular-nums;
-}
-.timer-bar {
-	width:100%; height:4px; border-radius:999px; background:#262017;
-	overflow:hidden; margin-bottom:10px;
-}
-.timer-bar i {
-	display:block; height:100%; width:0%;
-	background:linear-gradient(90deg, var(--aka-deep), var(--aka));
-	transition:width .35s linear;
-}
-.timer-lock-note {
-	font:400 11.5px/1.5 var(--font-zen-stack); color:var(--w-faint);
-	text-align:center; margin-bottom:12px;
-}
-.timer-abandon-btn {
-	width:100%; height:30px; border-radius:999px;
-	border:1px solid var(--w-border); background:rgba(20,17,13,.85);
-	color:var(--w-faint); cursor:pointer;
-	font:500 9px/1 var(--font-mono); letter-spacing:.14em; text-transform:uppercase;
-}
-.timer-abandon-btn:hover { color:#e07d79; border-color:rgba(201,62,58,.45); }
-.timer-abandon-confirm {
-	margin-top:10px; padding:12px; border:1px solid rgba(201,62,58,.4);
-	background:rgba(201,62,58,.08); border-radius:6px;
-}
-.timer-abandon-confirm[hidden] { display:none !important; }
-.timer-abandon-confirm p {
-	font:400 12px/1.5 var(--font-zen-stack); color:var(--w-foreground); margin-bottom:10px;
-}
-.timer-abandon-actions { display:flex; gap:8px; }
-.timer-abandon-actions button {
-	flex:1; height:30px; border-radius:999px; cursor:pointer;
-	font:500 9px/1 var(--font-mono); letter-spacing:.12em; text-transform:uppercase;
-}
-.timer-abandon-yes {
-	border:1px solid rgba(201,62,58,.65); background:rgba(201,62,58,.24); color:#ffd9d7;
-}
-.timer-abandon-yes:hover { background:rgba(201,62,58,.4); }
-.timer-abandon-no {
-	border:1px solid var(--w-border); background:rgba(13,10,7,.85); color:var(--w-body);
-}
 @media (max-width: 560px) {
 	.bottombar-right { gap:6px; }
 	.chapter-nav button.chap-step { width:26px; }
 	.chapter-nav button.chap-open { padding:0 9px; }
-	.top-timer-pill { padding:3px 7px; font-size:9px; }
 }
 @media (prefers-reduced-motion: reduce) {
-	.chapter-deck, .timer-deck, .timer-bar i { transition:none; }
-	.top-timer-pill .timer-dot, .timer-trigger .timer-dot { animation:none; }
+	.chapter-deck { transition:none; }
 }

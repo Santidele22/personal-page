@@ -1,5 +1,16 @@
 import { getDisplayItems } from './doc';
-import { body, chapterDeck, fullBtn, fullLabel, selbar, stage, timerDeck, viewDeck } from './dom';
+import {
+	body,
+	chapterDeck,
+	fullBtn,
+	fullLabel,
+	selbar,
+	stage,
+	timerDeck,
+	viewDeck,
+	vigiliaLockVeil,
+	vigiliaSummaryModal,
+} from './dom';
 import { announce } from './feedback';
 import { appendNextBatch, getRenderedEnd, getRenderedStart, prependPrevBatch } from './renderWindow';
 import { settlePendingLineJump } from './scroll';
@@ -14,7 +25,9 @@ function hasActiveOverlay(): boolean {
 		viewDeck?.classList.contains('open') ||
 			chapterDeck?.classList.contains('open') ||
 			timerDeck?.classList.contains('open') ||
-			selbar?.classList.contains('on'),
+			selbar?.classList.contains('on') ||
+			(vigiliaLockVeil && !vigiliaLockVeil.hidden) ||
+			(vigiliaSummaryModal && !vigiliaSummaryModal.hidden),
 	);
 }
 
@@ -39,6 +52,10 @@ async function toggleFullscreen() {
 		if (!document.fullscreenElement) {
 			await document.documentElement.requestFullscreen();
 		} else {
+			if (body.dataset.vigiliaLocked === 'on') {
+				announce('vigilia sellada · pantalla completa bloqueada hasta completar');
+				return;
+			}
 			await document.exitFullscreen();
 		}
 	} catch {
@@ -48,8 +65,12 @@ async function toggleFullscreen() {
 
 function syncFullscreenButton() {
 	const active = Boolean(document.fullscreenElement);
+	const locked = body.dataset.vigiliaLocked === 'on';
 	fullBtn?.setAttribute('aria-pressed', String(active));
-	if (fullLabel) fullLabel.textContent = active ? 'Salir' : 'Inmersión';
+	fullBtn?.classList.toggle('is-locked', active && locked);
+	if (fullLabel) {
+		fullLabel.textContent = active ? (locked ? 'Sellada' : 'Salir') : 'Inmersión';
+	}
 }
 
 export function initZen(): void {
@@ -110,4 +131,4 @@ export function initZen(): void {
 	document.addEventListener('fullscreenchange', syncFullscreenButton);
 }
 
-export { hasActiveOverlay, setZen, toggleFullscreen, wakeChrome };
+export { hasActiveOverlay, setZen, syncFullscreenButton, toggleFullscreen, wakeChrome };

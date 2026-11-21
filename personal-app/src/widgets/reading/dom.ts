@@ -40,12 +40,30 @@ export const timerRunningView = document.getElementById('timerRunningView');
 export const timerCustomMinutes = document.getElementById('timerCustomMinutes') as HTMLInputElement | null;
 export const timerStartBtn = document.getElementById('timerStartBtn') as HTMLButtonElement | null;
 export const timerStatsNote = document.getElementById('timerStatsNote');
+export const timerStatusBadge = document.getElementById('timerStatusBadge');
 export const timerClockDisplay = document.getElementById('timerClockDisplay');
 export const timerBarFill = document.getElementById('timerBarFill') as HTMLElement | null;
-export const timerAbandonPromptBtn = document.getElementById('timerAbandonPromptBtn') as HTMLButtonElement | null;
-export const timerAbandonConfirm = document.getElementById('timerAbandonConfirm');
-export const timerAbandonConfirmBtn = document.getElementById('timerAbandonConfirmBtn') as HTMLButtonElement | null;
-export const timerAbandonCancelBtn = document.getElementById('timerAbandonCancelBtn') as HTMLButtonElement | null;
+export const timerPauseNote = document.getElementById('timerPauseNote');
+export const timerChimeToggle = document.getElementById('timerChimeToggle') as HTMLButtonElement | null;
+
+export const vigiliaLockVeil = document.getElementById('vigiliaLockVeil');
+export const vigiliaVeilClock = document.getElementById('vigiliaVeilClock');
+export const vigiliaVeilReason = document.getElementById('vigiliaVeilReason');
+export const vigiliaResumeBtn = document.getElementById('vigiliaResumeBtn') as HTMLButtonElement | null;
+
+export const vigiliaSummaryModal = document.getElementById('vigiliaSummaryModal');
+export const vigiliaSummaryTitle = document.getElementById('vigiliaSummaryTitle');
+export const vigiliaSummaryDuration = document.getElementById('vigiliaSummaryDuration');
+export const vigiliaSummaryPages = document.getElementById('vigiliaSummaryPages');
+export const vigiliaSummaryProgress = document.getElementById('vigiliaSummaryProgress');
+export const vigiliaSummaryPauses = document.getElementById('vigiliaSummaryPauses');
+export const vigiliaSummarySaveStatus = document.getElementById('vigiliaSummarySaveStatus');
+export const vigiliaSummaryContinueBtn = document.getElementById(
+	'vigiliaSummaryContinueBtn',
+) as HTMLButtonElement | null;
+export const vigiliaSummaryExitLink = document.getElementById(
+	'vigiliaSummaryExitLink',
+) as HTMLAnchorElement | null;
 
 export const saveBtn = document.getElementById('saveBtn');
 export const saveLabel = document.getElementById('saveLabel');

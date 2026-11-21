@@ -63,7 +63,7 @@ export {
 	type ReaderPrefs,
 } from './prefs';
 export {
-	abandonTimerSession,
+	buildTimerSummary,
 	clampTimerMinutes,
 	createIdleTimerSession,
 	createTimerSession,
@@ -73,8 +73,16 @@ export {
 	isNavigationLocked,
 	MAX_TIMER_MINUTES,
 	MIN_TIMER_MINUTES,
+	parseChimeMuted,
 	parseCompletedTimersCount,
+	parseLastTimerMinutes,
+	parsePersistedTimerSession,
+	pauseTimerSession,
+	resumeTimerSession,
+	serializeTimerSession,
 	TIMER_PRESET_MINUTES,
 	type ReadingLockTimer,
 	type ReadingLockTimerStatus,
+	type TimerSessionMeta,
+	type TimerSessionSummary,
 } from './timers';
