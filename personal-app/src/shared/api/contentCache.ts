@@ -53,7 +53,6 @@ const CACHEABLE_PATHS = new Set([
 	'/blogs',
 	'/tools',
 	'/menu-items',
-	'/books',
 	'/services',
 	'/advertising-plans',
 	'/brands',
@@ -71,13 +70,12 @@ const CACHEABLE_PATHS = new Set([
  */
 const CACHEABLE_QUERIED_PATHS = new Set([
 	'/certificates?limit=4',
-	'/books?limit=4&published=true',
 	'/projects?limit=4',
 	'/services?limit=4',
 ]);
 
 /** Sub-paths that stay cacheable (the item lookups the public site uses). */
-const CACHEABLE_PREFIXES = ['blogs/slug/', 'books/', 'brands/'];
+const CACHEABLE_PREFIXES = ['blogs/slug/', 'brands/'];
 
 /** Admin-only reads that must never share the public cache. */
 const NEVER_CACHED = new Set(['/blogs/drafts']);
@@ -192,11 +190,7 @@ export function cachedEntryCount(): number {
  */
 export function cacheablePath(path: string): boolean {
 	const clean = path.replace(/\/+$/, '');
-	if (
-		NEVER_CACHED.has(clean) ||
-		clean.endsWith('/reading') ||
-		clean.endsWith('/reading-state')
-	) {
+	if (NEVER_CACHED.has(clean)) {
 		return false;
 	}
 	if (CACHEABLE_PATHS.has(clean) || CACHEABLE_QUERIED_PATHS.has(clean)) return true;

@@ -71,13 +71,9 @@ function allowedCrossOrigin(originHeader: string | null): string | null {
 }
 
 /**
- * Body caps for the forwarded requests (issue 38). JSON admin writes are tiny
- * compared to these; the multipart PDF upload of a book
- * (`POST /api/books/:id/file`) is the one large body the site expects.
+ * Body cap for forwarded requests (issue 38). Admin JSON and multipart writes stay small.
  */
 const DEFAULT_BODY_LIMIT = 1_048_576; // 1 MiB
-const BOOK_FILE_BODY_LIMIT = 62_914_560; // 60 MiB
-const BOOK_FILE_ROUTE = /^\/api\/books\/[^/]+\/file$/;
 
 /** The proxy answers requests at runtime, never at build time. */
 export const prerender = false;
@@ -93,10 +89,6 @@ function upstreamUrl(url: URL): string {
 	}
 
 	return `${backendUrl}${url.pathname.replace(/^\/api/, '')}${url.search}`;
-}
-
-function bodyLimitFor(pathname: string, method: string): number {
-	return method === 'POST' && BOOK_FILE_ROUTE.test(pathname) ? BOOK_FILE_BODY_LIMIT : DEFAULT_BODY_LIMIT;
 }
 
 const PAYLOAD_TOO_LARGE = JSON.stringify({
@@ -188,7 +180,7 @@ async function forward(request: Request, clientAddress?: string): Promise<Respon
 		headers.set('x-forwarded-for', [...claimed, clientAddress].join(', '));
 	}
 
-	const body = await readBody(request, bodyLimitFor(url.pathname, request.method));
+	const body = await readBody(request, DEFAULT_BODY_LIMIT);
 	if (body === 'too-large') {
 		return new Response(PAYLOAD_TOO_LARGE, { status: 413, headers: { 'Content-Type': 'application/json' } });
 	}

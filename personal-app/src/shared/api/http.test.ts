@@ -72,8 +72,8 @@ describe('getJson — reads that must never be cached (spec S7)', () => {
 	});
 
 	it('cookie-authenticated SSR reads forward the cookie and bypass the cache', async () => {
-		await getJson('/books/7', { cookie: 'session=abc' });
-		await getJson('/books/7', { cookie: 'session=abc' });
+		await getJson('/brands/7', { cookie: 'session=abc' });
+		await getJson('/brands/7', { cookie: 'session=abc' });
 
 		expect(fetchStub).toHaveBeenCalledTimes(2);
 		const headers = fetchStub.mock.calls[0][1].headers as Headers;

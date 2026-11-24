@@ -4,7 +4,6 @@ export type AdminSection =
 	| 'manifiesto'
 	| 'servicios'
 	| 'proyectos'
-	| 'libros'
 	| 'herramientas'
 	| 'certificados'
 	| 'recomendaciones'
